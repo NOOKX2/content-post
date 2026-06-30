@@ -15,7 +15,7 @@ export default function ContentCalendarPage() {
         showExport
         onExport={() => alert("PDF Export จะเชื่อมต่อในขั้นตอนถัดไป")}
       />
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="p-6">
         <ContentCalendarGrid contents={contents} />
       </div>
     </>

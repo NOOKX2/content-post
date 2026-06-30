@@ -2,6 +2,7 @@
 
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "./user-menu";
 
 interface HeaderProps {
   title: string;
@@ -19,7 +20,7 @@ export function Header({
   actions,
 }: HeaderProps) {
   return (
-    <header className="flex items-start justify-between border-b border-stone-200/80 bg-white px-8 py-6">
+    <header className="sticky top-0 z-40 flex shrink-0 items-center justify-between border-b border-stone-200/80 bg-white/95 px-8 py-4 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80">
       <div>
         <h1 className="text-2xl font-bold text-stone-900">{title}</h1>
         {description && (
@@ -34,6 +35,7 @@ export function Header({
           </Button>
         )}
         {actions}
+        <UserMenu />
       </div>
     </header>
   );

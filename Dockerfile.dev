@@ -1,0 +1,23 @@
+FROM oven/bun:1-debian
+
+WORKDIR /app
+
+# Native deps for @node-rs/argon2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+COPY prisma ./prisma
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+RUN bunx prisma generate
+
+EXPOSE 3000
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["dev"]

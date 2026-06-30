@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   CalendarDays,
   ClipboardList,
@@ -13,19 +14,28 @@ import {
 import { cn } from "@/lib/utils";
 import { useContent } from "@/lib/content-context";
 
-const NAV_ITEMS = [
+const CREATOR_NAV = [
   { href: "/create", label: "สร้าง Content", icon: PenSquare },
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
   { href: "/content-calendar", label: "Content Calendar", icon: LayoutGrid },
-  { href: "/admin", label: "Admin อนุมัติ", icon: ShieldCheck },
-];
+] as const;
+
+const ADMIN_NAV = {
+  href: "/admin",
+  label: "Admin อนุมัติ",
+  icon: ShieldCheck,
+} as const;
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const { pendingCount } = useContent();
+  const isAdmin = session?.user?.role === "ADMIN";
+
+  const navItems = isAdmin ? [...CREATOR_NAV, ADMIN_NAV] : CREATOR_NAV;
 
   return (
-    <aside className="flex w-64 flex-col border-r border-stone-200/80 bg-white">
+    <aside className="flex w-64 shrink-0 flex-col border-r border-stone-200/80 bg-white">
       <div className="flex items-center gap-3 border-b border-stone-200/80 px-6 py-5">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
           <Leaf className="h-5 w-5" />
@@ -37,7 +47,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 p-4">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href;
           const showBadge = href === "/admin" && pendingCount > 0;
 
@@ -70,9 +80,6 @@ export function Sidebar() {
             <ClipboardList className="h-3.5 w-3.5" />
             <span>Module 1: Content Creation</span>
           </div>
-          <p className="mt-1 text-xs text-stone-400">
-            เลือก Video หรือ Picture/Post
-          </p>
         </div>
       </div>
     </aside>

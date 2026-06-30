@@ -10,7 +10,7 @@ export default function AdminPage() {
         title="Admin — อนุมัติ Content"
         description="ตรวจสอบและอนุมัติ Content ก่อนขึ้นปฏิทินและโพสต์อัตโนมัติ"
       />
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="px-8 py-6">
         <ApprovalList />
       </div>
     </>

@@ -16,8 +16,8 @@ export default function CreatePage() {
         showExport
         onExport={() => alert("PDF Export จะเชื่อมต่อในขั้นตอนถัดไป")}
       />
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="flex flex-1 flex-col xl:flex-row">
+        <div className="flex-1 px-8 py-6">
           <ContentForm />
         </div>
         <div className="hidden w-[420px] shrink-0 border-l border-stone-200/80 bg-stone-50/50 p-4 xl:block">

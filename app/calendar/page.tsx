@@ -13,7 +13,7 @@ export default function CalendarPage() {
         title="ปฏิทิน Content"
         description="ดูตาราง Content ที่อนุมัติแล้ว — จะโพสต์อัตโนมัติตาม schedule"
       />
-      <div className="flex-1 overflow-hidden p-6">
+      <div className="p-6">
         <CalendarView contents={contents} />
       </div>
     </>
