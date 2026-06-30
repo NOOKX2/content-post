@@ -1,0 +1,37 @@
+"use client";
+
+import { ContentForm } from "@/components/content/content-form";
+import { CalendarView } from "@/components/calendar/calendar-view";
+import { Header } from "@/components/layout/header";
+import { useContent } from "@/lib/content-context";
+
+export default function CreatePage() {
+  const { contents } = useContent();
+
+  return (
+    <>
+      <Header
+        title="สร้าง Content"
+        description="กรอกข้อมูล Content แล้วส่งเพื่อให้ Admin อนุมัติ"
+        showExport
+        onExport={() => alert("PDF Export จะเชื่อมต่อในขั้นตอนถัดไป")}
+      />
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <ContentForm />
+        </div>
+        <div className="hidden w-[420px] shrink-0 border-l border-stone-200/80 bg-stone-50/50 p-4 xl:block">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-stone-700">
+              iDea Content Calendar
+            </h3>
+            <p className="text-xs text-stone-500">
+              Content ที่อนุมัติแล้วจะแสดงในปฏิทิน
+            </p>
+          </div>
+          <CalendarView contents={contents} />
+        </div>
+      </div>
+    </>
+  );
+}
