@@ -13,8 +13,6 @@ export default function CreatePage() {
       <Header
         title="สร้าง Content"
         description="กรอกข้อมูล Content แล้วส่งเพื่อให้ Admin อนุมัติ"
-        showExport
-        onExport={() => alert("PDF Export จะเชื่อมต่อในขั้นตอนถัดไป")}
       />
       <div className="flex flex-1 flex-col xl:flex-row">
         <div className="flex-1 px-8 py-6">

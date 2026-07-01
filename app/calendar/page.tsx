@@ -28,8 +28,6 @@ export default function CalendarPage() {
             ? "ดูตารางรายสัปดาห์ — Content ที่ส่งแล้วทุกสถานะ"
             : "ดูภาพรวมรายเดือน — Content ที่ส่งแล้วทุกสถานะ"
         }
-        showExport
-        onExport={() => alert("PDF Export จะเชื่อมต่อในขั้นตอนถัดไป")}
       />
       <div className="space-y-4 p-6">
         <Tabs

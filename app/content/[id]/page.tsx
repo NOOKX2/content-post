@@ -3,21 +3,28 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { FileDown } from "lucide-react";
 import { ContentDetail } from "@/components/content/content-detail";
 import { UserMenu } from "@/components/layout/user-menu";
+import { Button } from "@/components/ui/button";
+import { downloadContentPdf } from "@/lib/content/export-pdf-client";
+import { contentPdfFilename } from "@/lib/content/pdf-filename";
 import { useContent } from "@/lib/content-context";
 import type { ContentItem } from "@/lib/types";
 
 function ContentDetailSubNav({
   contentId,
   name,
+  onExport,
+  exporting,
 }: {
   contentId?: string;
   name?: string;
+  onExport?: () => void;
+  exporting?: boolean;
 }) {
   return (
     <nav className="apple-sub-nav apple-detail gap-3">
-
       <div className="min-w-0 flex-1 text-center">
         <p className="apple-caption-strong truncate text-[#1d1d1f]">
           รายละเอียด Content
@@ -31,7 +38,19 @@ function ContentDetailSubNav({
         )}
       </div>
 
-      <div className="shrink-0">
+      <div className="flex shrink-0 items-center gap-2">
+        {onExport && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onExport}
+            disabled={exporting}
+          >
+            <FileDown className="h-4 w-4" />
+            {exporting ? "กำลังส่งออก..." : "Export PDF"}
+          </Button>
+        )}
         <UserMenu />
       </div>
     </nav>
@@ -44,6 +63,7 @@ export default function ContentDetailPage() {
   const [content, setContent] = useState<ContentItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const fromContext = contents.find((item) => item.id === id);
@@ -71,6 +91,19 @@ export default function ContentDetailPage() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id, contents, contextLoading]);
+
+  const handleExportPdf = async () => {
+    if (!content || exporting) return;
+
+    setExporting(true);
+    try {
+      await downloadContentPdf(id, contentPdfFilename(content));
+    } catch {
+      alert("ส่งออก PDF ไม่สำเร็จ กรุณาลองใหม่");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -105,6 +138,8 @@ export default function ContentDetailPage() {
       <ContentDetailSubNav
         contentId={content.contentId}
         name={content.name}
+        onExport={handleExportPdf}
+        exporting={exporting}
       />
       <ContentDetail content={content} />
     </div>

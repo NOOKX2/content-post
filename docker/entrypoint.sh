@@ -4,6 +4,9 @@ set -e
 echo "==> Generating Prisma Client..."
 bunx prisma generate
 
+echo "==> Syncing dependencies..."
+bun install
+
 echo "==> Running migrations..."
 bunx prisma migrate deploy
 
