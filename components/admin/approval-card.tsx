@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PlatformBadgeGroup } from "@/components/ui/platform-icon";
 import { STATUS_LABELS } from "@/lib/constants";
-import { formatThaiDate } from "@/lib/utils";
+import { formatThaiDate, formatLocations } from "@/lib/utils";
 
 interface ApprovalCardProps {
   content: ContentItem;
@@ -72,10 +72,10 @@ export function ApprovalCard({
                 {content.scheduledTime && `• ${content.scheduledTime}`}
               </span>
             )}
-            {content.location && (
+            {content.location.length > 0 && (
               <span className="flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5" />
-                {content.location}
+                {formatLocations(content.location)}
               </span>
             )}
             {content.ideaCreator && (

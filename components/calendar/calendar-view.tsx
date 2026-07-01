@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,7 +20,7 @@ import {
   CALENDAR_EVENT_STYLES,
   formatDateKey,
 } from "@/lib/calendar/content";
-import { cn } from "@/lib/utils";
+import { cn, formatLocations } from "@/lib/utils";
 
 interface EventModalProps {
   open: boolean;
@@ -147,10 +148,10 @@ export function EventModal({
                 <Clock className="h-3.5 w-3.5" />
                 {content.scheduledTime} - {content.endTime}
               </span>
-              {content.location && (
+              {content.location.length > 0 && (
                 <span className="flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
-                  {content.location}
+                  {formatLocations(content.location)}
                 </span>
               )}
             </div>
@@ -170,13 +171,12 @@ export function EventModal({
 
 interface CalendarViewProps {
   contents: ContentItem[];
-  onEventClick?: (content: ContentItem) => void;
 }
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8);
 const DAYS = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
 
-export function CalendarView({ contents, onEventClick }: CalendarViewProps) {
+export function CalendarView({ contents }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(
@@ -286,21 +286,16 @@ export function CalendarView({ contents, onEventClick }: CalendarViewProps) {
                       className="relative min-h-[60px] border-b border-l border-stone-100 p-1"
                     >
                       {events.map((event) => (
-                        <button
+                        <Link
                           key={event.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedContent(event);
-                            setModalOpen(true);
-                            onEventClick?.(event);
-                          }}
+                          href={`/content/${event.id}`}
                           className={cn(
-                            "mb-1 w-full rounded-md px-2 py-1 text-left text-xs font-medium transition-colors line-clamp-2",
+                            "mb-1 block w-full rounded-md px-2 py-1 text-left text-xs font-medium transition-colors line-clamp-2 hover:opacity-90",
                             CALENDAR_EVENT_STYLES[event.status]
                           )}
                         >
                           {event.name}
-                        </button>
+                        </Link>
                       ))}
                     </div>
                   );

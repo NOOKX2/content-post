@@ -38,7 +38,7 @@ export interface ContentItem {
   channel: string;
   platforms: Platform[];
   details: string;
-  location: string;
+  location: string[];
   scheduledDate: string;
   scheduledTime: string;
   endTime?: string;
@@ -63,7 +63,7 @@ export interface ContentFormData {
   channel: string;
   platforms: Platform[];
   details: string;
-  location: string;
+  location: string[];
   scheduledDate: string;
   scheduledTime: string;
   endTime: string;

@@ -1,25 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Paperclip } from "lucide-react";
+import { Send } from "lucide-react";
 import { MediaTypeToggle } from "./media-type-toggle";
 import { TeamTable } from "./team-table";
 import { ScriptTable } from "./script-table";
 import { PlatformSelect } from "./platform-select";
+import { LocationSelect } from "./location-select";
+import { AttachmentLinks } from "./attachment-links";
+import { SubmitSuccess } from "./submit-success";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  CHANNELS,
-  TEAM_MEMBERS,
-  PRODUCTS,
-  LOCATIONS,
-  CONTENT_CATEGORIES,
-} from "@/lib/constants";
-import type { ContentFormData, MediaType, Platform } from "@/lib/types";
+import { CHANNELS, TEAM_MEMBERS, PRODUCTS } from "@/lib/constants";
+import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
+import type { ContentFormData, ContentItem, MediaType, Platform } from "@/lib/types";
 import { generateContentId } from "@/lib/utils";
 import { useContent } from "@/lib/content-context";
 
@@ -29,7 +27,7 @@ const EMPTY_FORM: ContentFormData = {
   channel: "",
   platforms: [],
   details: "",
-  location: "",
+  location: [],
   scheduledDate: "",
   scheduledTime: "",
   endTime: "",
@@ -52,15 +50,32 @@ interface ContentFormProps {
 export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
   const { addContent } = useContent();
   const [form, setForm] = useState<ContentFormData>(EMPTY_FORM);
-  const [contentId] = useState(generateContentId());
-  const [submitted, setSubmitted] = useState(false);
+  const [contentId, setContentId] = useState(() => generateContentId());
+  const [submittedItem, setSubmittedItem] = useState<ContentItem | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const config = MEDIA_FORM_CONFIG[form.mediaType];
+  const isVideo = form.mediaType === "video";
 
   const update = <K extends keyof ContentFormData>(
     key: K,
     value: ContentFormData[K]
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-    setSubmitted(false);
+  };
+
+  const handleMediaTypeChange = (mediaType: MediaType) => {
+    setForm((prev) => ({
+      ...prev,
+      mediaType,
+      script: mediaType === "image" ? [] : prev.script,
+    }));
+  };
+
+  const startNewContent = (mediaType: MediaType = "video") => {
+    setSubmittedItem(null);
+    setContentId(generateContentId());
+    setForm({ ...EMPTY_FORM, mediaType });
   };
 
   const toggleProduct = (product: string) => {
@@ -73,17 +88,21 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
     );
   };
 
-  const [submitting, setSubmitting] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || submitting) return;
 
     setSubmitting(true);
     try {
-      await addContent(form, contentId);
-      setForm(EMPTY_FORM);
-      setSubmitted(true);
+      const item = await addContent(
+        {
+          ...form,
+          attachments: form.attachments.filter((link) => link.trim()),
+          script: isVideo ? form.script : [],
+        },
+        contentId
+      );
+      setSubmittedItem(item);
       onSubmitSuccess?.();
     } catch {
       alert("ส่ง Content ไม่สำเร็จ กรุณาลองใหม่");
@@ -92,36 +111,47 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
     }
   };
 
+  if (submittedItem) {
+    return (
+      <SubmitSuccess
+        content={submittedItem}
+        onCreateAnother={() => startNewContent(submittedItem.mediaType)}
+      />
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {submitted && (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
-          ส่ง Content เรียบร้อยแล้ว — รอ Admin อนุมัติ
-        </div>
-      )}
-
-      <Card>
+      <Card className={isVideo ? "border-amber-100" : "border-pink-100"}>
         <CardHeader>
-          <CardTitle>ประเภท Content</CardTitle>
-          <CardDescription>เลือก Video หรือ Picture/Post</CardDescription>
+          <CardTitle>Module 1: Content Ideation</CardTitle>
+          <CardDescription>
+            {isVideo
+              ? "สำหรับ Video — กรอกข้อมูลถ่ายทำและสคริป"
+              : "สำหรับรูปภาพ / Post — กรอกข้อมูลโพสต์"}
+          </CardDescription>
         </CardHeader>
-        <MediaTypeToggle
-          value={form.mediaType}
-          onChange={(v: MediaType) => update("mediaType", v)}
-        />
+        <MediaTypeToggle value={form.mediaType} onChange={handleMediaTypeChange} />
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>ข้อมูลพื้นฐาน</CardTitle>
+          <CardTitle>ข้อมูล Content</CardTitle>
         </CardHeader>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="รหัส Content" value={contentId} readOnly className="bg-stone-50" />
+          <Input
+            label="รหัส Content"
+            value={contentId}
+            readOnly
+            className="bg-stone-50"
+          />
           <Input
             label="ชื่อ Content *"
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
-            placeholder="เช่น Hero Serum Launch Video"
+            placeholder={
+              isVideo ? "เช่น Hero Serum Launch Video" : "เช่น Herbal Lifestyle Post"
+            }
             required
           />
           <Select
@@ -130,13 +160,6 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
             placeholder="เลือกช่อง..."
             value={form.channel}
             onChange={(e) => update("channel", e.target.value)}
-          />
-          <Select
-            label="หมวดหมู่"
-            options={CONTENT_CATEGORIES}
-            placeholder="เลือกหมวดหมู่..."
-            value={form.category}
-            onChange={(e) => update("category", e.target.value)}
           />
         </div>
         <div className="mt-4">
@@ -158,15 +181,13 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>สถานที่ & เวลา</CardTitle>
+          <CardTitle>สถานที่ &amp; เวลา</CardTitle>
         </CardHeader>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label="สถานที่ถ่าย"
-            options={LOCATIONS}
-            placeholder="เลือกสถานที่..."
-            value={form.location}
-            onChange={(e) => update("location", e.target.value)}
+          <LocationSelect
+            selected={form.location}
+            onChange={(locations) => update("location", locations)}
+            optional={config.locationOptional}
           />
           <Input
             label="วันที่"
@@ -190,20 +211,23 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
       </Card>
 
       <Card>
-        <TeamTable
-          rows={form.team}
-          onChange={(rows) => update("team", rows)}
-        />
+        <CardHeader>
+          <CardTitle>ผู้เข้าร่วม &amp; หน้าที่รับผิดชอบ</CardTitle>
+        </CardHeader>
+        <TeamTable rows={form.team} onChange={(rows) => update("team", rows)} />
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>ทรัพยากร & อุปกรณ์</CardTitle>
+          <CardTitle>ทรัพยากร &amp; อุปกรณ์</CardTitle>
         </CardHeader>
         <div className="space-y-4">
           <div>
             <span className="text-sm font-medium text-stone-700">
               สินค้าที่ต้องใช้
+              {config.productsOptional && (
+                <span className="ml-1 font-normal text-stone-400">(ไม่บังคับ)</span>
+              )}
             </span>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
               {PRODUCTS.map((p) => (
@@ -217,32 +241,24 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
             </div>
           </div>
           <Input
-            label="ของที่ต้องเตรียม"
+            label={`ของที่ต้องเตรียม${config.itemsPrepareOptional ? " (ไม่บังคับ)" : ""}`}
             value={form.itemsToPrepare}
             onChange={(e) => update("itemsToPrepare", e.target.value)}
             placeholder="Backdrop, Props, Equipment..."
           />
-          <div>
-            <span className="text-sm font-medium text-stone-700">
-              ไฟล์แนบ / Reference
-            </span>
-            <div className="mt-2 flex items-center gap-3 rounded-lg border border-dashed border-stone-300 bg-stone-50 px-4 py-6">
-              <Paperclip className="h-5 w-5 text-stone-400" />
-              <div>
-                <p className="text-sm text-stone-600">
-                  ลากไฟล์มาวาง หรือวางลิงก์ reference
-                </p>
-                <p className="text-xs text-stone-400">
-                  (จะเชื่อม upload จริงในขั้นตอนถัดไป)
-                </p>
-              </div>
-            </div>
-          </div>
+          <AttachmentLinks
+            links={form.attachments}
+            onChange={(links) => update("attachments", links)}
+          />
         </div>
       </Card>
 
-      {form.mediaType === "video" && (
-        <Card>
+      {config.showScript && (
+        <Card className="border-amber-100">
+          <CardHeader>
+            <CardTitle>สคริป</CardTitle>
+            <CardDescription>ระยะเวลา, Action, บทพูด, หมายเหตุ</CardDescription>
+          </CardHeader>
           <ScriptTable
             rows={form.script}
             onChange={(rows) => update("script", rows)}
@@ -252,9 +268,9 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>ทีมงาน</CardTitle>
+          <CardTitle>ทีมงานหลัก</CardTitle>
         </CardHeader>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
             label="ผู้คิดไอเดีย"
             options={TEAM_MEMBERS}
@@ -263,24 +279,37 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
             onChange={(e) => update("ideaCreator", e.target.value)}
           />
           <Select
-            label={form.mediaType === "video" ? "ช่างภาพ" : "ช่างภาพ"}
+            label={config.photographerLabel}
             options={TEAM_MEMBERS}
             placeholder="เลือก..."
             value={form.photographer}
             onChange={(e) => update("photographer", e.target.value)}
           />
-          <Select
-            label="ผู้ตัดต่อ"
-            options={TEAM_MEMBERS}
-            placeholder="เลือก..."
-            value={form.editor}
-            onChange={(e) => update("editor", e.target.value)}
+          {config.showEditor && (
+            <Select
+              label="ผู้ตัดต่อ"
+              options={TEAM_MEMBERS}
+              placeholder="เลือก..."
+              value={form.editor}
+              onChange={(e) => update("editor", e.target.value)}
+            />
+          )}
+          <Input
+            label="ผู้อนุมัติ"
+            value=""
+            readOnly
+            placeholder="— กำหนดเมื่อ Admin อนุมัติ —"
+            className="bg-stone-50"
           />
         </div>
       </Card>
 
       <div className="flex justify-end gap-3 pb-8">
-        <Button type="button" variant="secondary" onClick={() => setForm(EMPTY_FORM)}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setForm({ ...EMPTY_FORM, mediaType: form.mediaType })}
+        >
           ล้างฟอร์ม
         </Button>
         <Button type="submit" size="lg" disabled={submitting}>

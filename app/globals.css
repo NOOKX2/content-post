@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./apple-design.css";
 
 :root {
   --background: #fafaf9;

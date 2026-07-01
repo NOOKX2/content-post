@@ -37,7 +37,7 @@ export function ScriptTable({ rows, onChange }: ScriptTableProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-stone-700">Script / Storyboard</h4>
+        <h4 className="text-sm font-medium text-stone-700">สคริป</h4>
         <Button type="button" variant="ghost" size="sm" onClick={addRow}>
           <Plus className="h-4 w-4" />
           เพิ่ม Scene
@@ -54,16 +54,16 @@ export function ScriptTable({ rows, onChange }: ScriptTableProps) {
             <thead>
               <tr className="bg-stone-50 text-left">
                 <th className="w-28 px-3 py-2.5 font-medium text-stone-600">
-                  Duration
+                  ระยะเวลา
                 </th>
                 <th className="px-3 py-2.5 font-medium text-stone-600">
                   Action
                 </th>
                 <th className="px-3 py-2.5 font-medium text-stone-600">
-                  Dialogue
+                  บทพูด
                 </th>
                 <th className="px-3 py-2.5 font-medium text-stone-600">
-                  Notes
+                  หมายเหตุ
                 </th>
                 <th className="w-10 px-2 py-2.5" />
               </tr>

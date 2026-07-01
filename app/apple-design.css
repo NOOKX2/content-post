@@ -1,0 +1,211 @@
+.apple-detail {
+  --apple-primary: #0066cc;
+  --apple-primary-focus: #0071e3;
+  --apple-ink: #1d1d1f;
+  --apple-ink-muted-80: #333333;
+  --apple-ink-muted-48: #7a7a7a;
+  --apple-canvas: #ffffff;
+  --apple-canvas-parchment: #f5f5f7;
+  --apple-surface-pearl: #fafafc;
+  --apple-hairline: #e0e0e0;
+  --apple-divider-soft: #f0f0f0;
+
+  font-family:
+    "SF Pro Text",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  color: var(--apple-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.apple-display-lg {
+  font-family:
+    "SF Pro Display",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--apple-ink);
+}
+
+.apple-tagline {
+  font-family:
+    "SF Pro Display",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+}
+
+.apple-body {
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+.apple-caption {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: -0.224px;
+  color: var(--apple-ink-muted-48);
+}
+
+.apple-caption-strong {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+}
+
+.apple-fine-print {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.12px;
+  color: var(--apple-ink-muted-48);
+}
+
+.apple-link {
+  color: var(--apple-primary);
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  transition: opacity 0.15s;
+}
+
+.apple-link:active {
+  opacity: 0.6;
+}
+
+.apple-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--apple-primary);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  border-radius: 9999px;
+  padding: 11px 22px;
+  transition: transform 0.15s;
+}
+
+.apple-btn-primary:active {
+  transform: scale(0.95);
+}
+
+.apple-btn-primary:focus-visible {
+  outline: 2px solid var(--apple-primary-focus);
+  outline-offset: 2px;
+}
+
+.apple-btn-secondary-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--apple-primary);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  border: 1px solid var(--apple-primary);
+  border-radius: 9999px;
+  padding: 11px 22px;
+  transition: transform 0.15s;
+}
+
+.apple-btn-secondary-pill:active {
+  transform: scale(0.95);
+}
+
+.apple-pearl-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--apple-surface-pearl);
+  color: var(--apple-ink-muted-80);
+  font-size: 14px;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+  border: 1px solid var(--apple-divider-soft);
+  border-radius: 11px;
+  padding: 8px 14px;
+}
+
+.apple-utility-card {
+  background: var(--apple-canvas);
+  border: 1px solid var(--apple-hairline);
+  border-radius: 18px;
+  padding: 24px;
+}
+
+.apple-sub-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(224, 224, 224, 0.8);
+  background: color-mix(in srgb, var(--apple-canvas-parchment) 82%, transparent);
+  backdrop-filter: blur(20px);
+  padding: 0 24px;
+}
+
+.apple-spec-grid {
+  display: grid;
+  gap: 1px;
+  background: var(--apple-hairline);
+  border: 1px solid var(--apple-hairline);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.apple-spec-cell {
+  background: var(--apple-canvas);
+  padding: 20px 24px;
+}
+
+.apple-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+.apple-data-table th {
+  padding: 0 0 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+  color: var(--apple-ink-muted-48);
+  border-bottom: 1px solid var(--apple-hairline);
+}
+
+.apple-data-table td {
+  padding: 14px 16px 14px 0;
+  border-bottom: 1px solid var(--apple-divider-soft);
+  color: var(--apple-ink);
+}
+
+.apple-data-table tr:last-child td {
+  border-bottom: none;
+}

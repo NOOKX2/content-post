@@ -47,7 +47,9 @@ export function Sidebar() {
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href ||
-            (href === "/calendar" && pathname === "/content-calendar");
+            (href === "/calendar" &&
+              (pathname === "/content-calendar" ||
+                pathname.startsWith("/content/")));
           const showBadge = href === "/admin" && pendingCount > 0;
 
           return (

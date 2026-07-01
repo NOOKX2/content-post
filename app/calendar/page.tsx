@@ -9,15 +9,15 @@ import { CalendarLegend } from "@/components/calendar/calendar-legend";
 import { useContent } from "@/lib/content-context";
 
 const VIEW_TABS = [
-  { id: "week", label: "รายสัปดาห์" },
   { id: "month", label: "รายเดือน" },
+  { id: "week", label: "รายสัปดาห์" },
 ] as const;
 
 type CalendarViewMode = (typeof VIEW_TABS)[number]["id"];
 
 export default function CalendarPage() {
   const { contents } = useContent();
-  const [view, setView] = useState<CalendarViewMode>("week");
+  const [view, setView] = useState<CalendarViewMode>("month");
 
   return (
     <>

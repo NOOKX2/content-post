@@ -4,6 +4,10 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
+export function formatLocations(locations: string[]): string {
+  return locations.filter(Boolean).join(", ");
+}
+
 export function generateContentId(): string {
   return String(Math.floor(10000 + Math.random() * 9000)).padStart(5, "0");
 }

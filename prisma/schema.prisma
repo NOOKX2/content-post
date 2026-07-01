@@ -54,7 +54,7 @@ model Content {
   channel        String        @default("")
   platforms      Platform[]
   details        String        @default("")
-  location       String        @default("")
+  location       String[]
   scheduledDate  String
   scheduledTime  String
   endTime        String?
