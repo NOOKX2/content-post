@@ -14,6 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { TEAM_MEMBERS, CHANNELS } from "@/lib/constants";
+import {
+  getCalendarContents,
+  CALENDAR_EVENT_STYLES,
+  formatDateKey,
+} from "@/lib/calendar/content";
 import { cn } from "@/lib/utils";
 
 interface EventModalProps {
@@ -172,7 +177,7 @@ const HOURS = Array.from({ length: 12 }, (_, i) => i + 8);
 const DAYS = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
 
 export function CalendarView({ contents, onEventClick }: CalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 15));
+  const [currentDate, setCurrentDate] = useState(() => new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(
     null
@@ -187,16 +192,11 @@ export function CalendarView({ contents, onEventClick }: CalendarViewProps) {
     return d;
   });
 
-  const approvedContents = contents.filter(
-    (c) =>
-      c.status === "approved" ||
-      c.status === "scheduled" ||
-      c.status === "posted"
-  );
+  const calendarContents = getCalendarContents(contents);
 
   const getEventsForDay = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0];
-    return approvedContents.filter((c) => c.scheduledDate === dateStr);
+    const dateStr = formatDateKey(date);
+    return calendarContents.filter((c) => c.scheduledDate === dateStr);
   };
 
   const navigate = (dir: -1 | 1) => {
@@ -239,8 +239,7 @@ export function CalendarView({ contents, onEventClick }: CalendarViewProps) {
         <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-stone-200">
           <div />
           {weekDays.map((day, i) => {
-            const isToday =
-              day.toDateString() === new Date(2026, 5, 15).toDateString();
+            const isToday = day.toDateString() === new Date().toDateString();
             return (
               <div
                 key={i}
@@ -295,7 +294,10 @@ export function CalendarView({ contents, onEventClick }: CalendarViewProps) {
                             setModalOpen(true);
                             onEventClick?.(event);
                           }}
-                          className="mb-1 w-full rounded-md bg-blue-100 px-2 py-1 text-left text-xs font-medium text-blue-800 hover:bg-blue-200 transition-colors line-clamp-2"
+                          className={cn(
+                            "mb-1 w-full rounded-md px-2 py-1 text-left text-xs font-medium transition-colors line-clamp-2",
+                            CALENDAR_EVENT_STYLES[event.status]
+                          )}
                         >
                           {event.name}
                         </button>

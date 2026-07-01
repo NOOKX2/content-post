@@ -16,6 +16,7 @@ case "$1" in
     rm -rf /app/.next
     echo "==> Starting Next.js dev server (hot reload)..."
     echo "==> Open in browser: http://localhost:3001"
+    echo "==> n8n workflow automation: http://localhost:5678"
     exec bun run dev:docker
     ;;
   studio)

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Loader2 } from "lucide-react";
+import { getDefaultPathForRole } from "@/lib/auth/routes";
 import {
   AuthShell,
   AuthBrandPanel,
@@ -37,7 +38,8 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/create");
+      const session = await getSession();
+      router.push(getDefaultPathForRole(session?.user?.role));
       router.refresh();
     } catch {
       setError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่");

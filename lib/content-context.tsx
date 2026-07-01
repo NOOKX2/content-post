@@ -5,63 +5,107 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 import type { ContentItem, ContentFormData } from "./types";
-import { MOCK_CONTENT } from "./mock-data";
-import { generateContentId, generateId } from "./utils";
 
 interface ContentContextValue {
   contents: ContentItem[];
-  addContent: (data: ContentFormData) => ContentItem;
-  updateContent: (id: string, data: Partial<ContentItem>) => void;
-  approveContent: (id: string, approver: string) => void;
-  rejectContent: (id: string) => void;
+  loading: boolean;
+  addContent: (data: ContentFormData, contentId?: string) => Promise<ContentItem>;
+  updateContent: (id: string, data: Partial<ContentItem>) => Promise<void>;
+  approveContent: (id: string, approver: string) => Promise<void>;
+  rejectContent: (id: string) => Promise<void>;
   getContentByDate: (date: string) => ContentItem[];
   pendingCount: number;
+  refresh: () => Promise<void>;
 }
 
 const ContentContext = createContext<ContentContextValue | null>(null);
 
 export function ContentProvider({ children }: { children: ReactNode }) {
-  const [contents, setContents] = useState<ContentItem[]>(MOCK_CONTENT);
+  const [contents, setContents] = useState<ContentItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addContent = useCallback((data: ContentFormData): ContentItem => {
-    const newItem: ContentItem = {
-      id: generateId(),
-      contentId: generateContentId(),
-      ...data,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
-    setContents((prev) => [...prev, newItem]);
-    return newItem;
+  const refresh = useCallback(async () => {
+    const res = await fetch("/api/content");
+    if (!res.ok) return;
+    const data = (await res.json()) as ContentItem[];
+    setContents(data);
   }, []);
 
+  useEffect(() => {
+    refresh().finally(() => setLoading(false));
+  }, [refresh]);
+
+  const addContent = useCallback(
+    async (data: ContentFormData, contentId?: string): Promise<ContentItem> => {
+      const res = await fetch("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, contentId }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create content");
+      }
+
+      const item = (await res.json()) as ContentItem;
+      setContents((prev) => [item, ...prev]);
+      return item;
+    },
+    []
+  );
+
   const updateContent = useCallback(
-    (id: string, data: Partial<ContentItem>) => {
+    async (id: string, data: Partial<ContentItem>) => {
+      const res = await fetch(`/api/content/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) return;
+
+      const updated = (await res.json()) as ContentItem;
       setContents((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, ...data } : item))
+        prev.map((item) => (item.id === id ? updated : item))
       );
     },
     []
   );
 
-  const approveContent = useCallback((id: string, approver: string) => {
-    setContents((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, status: "approved", approver }
-          : item
-      )
-    );
-  }, []);
+  const approveContent = useCallback(
+    async (id: string, approver: string) => {
+      const res = await fetch(`/api/content/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved", approver }),
+      });
 
-  const rejectContent = useCallback((id: string) => {
+      if (!res.ok) return;
+
+      const updated = (await res.json()) as ContentItem;
+      setContents((prev) =>
+        prev.map((item) => (item.id === id ? updated : item))
+      );
+    },
+    []
+  );
+
+  const rejectContent = useCallback(async (id: string) => {
+    const res = await fetch(`/api/content/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "rejected" }),
+    });
+
+    if (!res.ok) return;
+
+    const updated = (await res.json()) as ContentItem;
     setContents((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: "rejected" } : item
-      )
+      prev.map((item) => (item.id === id ? updated : item))
     );
   }, []);
 
@@ -83,12 +127,14 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     <ContentContext.Provider
       value={{
         contents,
+        loading,
         addContent,
         updateContent,
         approveContent,
         rejectContent,
         getContentByDate,
         pendingCount,
+        refresh,
       }}
     >
       {children}

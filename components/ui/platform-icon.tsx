@@ -1,6 +1,6 @@
 import { PLATFORMS } from "@/lib/constants";
 import type { Platform } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { PlatformLogo } from "@/components/ui/platform-logo";
 
 interface PlatformIconProps {
   platform: Platform;
@@ -16,18 +16,17 @@ export function PlatformIcon({
   const config = PLATFORMS.find((p) => p.id === platform);
   if (!config) return null;
 
-  const sizeClass = size === "sm" ? "h-5 w-5 text-[9px]" : "h-6 w-6 text-[10px]";
+  const logoSize = size === "sm" ? 20 : 24;
 
   return (
     <span
-      className={cn(
-        "inline-flex items-center justify-center rounded-full font-bold text-white shrink-0",
-        sizeClass
-      )}
-      style={{ backgroundColor: config.color }}
+      className="inline-flex items-center gap-1 shrink-0"
       title={config.label}
     >
-      {showLabel ? config.shortLabel : config.shortLabel.charAt(0)}
+      <PlatformLogo platform={platform} size={logoSize} />
+      {showLabel && (
+        <span className="text-xs text-stone-600">{config.label}</span>
+      )}
     </span>
   );
 }
@@ -42,7 +41,7 @@ export function PlatformBadgeGroup({
   size = "sm",
 }: PlatformBadgeGroupProps) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1.5">
       {platforms.map((p) => (
         <PlatformIcon key={p} platform={p} size={size} />
       ))}

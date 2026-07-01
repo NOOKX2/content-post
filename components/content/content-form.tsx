@@ -73,14 +73,23 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name.trim()) return;
+  const [submitting, setSubmitting] = useState(false);
 
-    addContent(form);
-    setForm(EMPTY_FORM);
-    setSubmitted(true);
-    onSubmitSuccess?.();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || submitting) return;
+
+    setSubmitting(true);
+    try {
+      await addContent(form, contentId);
+      setForm(EMPTY_FORM);
+      setSubmitted(true);
+      onSubmitSuccess?.();
+    } catch {
+      alert("ส่ง Content ไม่สำเร็จ กรุณาลองใหม่");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -274,9 +283,9 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
         <Button type="button" variant="secondary" onClick={() => setForm(EMPTY_FORM)}>
           ล้างฟอร์ม
         </Button>
-        <Button type="submit" size="lg">
+        <Button type="submit" size="lg" disabled={submitting}>
           <Send className="h-4 w-4" />
-          ส่งเพื่ออนุมัติ
+          {submitting ? "กำลังส่ง..." : "ส่งเพื่ออนุมัติ"}
         </Button>
       </div>
     </form>

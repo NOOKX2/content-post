@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { ApprovalCard } from "./approval-card";
 import { Tabs } from "@/components/ui/tabs";
 import { useContent } from "@/lib/content-context";
@@ -14,6 +15,7 @@ const FILTER_TABS: { id: ContentStatus | "all"; label: string }[] = [
 ];
 
 export function ApprovalList() {
+  const { data: session } = useSession();
   const { contents, approveContent, rejectContent } = useContent();
   const [filter, setFilter] = useState<ContentStatus | "all">("pending");
 
@@ -25,7 +27,7 @@ export function ApprovalList() {
   const pendingCount = contents.filter((c) => c.status === "pending").length;
 
   const handleApprove = (id: string) => {
-    approveContent(id, "Admin");
+    approveContent(id, session?.user?.name || "Admin");
   };
 
   return (

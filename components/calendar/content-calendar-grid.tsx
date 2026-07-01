@@ -3,10 +3,14 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ContentItem } from "@/lib/types";
-import { ContentCard } from "./content-card";
 import { PlatformBadgeGroup } from "@/components/ui/platform-icon";
-import { PLATFORMS } from "@/lib/constants";
+import { PLATFORMS, STATUS_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { CalendarLegend } from "@/components/calendar/calendar-legend";
+import {
+  getCalendarContents,
+  CALENDAR_CELL_STYLES,
+} from "@/lib/calendar/content";
 import { cn, getDaysInMonth } from "@/lib/utils";
 
 interface ContentCalendarGridProps {
@@ -22,8 +26,9 @@ export function ContentCalendarGrid({
   title = "วังว่าน Content Calendar",
   subtitle = "Hero Product Series - 5 ช่องทาง - Rebrand to Lifestyle Herbal",
 }: ContentCalendarGridProps) {
-  const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(5);
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDayOfWeek = new Date(year, month, 1).getDay();
@@ -34,16 +39,11 @@ export function ContentCalendarGrid({
     year: "numeric",
   }).toUpperCase();
 
-  const approvedContents = contents.filter(
-    (c) =>
-      c.status === "approved" ||
-      c.status === "scheduled" ||
-      c.status === "posted"
-  );
+  const calendarContents = getCalendarContents(contents);
 
   const getContentsForDay = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return approvedContents.filter((c) => c.scheduledDate === dateStr);
+    return calendarContents.filter((c) => c.scheduledDate === dateStr);
   };
 
   const navigate = (dir: -1 | 1) => {
@@ -60,11 +60,14 @@ export function ContentCalendarGrid({
     setYear(newYear);
   };
 
-  const today = new Date(2026, 5, 15);
-  const isToday = (day: number) =>
-    today.getFullYear() === year &&
-    today.getMonth() === month &&
-    today.getDate() === day;
+  const isToday = (day: number) => {
+    const today = new Date();
+    return (
+      today.getFullYear() === year &&
+      today.getMonth() === month &&
+      today.getDate() === day
+    );
+  };
 
   const cells: (number | null)[] = [
     ...Array(startOffset).fill(null),
@@ -145,11 +148,14 @@ export function ContentCalendarGrid({
                         {dayContents.map((c) => (
                           <div
                             key={c.id}
-                            className="rounded-md border border-stone-100 bg-stone-50/80 p-1.5"
+                            className={cn(
+                              "rounded-md border p-1.5",
+                              CALENDAR_CELL_STYLES[c.status]
+                            )}
                           >
                             <div className="flex items-center justify-between gap-1">
                               <span className="text-[11px] font-bold text-stone-800 truncate">
-                                {c.channel}
+                                {c.name}
                               </span>
                               <PlatformBadgeGroup
                                 platforms={c.platforms}
@@ -157,7 +163,10 @@ export function ContentCalendarGrid({
                               />
                             </div>
                             <p className="text-[10px] text-stone-500 truncate mt-0.5">
-                              {c.category}
+                              {c.channel}
+                            </p>
+                            <p className="text-[10px] font-medium truncate mt-0.5">
+                              {STATUS_LABELS[c.status].label}
                             </p>
                           </div>
                         ))}
@@ -171,17 +180,20 @@ export function ContentCalendarGrid({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-stone-200 px-6 py-4">
-        <span className="text-xs font-medium text-stone-500">Platform Key:</span>
-        {PLATFORMS.slice(0, 4).map((p) => (
-          <span key={p.id} className="flex items-center gap-1.5 text-xs text-stone-600">
-            <PlatformBadgeGroup platforms={[p.id]} size="sm" />
-            {p.shortLabel}
-          </span>
-        ))}
-        <span className="ml-auto text-xs text-stone-400">
-          * Hero Product Content
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-stone-200 px-6 py-4">
+        <CalendarLegend />
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="text-xs font-medium text-stone-500">Platform:</span>
+          {PLATFORMS.slice(0, 4).map((p) => (
+            <span
+              key={p.id}
+              className="flex items-center gap-1.5 text-xs text-stone-600"
+            >
+              <PlatformBadgeGroup platforms={[p.id]} size="sm" />
+              {p.shortLabel}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import {
   CalendarDays,
   ClipboardList,
-  LayoutGrid,
   PenSquare,
   ShieldCheck,
   Leaf,
@@ -17,14 +16,12 @@ import { useContent } from "@/lib/content-context";
 const CREATOR_NAV = [
   { href: "/create", label: "สร้าง Content", icon: PenSquare },
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
-  { href: "/content-calendar", label: "Content Calendar", icon: LayoutGrid },
 ] as const;
 
-const ADMIN_NAV = {
-  href: "/admin",
-  label: "Admin อนุมัติ",
-  icon: ShieldCheck,
-} as const;
+const ADMIN_NAV = [
+  { href: "/admin", label: "Admin อนุมัติ", icon: ShieldCheck },
+  { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
+] as const;
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -32,7 +29,7 @@ export function Sidebar() {
   const { pendingCount } = useContent();
   const isAdmin = session?.user?.role === "ADMIN";
 
-  const navItems = isAdmin ? [...CREATOR_NAV, ADMIN_NAV] : CREATOR_NAV;
+  const navItems = isAdmin ? ADMIN_NAV : CREATOR_NAV;
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-stone-200/80 bg-white">
@@ -48,7 +45,9 @@ export function Sidebar() {
 
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href;
+          const isActive =
+            pathname === href ||
+            (href === "/calendar" && pathname === "/content-calendar");
           const showBadge = href === "/admin" && pendingCount > 0;
 
           return (
