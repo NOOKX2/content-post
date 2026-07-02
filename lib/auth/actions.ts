@@ -42,7 +42,13 @@ export async function registerUser(input: {
     });
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    const safe =
+      err instanceof Error
+        ? { name: err.name, message: err.message, stack: err.stack }
+        : { err };
+    // Important: do not log password or password hash
+    console.error("[registerUser] failed", { email, ...safe });
     return { success: false, error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
   }
 }

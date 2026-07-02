@@ -37,6 +37,10 @@ export function RegisterForm() {
       const result = await registerUser({ name, email, password });
 
       if (!result.success) {
+        console.warn("[register] registerUser returned error", {
+          email,
+          error: result.error,
+        });
         setError(result.error);
         return;
       }
@@ -48,13 +52,20 @@ export function RegisterForm() {
       });
 
       if (signInResult?.error) {
+        console.error("[register] signIn failed", {
+          email,
+          signInError: signInResult.error,
+        });
         setError("สมัครสำเร็จแล้ว แต่เข้าสู่ระบบไม่ได้ กรุณา login ด้วยตนเอง");
         return;
       }
 
       router.push("/create");
       router.refresh();
-    } catch {
+    } catch (err) {
+      const msg =
+        err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : { err };
+      console.error("[register] unexpected error", { email, ...msg });
       setError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่");
     } finally {
       setLoading(false);
