@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { auth } from "@/auth";
 import { Providers } from "./providers";
 import { AppShell } from "@/components/layout/app-shell";
-import { getPendingCount } from "@/lib/content/queries";
+import { getAllContents } from "@/lib/content/queries";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,8 +27,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
-  const pendingCount =
-    session?.user?.role === "ADMIN" ? await getPendingCount() : 0;
+  const initialContents = session?.user ? await getAllContents() : undefined;
 
   return (
     <html
@@ -36,10 +35,8 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
-        <Providers>
-          <AppShell session={session} pendingCount={pendingCount}>
-            {children}
-          </AppShell>
+        <Providers initialContents={initialContents}>
+          <AppShell session={session}>{children}</AppShell>
         </Providers>
       </body>
     </html>

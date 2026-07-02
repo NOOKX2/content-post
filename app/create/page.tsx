@@ -1,11 +1,14 @@
-import { auth } from "@/auth";
-import { getAllContents } from "@/lib/content/queries";
+"use client";
+
+import { useSession } from "next-auth/react";
 import { ContentForm } from "@/components/content/content-form";
 import { CalendarView } from "@/components/calendar/calendar-view";
 import { Header } from "@/components/layout/header";
+import { useContents } from "@/lib/content/contents-provider";
 
-export default async function CreatePage() {
-  const [contents, session] = await Promise.all([getAllContents(), auth()]);
+export default function CreatePage() {
+  const { contents } = useContents();
+  const { data: session } = useSession();
 
   return (
     <>

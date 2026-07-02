@@ -1,10 +1,11 @@
-import { auth } from "@/auth";
-import { getAllContents } from "@/lib/content/queries";
+"use client";
+
+import { useSession } from "next-auth/react";
 import { ApprovalList } from "@/components/admin/approval-list";
 import { Header } from "@/components/layout/header";
 
-export default async function AdminPage() {
-  const [contents, session] = await Promise.all([getAllContents(), auth()]);
+export default function AdminPage() {
+  const { data: session } = useSession();
 
   return (
     <>
@@ -14,7 +15,7 @@ export default async function AdminPage() {
         description="ตรวจสอบและอนุมัติ Content ก่อนขึ้นปฏิทินและโพสต์อัตโนมัติ"
       />
       <div className="px-8 py-6">
-        <ApprovalList contents={contents} />
+        <ApprovalList />
       </div>
     </>
   );

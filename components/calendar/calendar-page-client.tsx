@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { CalendarView } from "@/components/calendar/calendar-view";
 import { ContentCalendarGrid } from "@/components/calendar/content-calendar-grid";
 import { Header } from "@/components/layout/header";
 import { Tabs } from "@/components/ui/tabs";
 import { CalendarLegend } from "@/components/calendar/calendar-legend";
-import type { ContentItem } from "@/lib/types";
-import type { Session } from "next-auth";
+import { useContents } from "@/lib/content/contents-provider";
 
 const VIEW_TABS = [
   { id: "month", label: "รายเดือน" },
@@ -16,14 +16,10 @@ const VIEW_TABS = [
 
 type CalendarViewMode = (typeof VIEW_TABS)[number]["id"];
 
-export function CalendarPageClient({
-  contents,
-  session,
-}: {
-  contents: ContentItem[];
-  session: Session | null;
-}) {
+export function CalendarPageClient() {
   const [view, setView] = useState<CalendarViewMode>("month");
+  const { contents } = useContents();
+  const { data: session } = useSession();
 
   return (
     <>

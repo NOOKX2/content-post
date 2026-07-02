@@ -20,6 +20,7 @@ import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
 import type { ContentFormData, ContentItem, MediaType, Platform } from "@/lib/types";
 import { generateContentId } from "@/lib/utils";
 import { createContent } from "@/lib/content/actions";
+import { useContents } from "@/lib/content/contents-provider";
 
 const EMPTY_FORM: ContentFormData = {
   name: "",
@@ -52,6 +53,7 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
   const [contentId, setContentId] = useState(() => generateContentId());
   const [submittedItem, setSubmittedItem] = useState<ContentItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { mutateContents } = useContents();
 
   const config = MEDIA_FORM_CONFIG[form.mediaType];
   const isVideo = form.mediaType === "video";
@@ -106,6 +108,11 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
         alert(result.error);
         return;
       }
+
+      await mutateContents(
+        (current = []) => [result.data, ...current],
+        { revalidate: true }
+      );
 
       setSubmittedItem(result.data);
       onSubmitSuccess?.();

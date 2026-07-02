@@ -10,6 +10,7 @@ import {
   Leaf,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePendingCount } from "@/lib/content/contents-provider";
 import type { Session } from "next-auth";
 
 const CREATOR_NAV = [
@@ -22,14 +23,9 @@ const ADMIN_NAV = [
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
 ] as const;
 
-export function Sidebar({
-  session,
-  pendingCount,
-}: {
-  session: Session | null;
-  pendingCount: number;
-}) {
+export function Sidebar({ session }: { session: Session | null }) {
   const pathname = usePathname();
+  const pendingCount = usePendingCount();
   const isAdmin = session?.user?.role === "ADMIN";
   const navItems = isAdmin ? ADMIN_NAV : CREATOR_NAV;
 

@@ -1,6 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import {
+  CONTENTS_CACHE_TAG,
+  contentCacheTag,
+} from "@/lib/content/cache-tags";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formDataToCreateInput, toContentItem } from "@/lib/content/mappers";
@@ -45,6 +49,7 @@ export async function createContent(
       data: formDataToCreateInput(data, nextContentId, session.user.id),
     });
 
+    updateTag(CONTENTS_CACHE_TAG);
     revalidatePath("/calendar");
     revalidatePath("/admin");
     revalidatePath("/create");
@@ -75,6 +80,8 @@ export async function approveContent(id: string): Promise<ActionResult> {
       },
     });
 
+    updateTag(CONTENTS_CACHE_TAG);
+    updateTag(contentCacheTag(id));
     revalidatePath("/admin");
     revalidatePath("/calendar");
     revalidatePath(`/content/${id}`);
@@ -102,6 +109,8 @@ export async function rejectContent(id: string): Promise<ActionResult> {
       data: { status: "rejected", approver: null },
     });
 
+    updateTag(CONTENTS_CACHE_TAG);
+    updateTag(contentCacheTag(id));
     revalidatePath("/admin");
     revalidatePath("/calendar");
     revalidatePath(`/content/${id}`);

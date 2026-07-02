@@ -1,18 +1,26 @@
-import { notFound } from "next/navigation";
-import { auth } from "@/auth";
-import { getContentById } from "@/lib/content/queries";
-import { ContentDetailView } from "@/components/content/content-detail-view";
+"use client";
 
-export default async function ContentDetailPage({
+import { use } from "react";
+import { notFound } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ContentDetailView } from "@/components/content/content-detail-view";
+import { useContentById } from "@/lib/content/contents-provider";
+
+export default function ContentDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const [content, session] = await Promise.all([getContentById(id), auth()]);
+  const { id } = use(params);
+  const content = useContentById(id);
+  const { data: session } = useSession();
+
+  if (content === null) {
+    notFound();
+  }
 
   if (!content) {
-    notFound();
+    return null;
   }
 
   return <ContentDetailView content={content} session={session} />;

@@ -1,9 +1,3 @@
-import { auth } from "@/auth";
-import { getAllContents } from "@/lib/content/queries";
-import { CalendarPageClient } from "@/components/calendar/calendar-page-client";
+"use client";
 
-export default async function CalendarPage() {
-  const [contents, session] = await Promise.all([getAllContents(), auth()]);
-
-  return <CalendarPageClient contents={contents} session={session} />;
-}
+export { CalendarPageClient as default } from "@/components/calendar/calendar-page-client";
