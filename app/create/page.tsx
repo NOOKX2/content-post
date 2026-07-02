@@ -1,16 +1,16 @@
-"use client";
-
+import { auth } from "@/auth";
+import { getAllContents } from "@/lib/content/queries";
 import { ContentForm } from "@/components/content/content-form";
 import { CalendarView } from "@/components/calendar/calendar-view";
 import { Header } from "@/components/layout/header";
-import { useContent } from "@/lib/content-context";
 
-export default function CreatePage() {
-  const { contents } = useContent();
+export default async function CreatePage() {
+  const [contents, session] = await Promise.all([getAllContents(), auth()]);
 
   return (
     <>
       <Header
+        session={session}
         title="สร้าง Content"
         description="กรอกข้อมูล Content แล้วส่งเพื่อให้ Admin อนุมัติ"
       />

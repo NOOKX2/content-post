@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
 import {
   CalendarDays,
   ClipboardList,
@@ -11,7 +10,7 @@ import {
   Leaf,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useContent } from "@/lib/content-context";
+import type { Session } from "next-auth";
 
 const CREATOR_NAV = [
   { href: "/create", label: "สร้าง Content", icon: PenSquare },
@@ -23,12 +22,15 @@ const ADMIN_NAV = [
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
 ] as const;
 
-export function Sidebar() {
+export function Sidebar({
+  session,
+  pendingCount,
+}: {
+  session: Session | null;
+  pendingCount: number;
+}) {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const { pendingCount } = useContent();
   const isAdmin = session?.user?.role === "ADMIN";
-
   const navItems = isAdmin ? ADMIN_NAV : CREATOR_NAV;
 
   return (

@@ -2,37 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   requireAdmin,
-  requireSession,
   requireSessionOrN8n,
 } from "@/lib/content/api-auth";
 import { toContentItem } from "@/lib/content/mappers";
 import type { ContentStatus } from "@/lib/types";
 
 const N8N_ALLOWED_STATUSES: ContentStatus[] = ["posted", "scheduled"];
-
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const authResult = await requireSession();
-  if ("error" in authResult) return authResult.error;
-
-  const { id } = await params;
-
-  try {
-    const record = await prisma.content.findUnique({ where: { id } });
-    if (!record) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(toContentItem(record));
-  } catch {
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาด กรุณาลองใหม่" },
-      { status: 500 }
-    );
-  }
-}
 
 export async function PATCH(
   request: Request,

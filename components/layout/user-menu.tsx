@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { ChevronDown, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Session } from "next-auth";
 
-export function UserMenu() {
-  const { data: session } = useSession();
+export function UserMenu({ session }: { session: Session | null }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

@@ -19,7 +19,7 @@ import { CHANNELS, TEAM_MEMBERS, PRODUCTS } from "@/lib/constants";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
 import type { ContentFormData, ContentItem, MediaType, Platform } from "@/lib/types";
 import { generateContentId } from "@/lib/utils";
-import { useContent } from "@/lib/content-context";
+import { createContent } from "@/lib/content/actions";
 
 const EMPTY_FORM: ContentFormData = {
   name: "",
@@ -48,7 +48,6 @@ interface ContentFormProps {
 }
 
 export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
-  const { addContent } = useContent();
   const [form, setForm] = useState<ContentFormData>(EMPTY_FORM);
   const [contentId, setContentId] = useState(() => generateContentId());
   const [submittedItem, setSubmittedItem] = useState<ContentItem | null>(null);
@@ -94,7 +93,7 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
 
     setSubmitting(true);
     try {
-      const item = await addContent(
+      const result = await createContent(
         {
           ...form,
           attachments: form.attachments.filter((link) => link.trim()),
@@ -102,7 +101,13 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
         },
         contentId
       );
-      setSubmittedItem(item);
+
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+
+      setSubmittedItem(result.data);
       onSubmitSuccess?.();
     } catch {
       alert("ส่ง Content ไม่สำเร็จ กรุณาลองใหม่");

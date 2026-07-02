@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useState, useTransition } from "react";
 import { ApprovalCard } from "./approval-card";
 import { Tabs } from "@/components/ui/tabs";
-import { useContent } from "@/lib/content-context";
-import type { ContentStatus } from "@/lib/types";
+import { approveContent, rejectContent } from "@/lib/content/actions";
+import type { ContentItem, ContentStatus } from "@/lib/types";
 
 const FILTER_TABS: { id: ContentStatus | "all"; label: string }[] = [
   { id: "pending", label: "รออนุมัติ" },
@@ -14,10 +13,9 @@ const FILTER_TABS: { id: ContentStatus | "all"; label: string }[] = [
   { id: "all", label: "ทั้งหมด" },
 ];
 
-export function ApprovalList() {
-  const { data: session } = useSession();
-  const { contents, approveContent, rejectContent } = useContent();
+export function ApprovalList({ contents }: { contents: ContentItem[] }) {
   const [filter, setFilter] = useState<ContentStatus | "all">("pending");
+  const [isPending, startTransition] = useTransition();
 
   const filtered =
     filter === "all"
@@ -27,7 +25,21 @@ export function ApprovalList() {
   const pendingCount = contents.filter((c) => c.status === "pending").length;
 
   const handleApprove = (id: string) => {
-    approveContent(id, session?.user?.name || "Admin");
+    startTransition(async () => {
+      const result = await approveContent(id);
+      if (!result.success) {
+        alert(result.error);
+      }
+    });
+  };
+
+  const handleReject = (id: string) => {
+    startTransition(async () => {
+      const result = await rejectContent(id);
+      if (!result.success) {
+        alert(result.error);
+      }
+    });
   };
 
   return (
@@ -41,6 +53,10 @@ export function ApprovalList() {
         onChange={(id) => setFilter(id as ContentStatus | "all")}
       />
 
+      {isPending && (
+        <p className="text-sm text-stone-500">กำลังอัปเดต...</p>
+      )}
+
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-stone-300 py-16 text-center">
           <p className="text-stone-500">ไม่มี Content ในหมวดนี้</p>
@@ -52,7 +68,7 @@ export function ApprovalList() {
               key={content.id}
               content={content}
               onApprove={handleApprove}
-              onReject={rejectContent}
+              onReject={handleReject}
             />
           ))}
         </div>

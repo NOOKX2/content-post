@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, User, Loader2 } from "lucide-react";
+import { registerUser } from "@/lib/auth/actions";
 import {
   AuthShell,
   AuthBrandPanel,
@@ -33,26 +34,20 @@ export function RegisterForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
+      const result = await registerUser({ name, email, password });
 
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        setError(data?.error || "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      if (!result.success) {
+        setError(result.error);
         return;
       }
 
-      const result = await signIn("credentials", {
+      const signInResult = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
 
-      if (result?.error) {
+      if (signInResult?.error) {
         setError("สมัครสำเร็จแล้ว แต่เข้าสู่ระบบไม่ได้ กรุณา login ด้วยตนเอง");
         return;
       }

@@ -3,6 +3,7 @@
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "./user-menu";
+import type { Session } from "next-auth";
 
 interface HeaderProps {
   title: string;
@@ -10,6 +11,7 @@ interface HeaderProps {
   showExport?: boolean;
   onExport?: () => void;
   actions?: React.ReactNode;
+  session?: Session | null;
 }
 
 export function Header({
@@ -18,6 +20,7 @@ export function Header({
   showExport,
   onExport,
   actions,
+  session = null,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 flex shrink-0 items-center justify-between border-b border-stone-200/80 bg-white/95 px-8 py-4 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80">
@@ -35,7 +38,7 @@ export function Header({
           </Button>
         )}
         {actions}
-        <UserMenu />
+        <UserMenu session={session} />
       </div>
     </header>
   );

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { auth } from "@/auth";
 import { Providers } from "./providers";
 import { AppShell } from "@/components/layout/app-shell";
+import { getPendingCount } from "@/lib/content/queries";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,11 +21,15 @@ export const metadata: Metadata = {
   description: "ระบบจัดการ Content สร้าง อนุมัติ และโพสต์อัตโนมัติ",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+  const pendingCount =
+    session?.user?.role === "ADMIN" ? await getPendingCount() : 0;
+
   return (
     <html
       lang="th"
@@ -31,7 +37,9 @@ export default function RootLayout({
     >
       <body className="min-h-full font-sans">
         <Providers>
-          <AppShell>{children}</AppShell>
+          <AppShell session={session} pendingCount={pendingCount}>
+            {children}
+          </AppShell>
         </Providers>
       </body>
     </html>
