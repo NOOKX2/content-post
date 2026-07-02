@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { DashboardLink } from "@/components/layout/dashboard-link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ContentItem } from "@/lib/types";
 import { PlatformBadgeGroup } from "@/components/ui/platform-icon";
@@ -147,7 +147,7 @@ export function ContentCalendarGrid({
                       </div>
                       <div className="space-y-1.5">
                         {dayContents.map((c) => (
-                          <Link
+                          <DashboardLink
                             key={c.id}
                             href={`/content/${c.id}`}
                             className={cn(
@@ -170,7 +170,7 @@ export function ContentCalendarGrid({
                             <p className="text-[10px] font-medium truncate mt-0.5">
                               {STATUS_LABELS[c.status].label}
                             </p>
-                          </Link>
+                          </DashboardLink>
                         ))}
                       </div>
                     </>

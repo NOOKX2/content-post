@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
+import { DashboardLink } from "@/components/layout/dashboard-link";
 import { CalendarDays, CheckCircle2, Plus } from "lucide-react";
 import type { ContentItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -86,12 +86,12 @@ export function SubmitSuccess({ content, onCreateAnother }: SubmitSuccessProps) 
           <Plus className="h-4 w-4" />
           สร้าง Content ใหม่
         </Button>
-        <Link href="/calendar">
+        <DashboardLink href="/calendar">
           <Button size="lg" variant="secondary" className="w-full sm:w-auto">
             <CalendarDays className="h-4 w-4" />
             ดูในปฏิทิน
           </Button>
-        </Link>
+        </DashboardLink>
       </div>
     </div>
   );

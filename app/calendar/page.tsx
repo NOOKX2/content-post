@@ -1,3 +1,3 @@
-"use client";
-
-export { CalendarPageClient as default } from "@/components/calendar/calendar-page-client";
+export default function CalendarPage() {
+  return null;
+}

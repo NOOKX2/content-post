@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   ClipboardList,
@@ -11,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendingCount } from "@/lib/content/contents-provider";
+import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
 import type { Session } from "next-auth";
 
 const CREATOR_NAV = [
@@ -24,7 +23,7 @@ const ADMIN_NAV = [
 ] as const;
 
 export function Sidebar({ session }: { session: Session | null }) {
-  const pathname = usePathname();
+  const { activePath, navigate } = useDashboardNav();
   const pendingCount = usePendingCount();
   const isAdmin = session?.user?.role === "ADMIN";
   const navItems = isAdmin ? ADMIN_NAV : CREATOR_NAV;
@@ -44,16 +43,20 @@ export function Sidebar({ session }: { session: Session | null }) {
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive =
-            pathname === href ||
+            activePath === href ||
             (href === "/calendar" &&
-              (pathname === "/content-calendar" ||
-                pathname.startsWith("/content/")));
+              (activePath === "/content-calendar" ||
+                activePath.startsWith("/content/")));
           const showBadge = href === "/admin" && pendingCount > 0;
 
           return (
-            <Link
+            <a
               key={href}
               href={href}
+              onClick={(event) => {
+                event.preventDefault();
+                navigate(href);
+              }}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
@@ -68,7 +71,7 @@ export function Sidebar({ session }: { session: Session | null }) {
                   {pendingCount}
                 </span>
               )}
-            </Link>
+            </a>
           );
         })}
       </nav>

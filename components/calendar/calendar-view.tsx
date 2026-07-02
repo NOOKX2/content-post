@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { DashboardLink } from "@/components/layout/dashboard-link";
 import {
   ChevronLeft,
   ChevronRight,
@@ -286,7 +286,7 @@ export function CalendarView({ contents }: CalendarViewProps) {
                       className="relative min-h-[60px] border-b border-l border-stone-100 p-1"
                     >
                       {events.map((event) => (
-                        <Link
+                        <DashboardLink
                           key={event.id}
                           href={`/content/${event.id}`}
                           className={cn(
@@ -295,7 +295,7 @@ export function CalendarView({ contents }: CalendarViewProps) {
                           )}
                         >
                           {event.name}
-                        </Link>
+                        </DashboardLink>
                       ))}
                     </div>
                   );
