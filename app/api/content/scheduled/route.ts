@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { requireN8nApiKey } from "@/lib/content/api-auth";
 import { filterDueContent } from "@/lib/content/scheduled";
 import { toContentItem } from "@/lib/content/mappers";
+import {
+  getAppPublicUrl,
+  resolvePublicMediaUrl,
+} from "@/lib/content/media-url";
 
 export async function GET(request: Request) {
   const authResult = requireN8nApiKey(request);
@@ -16,9 +20,20 @@ export async function GET(request: Request) {
   });
 
   const due = filterDueContent(records);
+  const appPublicUrl = getAppPublicUrl();
 
   return NextResponse.json({
     count: due.length,
-    items: due.map(toContentItem),
+    items: due.map((record) => {
+      const item = toContentItem(record);
+      return {
+        ...item,
+        mediaUrl: resolvePublicMediaUrl(
+          item.attachments,
+          item.mediaType,
+          appPublicUrl
+        ),
+      };
+    }),
   });
 }

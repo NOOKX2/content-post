@@ -32,6 +32,12 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/content_post?schema=public
       AUTH_SECRET: ${AUTH_SECRET:-dev-secret-change-in-production-min-32-chars}
       AUTH_URL: http://localhost:3001
+      APP_PUBLIC_URL: http://localhost:3001
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
+      R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
       N8N_API_KEY: ${N8N_API_KEY:-dev-n8n-api-key-change-in-production}
       N8N_WEBHOOK_URL: http://n8n:5678
       WATCHPACK_POLLING: "true"
@@ -78,6 +84,14 @@ services:
       GENERIC_TIMEZONE: Asia/Bangkok
       TZ: Asia/Bangkok
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-dev-n8n-encryption-key-change-in-production}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      N8N_EXPRESSIONS_ALLOWED_ENV_VARS: "BUFFER_API_KEY,BUFFER_IG_CHANNEL_ID,BUFFER_TIKTOK_CHANNEL_ID,BUFFER_FB_CHANNEL_ID,N8N_API_KEY,APP_PUBLIC_URL"
+      N8N_API_KEY: ${N8N_API_KEY:-dev-n8n-api-key-change-in-production}
+      BUFFER_API_KEY: ${BUFFER_API_KEY:-}
+      BUFFER_IG_CHANNEL_ID: ${BUFFER_IG_CHANNEL_ID:-}
+      BUFFER_TIKTOK_CHANNEL_ID: ${BUFFER_TIKTOK_CHANNEL_ID:-}
+      BUFFER_FB_CHANNEL_ID: ${BUFFER_FB_CHANNEL_ID:-}
+      APP_PUBLIC_URL: ${AUTH_URL:-http://localhost:3001}
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:

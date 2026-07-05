@@ -12,6 +12,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import {
+  getAttachmentFilename,
+  isUploadedAttachment,
+} from "@/lib/content/attachments";
 
 interface AttachmentLinksProps {
   links: string[];
@@ -19,14 +23,7 @@ interface AttachmentLinksProps {
 }
 
 function isImageAttachment(value: string) {
-  return /\.(jpe?g|png|webp|gif)$/i.test(value);
-}
-
-function getAttachmentLabel(value: string) {
-  if (value.startsWith("/uploads/")) {
-    return value.split("/").pop() ?? "ไฟล์ที่อัปโหลด";
-  }
-  return value;
+  return /\.(jpe?g|png|webp|gif)$/i.test(value.split("?")[0]);
 }
 
 export function AttachmentLinks({ links, onChange }: AttachmentLinksProps) {
@@ -96,11 +93,11 @@ export function AttachmentLinks({ links, onChange }: AttachmentLinksProps) {
 
   const linkRows = links
     .map((link, index) => ({ link, index }))
-    .filter(({ link }) => !link.startsWith("/uploads/"));
+    .filter(({ link }) => !isUploadedAttachment(link));
 
   const fileRows = links
     .map((link, index) => ({ link, index }))
-    .filter(({ link }) => link.startsWith("/uploads/"));
+    .filter(({ link }) => isUploadedAttachment(link));
 
   return (
     <div className="space-y-3">
@@ -184,9 +181,9 @@ export function AttachmentLinks({ links, onChange }: AttachmentLinksProps) {
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-stone-800">
-                  {getAttachmentLabel(link)}
+                  {getAttachmentFilename(link)}
                 </p>
-                <p className="truncate text-xs text-stone-500">ไฟล์ที่อัปโหลด</p>
+                <p className="truncate text-xs text-stone-500">{link}</p>
               </div>
               <button
                 type="button"

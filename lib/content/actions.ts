@@ -7,7 +7,12 @@ import {
 } from "@/lib/content/cache-tags";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { formDataToCreateInput, toContentItem } from "@/lib/content/mappers";
+import {
+  formDataToCreateInput,
+  formDataToUpdateInput,
+  toContentItem,
+} from "@/lib/content/mappers";
+import { assertCanModifyContent } from "@/lib/content/permissions";
 import type { ContentFormData, ContentItem } from "@/lib/types";
 import { generateContentId } from "@/lib/utils";
 
@@ -85,6 +90,77 @@ export async function approveContent(id: string): Promise<ActionResult> {
     revalidatePath("/admin");
     revalidatePath("/calendar");
     revalidatePath(`/content/${id}`);
+
+    return { success: true, data: undefined };
+  } catch {
+    return { success: false, error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
+  }
+}
+
+export async function updateContent(
+  id: string,
+  data: ContentFormData
+): Promise<ActionResult<ContentItem>> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  if (!data.name?.trim()) {
+    return { success: false, error: "กรุณากรอกชื่อ Content" };
+  }
+
+  try {
+    const existing = await prisma.content.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false, error: "Not found" };
+    }
+
+    const forbidden = assertCanModifyContent(session, existing, "edit");
+    if (forbidden) {
+      return { success: false, error: forbidden };
+    }
+
+    const record = await prisma.content.update({
+      where: { id },
+      data: formDataToUpdateInput(data),
+    });
+
+    updateTag(CONTENTS_CACHE_TAG);
+    updateTag(contentCacheTag(id));
+    revalidatePath("/admin");
+    revalidatePath("/calendar");
+    revalidatePath(`/content/${id}`);
+
+    return { success: true, data: toContentItem(record) };
+  } catch {
+    return { success: false, error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
+  }
+}
+
+export async function deleteContent(id: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const existing = await prisma.content.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false, error: "Not found" };
+    }
+
+    const forbidden = assertCanModifyContent(session, existing, "delete");
+    if (forbidden) {
+      return { success: false, error: forbidden };
+    }
+
+    await prisma.content.delete({ where: { id } });
+
+    updateTag(CONTENTS_CACHE_TAG);
+    updateTag(contentCacheTag(id));
+    revalidatePath("/admin");
+    revalidatePath("/calendar");
 
     return { success: true, data: undefined };
   } catch {

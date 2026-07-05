@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 import { auth } from "@/auth";
+import { uploadToR2, isR2Configured } from "@/lib/storage/r2";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -39,6 +39,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (!isR2Configured()) {
+    return NextResponse.json(
+      { error: "ระบบอัปโหลดยังไม่พร้อม กรุณาตั้งค่า Cloudflare R2" },
+      { status: 503 }
+    );
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get("file");
@@ -63,19 +70,21 @@ export async function POST(request: Request) {
 
     const ext = getExtension(file.name, file.type);
     const filename = `${randomUUID()}${ext}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    const key = `uploads/${filename}`;
 
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(
-      path.join(uploadDir, filename),
-      Buffer.from(await file.arrayBuffer())
-    );
+    const url = await uploadToR2({
+      key,
+      body: Buffer.from(await file.arrayBuffer()),
+      contentType: file.type,
+    });
 
     return NextResponse.json({
-      url: `/uploads/${filename}`,
+      url,
+      key,
       name: file.name,
     });
-  } catch {
+  } catch (error) {
+    console.error("[upload] failed", error);
     return NextResponse.json(
       { error: "อัปโหลดไม่สำเร็จ กรุณาลองใหม่" },
       { status: 500 }

@@ -1,0 +1,228 @@
+{
+  "name": "Content Post → Buffer",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://app:3000/api/content/scheduled",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.N8N_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2c3d4e5-fetch",
+      "name": "Fetch Due Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "id": "c3d4e5f6-split",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// n8n Code node — Run Once for All Items\n// Input: content item(s) from Split Out (field: items)\n// Output: one item per platform (e.g. IG + TikTok = 2 items)\n\nconst bufferChannels = {\n  instagram: $env.BUFFER_IG_CHANNEL_ID,\n  tiktok: $env.BUFFER_TIKTOK_CHANNEL_ID,\n  facebook: $env.BUFFER_FB_CHANNEL_ID,\n};\n\nconst appUrl = ($env.APP_PUBLIC_URL || \"http://localhost:3001\").replace(/\\/$/, \"\");\n\nfunction toPublicUrl(url) {\n  if (!url) return null;\n  if (url.startsWith(\"http://\") || url.startsWith(\"https://\")) return url;\n  return `${appUrl}${url.startsWith(\"/\") ? url : `/${url}`}`;\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const content = item.json;\n\n  const captionParts = [content.name, content.details];\n  if (content.tags?.length) {\n    captionParts.push(\n      content.tags.map((tag) => `#${String(tag).replace(/^#/, \"\")}`).join(\" \")\n    );\n  }\n  const text = captionParts.filter(Boolean).join(\"\\n\\n\");\n\n  const mediaUrl =\n    toPublicUrl(content.mediaUrl) ||\n    (content.attachments || []).map(toPublicUrl).find(Boolean);\n\n  if (!mediaUrl) {\n    throw new Error(\n      `Content ${content.id} (${content.contentId}) has no media URL`\n    );\n  }\n\n  const videoExt = /\\.(mp4|mov|webm|m4v)$/i;\n  const assetKey = videoExt.test(mediaUrl.split(\"?\")[0]) ? \"video\" : \"image\";\n\n  function instagramMetadata() {\n    if (assetKey === \"video\") {\n      return \"metadata: { instagram: { type: reel } }\";\n    }\n    return \"metadata: { instagram: { type: post, shouldShareToFeed: true } }\";\n  }\n\n  for (const platform of content.platforms || []) {\n    const channelId = bufferChannels[platform];\n    if (!channelId) continue;\n\n    const instagramLine =\n      platform === \"instagram\" ? `\\n    ${instagramMetadata()}` : \"\";\n\n    const query = `mutation CreatePost {\n  createPost(input: {\n    channelId: ${JSON.stringify(channelId)}\n    text: ${JSON.stringify(text)}\n    schedulingType: automatic\n    mode: shareNow\n    assets: [{ ${assetKey}: { url: ${JSON.stringify(mediaUrl)} } }]${instagramLine}\n  }) {\n    ... on PostActionSuccess {\n      post { id }\n    }\n    ... on MutationError {\n      message\n    }\n  }\n}`;\n\n    const bufferApiKey = $env.BUFFER_API_KEY;\n    if (!bufferApiKey) {\n      throw new Error(\n        \"BUFFER_API_KEY is missing in n8n environment. Check .env and restart n8n.\"\n      );\n    }\n\n    results.push({\n      json: {\n        contentId: content.id,\n        contentCode: content.contentId,\n        platform,\n        channelId,\n        mediaUrl,\n        caption: text,\n        graphqlQuery: query,\n        bufferBody: JSON.stringify({ query }),\n        bufferAuth: `Bearer ${bufferApiKey}`,\n      },\n    });\n  }\n}\n\nif (results.length === 0) {\n  throw new Error(\n    \"No supported Buffer platforms. Check BUFFER_*_CHANNEL_ID env vars.\"\n  );\n}\n\nreturn results;\n"
+      },
+      "id": "d4e5f6a7-code",
+      "name": "Prepare Buffer Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// n8n Code node — Run Once for All Items\n// Input: items from Prepare Buffer Posts (bufferAuth + bufferBody)\n// Uses this.helpers.httpRequest (fetch is not available in n8n task runner)\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const {\n    bufferAuth,\n    bufferBody,\n    contentId,\n    contentCode,\n    platform,\n    channelId,\n    mediaUrl,\n    caption,\n  } = item.json;\n\n  if (!bufferAuth || !bufferBody) {\n    throw new Error(\n      `Missing bufferAuth/bufferBody for content ${contentId}. Update Prepare Buffer Posts code.`\n    );\n  }\n\n  let data;\n  try {\n    data = await this.helpers.httpRequest({\n      method: \"POST\",\n      url: \"https://api.buffer.com\",\n      headers: {\n        \"Content-Type\": \"application/json\",\n        Authorization: bufferAuth,\n      },\n      body: JSON.parse(bufferBody),\n    });\n  } catch (error) {\n    const status = error.statusCode ?? error.httpCode ?? \"?\";\n    const detail =\n      typeof error.message === \"string\"\n        ? error.message\n        : JSON.stringify(error).slice(0, 300);\n    throw new Error(`Buffer HTTP ${status} (${platform}): ${detail}`);\n  }\n\n  const postId = data?.data?.createPost?.post?.id;\n  const errorMessage = data?.data?.createPost?.message;\n\n  if (!postId && errorMessage) {\n    throw new Error(`Buffer mutation error (${platform}): ${errorMessage}`);\n  }\n\n  results.push({\n    json: {\n      contentId,\n      contentCode,\n      platform,\n      channelId,\n      mediaUrl,\n      caption,\n      data,\n    },\n  });\n}\n\nreturn results;\n"
+      },
+      "id": "e5f6a7b8-buffer",
+      "name": "Post to Buffer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "buffer-success",
+              "leftValue": "={{ $json.data.createPost.post.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f6a7b8c9-if",
+      "name": "Buffer OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://app:3000/api/content/{{ $('Prepare Buffer Posts').item.json.contentId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.N8N_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"posted\"\n}",
+        "options": {}
+      },
+      "id": "a7b8c9d0-patch",
+      "name": "Mark Posted",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Due Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Due Content": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Prepare Buffer Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Buffer Posts": {
+      "main": [
+        [
+          {
+            "node": "Post to Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Buffer": {
+      "main": [
+        [
+          {
+            "node": "Buffer OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer OK?": {
+      "main": [
+        [
+          {
+            "node": "Mark Posted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Bangkok"
+  }
+}

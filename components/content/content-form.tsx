@@ -19,7 +19,8 @@ import { CHANNELS, TEAM_MEMBERS, PRODUCTS } from "@/lib/constants";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
 import type { ContentFormData, ContentItem, MediaType, Platform } from "@/lib/types";
 import { generateContentId } from "@/lib/utils";
-import { createContent } from "@/lib/content/actions";
+import { createContent, updateContent } from "@/lib/content/actions";
+import { contentItemToFormData } from "@/lib/content/mappers";
 import { useContents } from "@/lib/content/contents-provider";
 
 const EMPTY_FORM: ContentFormData = {
@@ -46,11 +47,24 @@ const EMPTY_FORM: ContentFormData = {
 
 interface ContentFormProps {
   onSubmitSuccess?: () => void;
+  initialContent?: ContentItem;
+  onCancel?: () => void;
+  onSaved?: (item: ContentItem) => void;
 }
 
-export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
-  const [form, setForm] = useState<ContentFormData>(EMPTY_FORM);
-  const [contentId, setContentId] = useState(() => generateContentId());
+export function ContentForm({
+  onSubmitSuccess,
+  initialContent,
+  onCancel,
+  onSaved,
+}: ContentFormProps) {
+  const isEdit = Boolean(initialContent);
+  const [form, setForm] = useState<ContentFormData>(() =>
+    initialContent ? contentItemToFormData(initialContent) : EMPTY_FORM
+  );
+  const [contentId, setContentId] = useState(
+    () => initialContent?.contentId ?? generateContentId()
+  );
   const [submittedItem, setSubmittedItem] = useState<ContentItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { mutateContents } = useContents();
@@ -95,14 +109,15 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
 
     setSubmitting(true);
     try {
-      const result = await createContent(
-        {
-          ...form,
-          attachments: form.attachments.filter((link) => link.trim()),
-          script: isVideo ? form.script : [],
-        },
-        contentId
-      );
+      const payload = {
+        ...form,
+        attachments: form.attachments.filter((link) => link.trim()),
+        script: isVideo ? form.script : [],
+      };
+
+      const result = isEdit
+        ? await updateContent(initialContent!.id, payload)
+        : await createContent(payload, contentId);
 
       if (!result.success) {
         alert(result.error);
@@ -110,20 +125,36 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
       }
 
       await mutateContents(
-        (current = []) => [result.data, ...current],
+        (current = []) => {
+          if (isEdit) {
+            return current.map((item) =>
+              item.id === result.data.id ? result.data : item
+            );
+          }
+          return [result.data, ...current];
+        },
         { revalidate: true }
       );
+
+      if (isEdit) {
+        onSaved?.(result.data);
+        return;
+      }
 
       setSubmittedItem(result.data);
       onSubmitSuccess?.();
     } catch {
-      alert("ส่ง Content ไม่สำเร็จ กรุณาลองใหม่");
+      alert(
+        isEdit
+          ? "บันทึกการแก้ไขไม่สำเร็จ กรุณาลองใหม่"
+          : "ส่ง Content ไม่สำเร็จ กรุณาลองใหม่"
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (submittedItem) {
+  if (submittedItem && !isEdit) {
     return (
       <SubmitSuccess
         content={submittedItem}
@@ -317,16 +348,28 @@ export function ContentForm({ onSubmitSuccess }: ContentFormProps) {
       </Card>
 
       <div className="flex justify-end gap-3 pb-8">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setForm({ ...EMPTY_FORM, mediaType: form.mediaType })}
-        >
-          ล้างฟอร์ม
-        </Button>
+        {isEdit ? (
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            ยกเลิก
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setForm({ ...EMPTY_FORM, mediaType: form.mediaType })}
+          >
+            ล้างฟอร์ม
+          </Button>
+        )}
         <Button type="submit" size="lg" disabled={submitting}>
           <Send className="h-4 w-4" />
-          {submitting ? "กำลังส่ง..." : "ส่งเพื่ออนุมัติ"}
+          {submitting
+            ? isEdit
+              ? "กำลังบันทึก..."
+              : "กำลังส่ง..."
+            : isEdit
+              ? "บันทึกการแก้ไข"
+              : "ส่งเพื่ออนุมัติ"}
         </Button>
       </div>
     </form>

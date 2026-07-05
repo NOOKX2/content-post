@@ -54,6 +54,7 @@ export interface ContentItem {
   status: ContentStatus;
   category: string;
   tags: string[];
+  createdById?: string | null;
   createdAt: string;
 }
 
