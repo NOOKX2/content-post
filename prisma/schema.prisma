@@ -70,6 +70,7 @@ model Content {
   status         ContentStatus @default(pending)
   category       String        @default("")
   tags           String[]
+  imageMeta      Json          @default("{}")
   createdById    String?
   createdBy      User?         @relation(fields: [createdById], references: [id])
   createdAt      DateTime      @default(now())

@@ -128,9 +128,7 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
 
   const scheduleLabel = content.scheduledDate
     ? `${formatThaiDate(content.scheduledDate)}${
-        content.scheduledTime
-          ? ` · ${content.scheduledTime}${content.endTime ? ` – ${content.endTime}` : ""}`
-          : ""
+        content.scheduledTime ? ` · ${content.scheduledTime}` : ""
       }`
     : "";
 
@@ -183,11 +181,37 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
       fieldRow(doc, "สถานที่", formatLocations(content.location));
     }
     if (content.category) fieldRow(doc, "หมวดหมู่", content.category);
+    if (!isVideo && content.imageMeta?.objective) {
+      fieldRow(doc, "วัตถุประสงค์", content.imageMeta.objective);
+    }
     if (content.approver) fieldRow(doc, "อนุมัติโดย", content.approver);
 
     if (content.details) {
       sectionTitle(doc, "รายละเอียด");
       paragraph(doc, content.details);
+    }
+
+    if (!isVideo && content.imageMeta) {
+      const meta = content.imageMeta;
+      const hasImageBrief =
+        meta.headline ||
+        meta.subHead ||
+        meta.callToAction ||
+        meta.requiredElements.length > 0 ||
+        meta.workSizes.length > 0;
+
+      if (hasImageBrief) {
+        sectionTitle(doc, "ข้อความบนภาพ & องค์ประกอบ");
+        if (meta.headline) fieldRow(doc, "Headline", meta.headline);
+        if (meta.subHead) fieldRow(doc, "Sub Head", meta.subHead);
+        if (meta.callToAction) fieldRow(doc, "Call to Action", meta.callToAction);
+        if (meta.requiredElements.length > 0) {
+          fieldRow(doc, "องค์ประกอบที่ต้องมี", meta.requiredElements.join(", "));
+        }
+        if (meta.workSizes.length > 0) {
+          fieldRow(doc, "ขนาดงาน", meta.workSizes.join(", "));
+        }
+      }
     }
 
     if (content.ideaCreator || content.photographer || content.editor) {
@@ -214,7 +238,10 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
       scriptTable(doc, content);
     }
 
-    if (content.productsNeeded.length > 0 || content.itemsToPrepare) {
+    if (
+      isVideo &&
+      (content.productsNeeded.length > 0 || content.itemsToPrepare)
+    ) {
       sectionTitle(doc, "ของที่ต้องเตรียม");
       if (content.productsNeeded.length > 0) {
         fieldRow(doc, "สินค้า", content.productsNeeded.join(", "));
@@ -223,7 +250,7 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
     }
 
     if (content.attachments.length > 0) {
-      sectionTitle(doc, "ไฟล์แนบ / ลิงก์");
+      sectionTitle(doc, isVideo ? "ไฟล์แนบ / ลิงก์" : "แนบตัวอย่าง");
       bulletRows(doc, content.attachments);
     }
 

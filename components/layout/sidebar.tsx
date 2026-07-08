@@ -44,9 +44,7 @@ export function Sidebar({ session }: { session: Session | null }) {
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive =
             activePath === href ||
-            (href === "/calendar" &&
-              (activePath === "/content-calendar" ||
-                activePath.startsWith("/content/")));
+            (href === "/calendar" && activePath === "/content-calendar");
           const showBadge = href === "/admin" && pendingCount > 0;
 
           return (

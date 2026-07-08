@@ -30,6 +30,24 @@ export interface TeamRow {
   responsibility: string;
 }
 
+export interface ImageMeta {
+  objective: string;
+  headline: string;
+  subHead: string;
+  callToAction: string;
+  requiredElements: string[];
+  workSizes: string[];
+}
+
+export const EMPTY_IMAGE_META: ImageMeta = {
+  objective: "",
+  headline: "",
+  subHead: "",
+  callToAction: "",
+  requiredElements: [],
+  workSizes: [],
+};
+
 export interface ContentItem {
   id: string;
   contentId: string;
@@ -54,6 +72,7 @@ export interface ContentItem {
   status: ContentStatus;
   category: string;
   tags: string[];
+  imageMeta?: ImageMeta;
   createdById?: string | null;
   createdAt: string;
 }
@@ -78,4 +97,5 @@ export interface ContentFormData {
   editor: string;
   category: string;
   tags: string[];
+  imageMeta: ImageMeta;
 }

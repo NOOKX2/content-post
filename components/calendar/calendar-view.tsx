@@ -106,28 +106,23 @@ export function EventModal({
               value={scheduledDate}
               onChange={(e) => setScheduledDate(e.target.value)}
             />
-            <Select
-              label="ช่อง"
-              options={CHANNELS}
-              placeholder="เลือก..."
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
             <Input
-              label="เวลาเริ่ม"
+              label="เวลา post"
               type="time"
               value={scheduledTime}
-              onChange={(e) => setScheduledTime(e.target.value)}
-            />
-            <Input
-              label="เวลาสิ้นสุด"
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
+              onChange={(e) => {
+                setScheduledTime(e.target.value);
+                setEndTime("");
+              }}
             />
           </div>
+          <Select
+            label="ช่อง"
+            options={CHANNELS}
+            placeholder="เลือก..."
+            value={channel}
+            onChange={(e) => setChannel(e.target.value)}
+          />
           <Select
             label="ผู้รับผิดชอบ"
             options={TEAM_MEMBERS}
@@ -146,7 +141,7 @@ export function EventModal({
             <div className="flex gap-4 rounded-lg bg-stone-50 p-3 text-xs text-stone-500">
               <span className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />
-                {content.scheduledTime} - {content.endTime}
+                {content.scheduledTime}
               </span>
               {content.location.length > 0 && (
                 <span className="flex items-center gap-1">

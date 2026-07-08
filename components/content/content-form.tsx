@@ -8,6 +8,7 @@ import { ScriptTable } from "./script-table";
 import { PlatformSelect } from "./platform-select";
 import { LocationSelect } from "./location-select";
 import { AttachmentLinks } from "./attachment-links";
+import { ImageAttachmentLinks } from "./image-attachment-links";
 import { SubmitSuccess } from "./submit-success";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,9 +16,23 @@ import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CHANNELS, TEAM_MEMBERS, PRODUCTS } from "@/lib/constants";
+import {
+  CHANNELS,
+  TEAM_MEMBERS,
+  PRODUCTS,
+  IMAGE_OBJECTIVES,
+  IMAGE_REQUIRED_ELEMENTS,
+  IMAGE_WORK_SIZES,
+} from "@/lib/constants";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
-import type { ContentFormData, ContentItem, MediaType, Platform } from "@/lib/types";
+import type {
+  ContentFormData,
+  ContentItem,
+  ImageMeta,
+  MediaType,
+  Platform,
+} from "@/lib/types";
+import { EMPTY_IMAGE_META } from "@/lib/types";
 import { generateContentId } from "@/lib/utils";
 import { createContent, updateContent } from "@/lib/content/actions";
 import { contentItemToFormData } from "@/lib/content/mappers";
@@ -43,6 +58,7 @@ const EMPTY_FORM: ContentFormData = {
   editor: "",
   category: "",
   tags: [],
+  imageMeta: { ...EMPTY_IMAGE_META },
 };
 
 interface ContentFormProps {
@@ -79,11 +95,36 @@ export function ContentForm({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const updateImageMeta = <K extends keyof ImageMeta>(
+    key: K,
+    value: ImageMeta[K]
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      imageMeta: { ...prev.imageMeta, [key]: value },
+    }));
+  };
+
+  const toggleImageMetaList = (
+    key: "requiredElements" | "workSizes",
+    item: string
+  ) => {
+    const current = form.imageMeta[key];
+    updateImageMeta(
+      key,
+      current.includes(item)
+        ? current.filter((value) => value !== item)
+        : [...current, item]
+    );
+  };
+
   const handleMediaTypeChange = (mediaType: MediaType) => {
     setForm((prev) => ({
       ...prev,
       mediaType,
       script: mediaType === "image" ? [] : prev.script,
+      imageMeta:
+        mediaType === "image" ? prev.imageMeta : { ...EMPTY_IMAGE_META },
     }));
   };
 
@@ -111,8 +152,10 @@ export function ContentForm({
     try {
       const payload = {
         ...form,
+        endTime: "",
         attachments: form.attachments.filter((link) => link.trim()),
         script: isVideo ? form.script : [],
+        imageMeta: isVideo ? { ...EMPTY_IMAGE_META } : form.imageMeta,
       };
 
       const result = isEdit
@@ -171,7 +214,7 @@ export function ContentForm({
           <CardDescription>
             {isVideo
               ? "สำหรับ Video — กรอกข้อมูลถ่ายทำและสคริป"
-              : "สำหรับรูปภาพ / Post — กรอกข้อมูลโพสต์"}
+              : "สำหรับ Picture — กรอก brief งานออกแบบภาพ"}
           </CardDescription>
         </CardHeader>
         <MediaTypeToggle value={form.mediaType} onChange={handleMediaTypeChange} />
@@ -204,6 +247,15 @@ export function ContentForm({
             value={form.channel}
             onChange={(e) => update("channel", e.target.value)}
           />
+          {!isVideo && (
+            <Select
+              label="วัตถุประสงค์"
+              options={IMAGE_OBJECTIVES}
+              placeholder="เลือกวัตถุประสงค์..."
+              value={form.imageMeta.objective}
+              onChange={(e) => updateImageMeta("objective", e.target.value)}
+            />
+          )}
         </div>
         <div className="mt-4">
           <PlatformSelect
@@ -216,42 +268,157 @@ export function ContentForm({
             label="รายละเอียด"
             value={form.details}
             onChange={(e) => update("details", e.target.value)}
-            placeholder="อธิบาย concept, mood, หรือ brief..."
+            placeholder={
+              isVideo
+                ? "อธิบาย concept, mood, หรือ brief..."
+                : "อธิบาย concept, mood, หรือ brief ของงานภาพ..."
+            }
             rows={3}
           />
         </div>
+        {!isVideo && (
+          <div className="mt-4 grid gap-4 border-t border-pink-100 pt-4 sm:grid-cols-2">
+            <Input
+              label="วันที่"
+              type="date"
+              value={form.scheduledDate}
+              onChange={(e) => update("scheduledDate", e.target.value)}
+            />
+            <Input
+              label="เวลา post"
+              type="time"
+              value={form.scheduledTime}
+              onChange={(e) => update("scheduledTime", e.target.value)}
+            />
+          </div>
+        )}
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>สถานที่ &amp; เวลา</CardTitle>
-        </CardHeader>
-        <div className="grid gap-4 sm:grid-cols-2">
+      {!isVideo && (
+        <>
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>ข้อความบนภาพ</CardTitle>
+              <CardDescription>
+                Headline, Sub Head และ Call to Action ที่ต้องการบนภาพ
+              </CardDescription>
+            </CardHeader>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Headline"
+                value={form.imageMeta.headline}
+                onChange={(e) => updateImageMeta("headline", e.target.value)}
+                placeholder="หัวข้อหลักบนภาพ"
+              />
+              <Input
+                label="Sub Head"
+                value={form.imageMeta.subHead}
+                onChange={(e) => updateImageMeta("subHead", e.target.value)}
+                placeholder="หัวข้อรอง"
+              />
+              <div className="sm:col-span-2">
+                <Input
+                  label="Call to Action"
+                  value={form.imageMeta.callToAction}
+                  onChange={(e) =>
+                    updateImageMeta("callToAction", e.target.value)
+                  }
+                  placeholder="เช่น สั่งซื้อเลย, ดูรายละเอียด"
+                />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>องค์ประกอบ &amp; ขนาดงาน</CardTitle>
+            </CardHeader>
+            <div className="space-y-5">
+              <div>
+                <span className="text-sm font-medium text-stone-700">
+                  องค์ประกอบที่ต้องมี
+                </span>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                  {IMAGE_REQUIRED_ELEMENTS.map((item) => (
+                    <Checkbox
+                      key={item}
+                      label={item}
+                      checked={form.imageMeta.requiredElements.includes(item)}
+                      onChange={() =>
+                        toggleImageMetaList("requiredElements", item)
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-stone-700">
+                  ขนาดงาน
+                </span>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                  {IMAGE_WORK_SIZES.map((size) => (
+                    <Checkbox
+                      key={size}
+                      label={size}
+                      checked={form.imageMeta.workSizes.includes(size)}
+                      onChange={() => toggleImageMetaList("workSizes", size)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>แนบตัวอย่าง</CardTitle>
+              <CardDescription>
+                แนบ reference หรือตัวอย่างภาพ — วางลิงก์หรืออัปโหลดได้มากกว่า 1
+                รายการ
+              </CardDescription>
+            </CardHeader>
+            <ImageAttachmentLinks
+              links={form.attachments}
+              onChange={(links) => update("attachments", links)}
+            />
+          </Card>
+        </>
+      )}
+
+      {isVideo && (
+        <Card>
+          <CardHeader>
+            <CardTitle>เวลา post</CardTitle>
+          </CardHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="วันที่"
+              type="date"
+              value={form.scheduledDate}
+              onChange={(e) => update("scheduledDate", e.target.value)}
+            />
+            <Input
+              label="เวลา post"
+              type="time"
+              value={form.scheduledTime}
+              onChange={(e) => update("scheduledTime", e.target.value)}
+            />
+          </div>
+        </Card>
+      )}
+
+      {isVideo && (
+        <Card>
+          <CardHeader>
+            <CardTitle>สถานที่ถ่าย</CardTitle>
+          </CardHeader>
           <LocationSelect
             selected={form.location}
             onChange={(locations) => update("location", locations)}
             optional={config.locationOptional}
           />
-          <Input
-            label="วันที่"
-            type="date"
-            value={form.scheduledDate}
-            onChange={(e) => update("scheduledDate", e.target.value)}
-          />
-          <Input
-            label="เวลาเริ่ม"
-            type="time"
-            value={form.scheduledTime}
-            onChange={(e) => update("scheduledTime", e.target.value)}
-          />
-          <Input
-            label="เวลาสิ้นสุด"
-            type="time"
-            value={form.endTime}
-            onChange={(e) => update("endTime", e.target.value)}
-          />
-        </div>
-      </Card>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -260,53 +427,52 @@ export function ContentForm({
         <TeamTable rows={form.team} onChange={(rows) => update("team", rows)} />
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>ทรัพยากร &amp; อุปกรณ์</CardTitle>
-        </CardHeader>
-        <div className="space-y-4">
-          <div>
-            <span className="text-sm font-medium text-stone-700">
-              สินค้าที่ต้องใช้
-              {config.productsOptional && (
-                <span className="ml-1 font-normal text-stone-400">(ไม่บังคับ)</span>
-              )}
-            </span>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-              {PRODUCTS.map((p) => (
-                <Checkbox
-                  key={p}
-                  label={p}
-                  checked={form.productsNeeded.includes(p)}
-                  onChange={() => toggleProduct(p)}
-                />
-              ))}
+      {isVideo && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>ทรัพยากร &amp; อุปกรณ์</CardTitle>
+            </CardHeader>
+            <div className="space-y-4">
+              <div>
+                <span className="text-sm font-medium text-stone-700">
+                  สินค้าที่ต้องใช้
+                </span>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                  {PRODUCTS.map((p) => (
+                    <Checkbox
+                      key={p}
+                      label={p}
+                      checked={form.productsNeeded.includes(p)}
+                      onChange={() => toggleProduct(p)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <Input
+                label="ของที่ต้องเตรียม"
+                value={form.itemsToPrepare}
+                onChange={(e) => update("itemsToPrepare", e.target.value)}
+                placeholder="Backdrop, Props, Equipment..."
+              />
+              <AttachmentLinks
+                links={form.attachments}
+                onChange={(links) => update("attachments", links)}
+              />
             </div>
-          </div>
-          <Input
-            label={`ของที่ต้องเตรียม${config.itemsPrepareOptional ? " (ไม่บังคับ)" : ""}`}
-            value={form.itemsToPrepare}
-            onChange={(e) => update("itemsToPrepare", e.target.value)}
-            placeholder="Backdrop, Props, Equipment..."
-          />
-          <AttachmentLinks
-            links={form.attachments}
-            onChange={(links) => update("attachments", links)}
-          />
-        </div>
-      </Card>
+          </Card>
 
-      {config.showScript && (
-        <Card className="border-amber-100">
-          <CardHeader>
-            <CardTitle>สคริป</CardTitle>
-            <CardDescription>ระยะเวลา, Action, บทพูด, หมายเหตุ</CardDescription>
-          </CardHeader>
-          <ScriptTable
-            rows={form.script}
-            onChange={(rows) => update("script", rows)}
-          />
-        </Card>
+          <Card className="border-amber-100">
+            <CardHeader>
+              <CardTitle>สคริป</CardTitle>
+              <CardDescription>ระยะเวลา, Action, บทพูด, หมายเหตุ</CardDescription>
+            </CardHeader>
+            <ScriptTable
+              rows={form.script}
+              onChange={(rows) => update("script", rows)}
+            />
+          </Card>
+        </>
       )}
 
       <Card>
@@ -356,7 +522,9 @@ export function ContentForm({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => setForm({ ...EMPTY_FORM, mediaType: form.mediaType })}
+            onClick={() =>
+              setForm({ ...EMPTY_FORM, mediaType: form.mediaType })
+            }
           >
             ล้างฟอร์ม
           </Button>

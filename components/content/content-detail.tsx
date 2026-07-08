@@ -12,6 +12,7 @@ import type { ContentItem } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { PlatformBadgeGroup } from "@/components/ui/platform-icon";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
+import { isImageAttachment } from "@/lib/content/attachments";
 import { STATUS_LABELS } from "@/lib/constants";
 import { cn, formatLocations, formatThaiDate } from "@/lib/utils";
 
@@ -85,16 +86,26 @@ export function ContentDetail({ content }: ContentDetailProps) {
 
   const scheduleLabel = content.scheduledDate
     ? `${formatThaiDate(content.scheduledDate)}${
-        content.scheduledTime
-          ? ` · ${content.scheduledTime}${content.endTime ? ` – ${content.endTime}` : ""}`
-          : ""
+        content.scheduledTime ? ` · ${content.scheduledTime}` : ""
       }`
     : null;
+
+  const imageMeta = content.imageMeta;
+  const hasImageBrief =
+    !isVideo &&
+    imageMeta &&
+    (imageMeta.objective ||
+      imageMeta.headline ||
+      imageMeta.subHead ||
+      imageMeta.callToAction ||
+      imageMeta.requiredElements.length > 0 ||
+      imageMeta.workSizes.length > 0);
 
   const hasSpecs =
     scheduleLabel ||
     content.location.length > 0 ||
     content.category ||
+    imageMeta?.objective ||
     content.approver;
 
   return (
@@ -168,10 +179,17 @@ export function ContentDetail({ content }: ContentDetailProps) {
                   icon={MapPin}
                 />
               )}
-              {content.category && (
+              {content.category && isVideo && (
                 <SpecCell
                   label="หมวดหมู่"
                   value={content.category}
+                  icon={Tag}
+                />
+              )}
+              {imageMeta?.objective && !isVideo && (
+                <SpecCell
+                  label="วัตถุประสงค์"
+                  value={imageMeta.objective}
                   icon={Tag}
                 />
               )}
@@ -195,6 +213,49 @@ export function ContentDetail({ content }: ContentDetailProps) {
               <p className="apple-body whitespace-pre-wrap text-[#333333]">
                 {content.details}
               </p>
+            </UtilityCard>
+          )}
+
+          {hasImageBrief && imageMeta && (
+            <UtilityCard title="ข้อความบนภาพ & องค์ประกอบ">
+              <dl>
+                {imageMeta.headline && (
+                  <MetaListRow label="Headline" value={imageMeta.headline} />
+                )}
+                {imageMeta.subHead && (
+                  <MetaListRow label="Sub Head" value={imageMeta.subHead} />
+                )}
+                {imageMeta.callToAction && (
+                  <MetaListRow
+                    label="Call to Action"
+                    value={imageMeta.callToAction}
+                  />
+                )}
+              </dl>
+              {imageMeta.requiredElements.length > 0 && (
+                <div className="mt-4">
+                  <p className="apple-caption mb-2">องค์ประกอบที่ต้องมี</p>
+                  <div className="flex flex-wrap gap-2">
+                    {imageMeta.requiredElements.map((item) => (
+                      <span key={item} className="apple-pearl-chip">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {imageMeta.workSizes.length > 0 && (
+                <div className="mt-4">
+                  <p className="apple-caption mb-2">ขนาดงาน</p>
+                  <div className="flex flex-wrap gap-2">
+                    {imageMeta.workSizes.map((size) => (
+                      <span key={size} className="apple-pearl-chip">
+                        {size}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </UtilityCard>
           )}
 
@@ -271,7 +332,8 @@ export function ContentDetail({ content }: ContentDetailProps) {
             </UtilityCard>
           )}
 
-          {(content.productsNeeded.length > 0 || content.itemsToPrepare) && (
+          {isVideo &&
+            (content.productsNeeded.length > 0 || content.itemsToPrepare) && (
             <UtilityCard title="ของที่ต้องเตรียม">
               {content.productsNeeded.length > 0 && (
                 <div className="mb-4 flex flex-wrap gap-2">
@@ -291,21 +353,49 @@ export function ContentDetail({ content }: ContentDetailProps) {
           )}
 
           {content.attachments.length > 0 && (
-            <UtilityCard title="ไฟล์แนบ / ลิงก์">
-              <ul className="space-y-3">
-                {content.attachments.map((link, i) => (
-                  <li key={i}>
+            <UtilityCard title={isVideo ? "ไฟล์แนบ / ลิงก์" : "แนบตัวอย่าง"}>
+              <div className="space-y-4">
+                {content.attachments.map((link, i) =>
+                  isImageAttachment(link) ? (
+                    <div
+                      key={i}
+                      className="overflow-hidden rounded-xl border border-[#e8e8ed] bg-white"
+                    >
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={link}
+                          alt=""
+                          className="max-h-[480px] w-full object-contain bg-[#f5f5f7]"
+                        />
+                      </a>
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="apple-link block break-all px-4 py-3 text-sm"
+                      >
+                        {link}
+                      </a>
+                    </div>
+                  ) : (
                     <a
+                      key={i}
                       href={link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="apple-link break-all"
+                      className="apple-link block break-all"
                     >
                       {link}
                     </a>
-                  </li>
-                ))}
-              </ul>
+                  )
+                )}
+              </div>
             </UtilityCard>
           )}
 

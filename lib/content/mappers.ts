@@ -7,7 +7,27 @@ import type {
   Platform,
   MediaType,
   ContentStatus,
+  ImageMeta,
 } from "@/lib/types";
+import { EMPTY_IMAGE_META } from "@/lib/types";
+
+function parseImageMeta(value: unknown): ImageMeta {
+  if (!value || typeof value !== "object") {
+    return { ...EMPTY_IMAGE_META };
+  }
+
+  const meta = value as Partial<ImageMeta>;
+  return {
+    objective: meta.objective ?? "",
+    headline: meta.headline ?? "",
+    subHead: meta.subHead ?? "",
+    callToAction: meta.callToAction ?? "",
+    requiredElements: Array.isArray(meta.requiredElements)
+      ? meta.requiredElements
+      : [],
+    workSizes: Array.isArray(meta.workSizes) ? meta.workSizes : [],
+  };
+}
 
 export function toContentItem(record: PrismaContent): ContentItem {
   return {
@@ -34,6 +54,7 @@ export function toContentItem(record: PrismaContent): ContentItem {
     status: record.status as ContentStatus,
     category: record.category,
     tags: record.tags,
+    imageMeta: parseImageMeta(record.imageMeta),
     createdById: record.createdById,
     createdAt: record.createdAt.toISOString(),
   };
@@ -60,6 +81,7 @@ export function contentItemToFormData(content: ContentItem): ContentFormData {
     editor: content.editor,
     category: content.category,
     tags: content.tags,
+    imageMeta: content.imageMeta ?? { ...EMPTY_IMAGE_META },
   };
 }
 
@@ -86,6 +108,7 @@ export function formDataToUpdateInput(
     editor: data.editor,
     category: data.category,
     tags: data.tags,
+    imageMeta: data.imageMeta as unknown as Prisma.InputJsonValue,
   };
 }
 
@@ -115,6 +138,7 @@ export function formDataToCreateInput(
     editor: data.editor,
     category: data.category,
     tags: data.tags,
+    imageMeta: data.imageMeta as unknown as Prisma.InputJsonValue,
     status: "pending",
     createdById,
   };

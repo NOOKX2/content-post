@@ -67,6 +67,33 @@ export const CONTENT_CATEGORIES = [
   "Behind the Scenes",
 ] as const;
 
+export const IMAGE_OBJECTIVES = [
+  "Brand Awareness",
+  "Product Launch",
+  "Promotion / Sale",
+  "Education",
+  "Engagement",
+  "Event Announcement",
+] as const;
+
+export const IMAGE_REQUIRED_ELEMENTS = [
+  "Logo",
+  "Product",
+  "ราคา / โปรโมชัน",
+  "CTA",
+  "Hashtag",
+  "QR Code",
+  "ข้อความหลัก",
+] as const;
+
+export const IMAGE_WORK_SIZES = [
+  "1:1 (Feed)",
+  "4:5 (Portrait)",
+  "9:16 (Story/Reels)",
+  "16:9 (Landscape)",
+  "Cover Photo",
+] as const;
+
 export const STATUS_LABELS: Record<
   import("./types").ContentStatus,
   { label: string; color: string }
