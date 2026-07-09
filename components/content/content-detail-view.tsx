@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { FileDown, Pencil, Trash2 } from "lucide-react";
 import { ContentDetail } from "@/components/content/content-detail";
+import { ContentComments } from "@/components/content/content-comments";
 import { ContentForm } from "@/components/content/content-form";
 import { UserMenu } from "@/components/layout/user-menu";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Button } from "@/components/ui/button";
 import { downloadContentPdf } from "@/lib/content/export-pdf-client";
 import { contentPdfFilename } from "@/lib/content/pdf-filename";
@@ -87,6 +89,7 @@ function ContentDetailSubNav({
             {exporting ? "กำลังส่งออก..." : "Export PDF"}
           </Button>
         )}
+        <NotificationBell />
         <UserMenu session={session ?? null} />
       </div>
     </nav>
@@ -181,7 +184,12 @@ export function ContentDetailView({
           />
         </div>
       ) : (
-        <ContentDetail content={content} />
+        <div className="mx-auto max-w-4xl space-y-0 px-4 py-6 md:px-8">
+          <ContentDetail content={content} />
+          <div className="mt-6">
+            <ContentComments contentId={content.id} />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -6,6 +6,11 @@ import {
 } from "@/lib/content/api-auth";
 import { toContentItem } from "@/lib/content/mappers";
 import type { ContentStatus } from "@/lib/types";
+import {
+  notifyApprovalApproved,
+  notifyApprovalRejected,
+  notifyPostStatusUpdate,
+} from "@/lib/notifications/events";
 
 const N8N_ALLOWED_STATUSES: ContentStatus[] = ["posted", "scheduled"];
 
@@ -42,6 +47,10 @@ export async function PATCH(
         data: { status: body.status },
       });
 
+      if (body.status !== existing.status) {
+        await notifyPostStatusUpdate(record, body.status);
+      }
+
       return NextResponse.json(toContentItem(record));
     }
 
@@ -59,6 +68,12 @@ export async function PATCH(
               : null,
         },
       });
+
+      if (body.status === "approved") {
+        await notifyApprovalApproved(record);
+      } else {
+        await notifyApprovalRejected(record);
+      }
 
       return NextResponse.json(toContentItem(record));
     }

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { DashboardRouter } from "./dashboard-router";
 import { DashboardNavProvider } from "@/lib/navigation/dashboard-nav";
+import { cn } from "@/lib/utils";
 import type { Session } from "next-auth";
 
 const AUTH_PATHS = ["/login", "/register"];
@@ -17,6 +18,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const isAuthPage = AUTH_PATHS.includes(pathname);
+  const isDashboard = pathname === "/dashboard";
 
   if (isAuthPage) {
     return <>{children}</>;
@@ -26,7 +28,12 @@ export function AppShell({
     <DashboardNavProvider>
       <div className="flex h-screen bg-stone-50">
         <Sidebar session={session} />
-        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <main
+          className={cn(
+            "flex min-h-0 flex-1 flex-col",
+            isDashboard ? "overflow-hidden" : "overflow-y-auto"
+          )}
+        >
           <DashboardRouter />
         </main>
       </div>

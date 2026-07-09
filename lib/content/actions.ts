@@ -18,6 +18,12 @@ import {
 } from "@/lib/content/action-errors";
 import { assertCanModifyContent } from "@/lib/content/permissions";
 import {
+  detectContentChanges,
+  notifyApprovalApproved,
+  notifyApprovalRejected,
+  notifyContentDetailChanged,
+} from "@/lib/notifications/events";
+import {
   formatChannelContentId,
   getChannelPrefix,
   isValidChannel,
@@ -152,6 +158,8 @@ export async function approveContent(id: string): Promise<ActionResult> {
       },
     });
 
+    await notifyApprovalApproved(existing);
+
     updateTag(CONTENTS_CACHE_TAG);
     updateTag(contentCacheTag(id));
     revalidatePath("/admin");
@@ -193,10 +201,16 @@ export async function updateContent(
       return { success: false, error: forbidden };
     }
 
+    const updateData = formDataToUpdateInput(data);
     const record = await prisma.content.update({
       where: { id },
-      data: formDataToUpdateInput(data),
+      data: updateData,
     });
+
+    const changedFields = detectContentChanges(existing, data);
+    if (changedFields.length > 0) {
+      await notifyContentDetailChanged(record, changedFields, session.user.id);
+    }
 
     updateTag(CONTENTS_CACHE_TAG);
     updateTag(contentCacheTag(id));
@@ -271,6 +285,8 @@ export async function rejectContent(id: string): Promise<ActionResult> {
       where: { id },
       data: { status: "rejected", approver: null },
     });
+
+    await notifyApprovalRejected(existing);
 
     updateTag(CONTENTS_CACHE_TAG);
     updateTag(contentCacheTag(id));

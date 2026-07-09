@@ -60,6 +60,7 @@ export function useDashboardNav() {
 }
 
 export type DashboardRoute =
+  | { view: "dashboard" }
   | { view: "calendar" }
   | { view: "admin" }
   | { view: "create" }
@@ -68,6 +69,9 @@ export type DashboardRoute =
   | null;
 
 export function parseDashboardRoute(path: string): DashboardRoute {
+  if (path === "/dashboard") {
+    return { view: "dashboard" };
+  }
   if (path === "/calendar" || path === "/content-calendar") {
     return { view: "calendar" };
   }

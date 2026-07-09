@@ -35,15 +35,63 @@ enum Platform {
   youtube
 }
 
+enum NotificationType {
+  idea_deadline_reminder
+  revision_needed
+  approval_approved
+  approval_rejected
+  team_comment
+  team_edit_request
+  team_tag
+  shoot_reminder
+  post_status_update
+  content_detail_changed
+  monthly_summary
+}
+
 model User {
-  id        String    @id @default(cuid())
-  name      String
-  email     String    @unique
-  password  String
-  role      Role      @default(USER)
-  contents  Content[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String            @id @default(cuid())
+  name         String
+  email        String            @unique
+  password     String
+  role         Role              @default(USER)
+  contents     Content[]
+  notifications Notification[]
+  comments     ContentComment[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  contentId String?
+  content   Content?         @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  link      String?
+  readAt    DateTime?
+  dedupeKey String?          @unique
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model ContentComment {
+  id          String   @id @default(cuid())
+  contentId   String
+  content     Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorName  String
+  body        String
+  commentType String   @default("comment")
+  taggedName  String?
+  createdAt   DateTime @default(now())
+
+  @@index([contentId, createdAt])
 }
 
 model Content {
@@ -74,6 +122,8 @@ model Content {
   imageMeta      Json          @default("{}")
   createdById    String?
   createdBy      User?         @relation(fields: [createdById], references: [id])
+  notifications  Notification[]
+  comments       ContentComment[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

@@ -2,6 +2,7 @@
 
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { UserMenu } from "./user-menu";
 import { cn } from "@/lib/utils";
 import type { Session } from "next-auth";
@@ -60,6 +61,7 @@ export function Header({
           </Button>
         )}
         {actions}
+        {session?.user && <NotificationBell />}
         <UserMenu session={session} />
       </div>
     </header>

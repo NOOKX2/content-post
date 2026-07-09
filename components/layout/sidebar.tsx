@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   CalendarDays,
   ClipboardList,
   PenSquare,
@@ -13,11 +14,13 @@ import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
 import type { Session } from "next-auth";
 
 const CREATOR_NAV = [
+  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/create", label: "สร้าง Content", icon: PenSquare },
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
 ] as const;
 
 const ADMIN_NAV = [
+  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/admin", label: "Admin อนุมัติ", icon: ShieldCheck },
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
 ] as const;

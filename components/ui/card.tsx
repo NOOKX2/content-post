@@ -7,7 +7,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 
 const paddings = {
   none: "",
-  sm: "p-4",
+  sm: "p-3",
   md: "p-6",
   lg: "p-8",
 };
@@ -38,7 +38,7 @@ export function CardHeader({
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("mb-4", className)} {...props}>
+    <div className={cn("mb-3", className)} {...props}>
       {children}
     </div>
   );
@@ -65,7 +65,7 @@ export function CardDescription({
   ...props
 }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-sm text-stone-500 mt-1", className)} {...props}>
+    <p className={cn("mt-0.5 text-sm text-stone-500", className)} {...props}>
       {children}
     </p>
   );

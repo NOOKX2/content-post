@@ -3,6 +3,7 @@
 import { CalendarPageClient } from "@/components/calendar/calendar-page-client";
 import { AdminView } from "@/components/views/admin-view";
 import { CreateView } from "@/components/views/create-view";
+import { DashboardView } from "@/components/views/dashboard-view";
 import { PostsView } from "@/components/views/posts-view";
 import { ContentDetailViewPage } from "@/components/views/content-detail-view-page";
 import {
@@ -26,6 +27,11 @@ export function DashboardRouter() {
 
   return (
     <>
+      <Panel active={route?.view === "dashboard"}>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <DashboardView />
+        </div>
+      </Panel>
       <Panel active={route?.view === "calendar"}>
         <CalendarPageClient />
       </Panel>
