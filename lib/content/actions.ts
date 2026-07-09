@@ -17,16 +17,50 @@ import {
   logActionError,
 } from "@/lib/content/action-errors";
 import { assertCanModifyContent } from "@/lib/content/permissions";
+import {
+  formatChannelContentId,
+  getChannelPrefix,
+  isValidChannel,
+  MAX_CONTENT_ID_SEQUENCE,
+  parseChannelContentIdSequence,
+  resolveNextContentIdForChannel,
+} from "@/lib/content/content-id";
 import type { ContentFormData, ContentItem } from "@/lib/types";
-import { generateContentId } from "@/lib/utils";
 
 export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+export async function previewNextContentId(
+  channel: string
+): Promise<ActionResult<string>> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  if (!channel.trim()) {
+    return { success: false, error: "กรุณาเลือกช่องที่ลง" };
+  }
+
+  if (!isValidChannel(channel)) {
+    return { success: false, error: "ช่องที่ลงไม่ถูกต้อง" };
+  }
+
+  try {
+    const nextContentId = await resolveNextContentIdForChannel(channel, prisma);
+    return { success: true, data: nextContentId };
+  } catch (error) {
+    logActionError("previewNextContentId", error, { channel });
+    return {
+      success: false,
+      error: formatActionError(error),
+    };
+  }
+}
+
 export async function createContent(
-  data: ContentFormData,
-  contentId?: string
+  data: ContentFormData
 ): Promise<ActionResult<ContentItem>> {
   const session = await auth();
   if (!session?.user) {
@@ -41,8 +75,19 @@ export async function createContent(
     return { success: false, error: "กรุณากรอกชื่อ Content" };
   }
 
+  if (!data.channel?.trim()) {
+    return { success: false, error: "กรุณาเลือกช่องที่ลง" };
+  }
+
+  if (!isValidChannel(data.channel)) {
+    return { success: false, error: "ช่องที่ลงไม่ถูกต้อง" };
+  }
+
   try {
-    let nextContentId = contentId?.trim() || generateContentId();
+    let nextContentId = await resolveNextContentIdForChannel(
+      data.channel,
+      prisma
+    );
     let attempts = 0;
 
     while (attempts < 5) {
@@ -50,7 +95,15 @@ export async function createContent(
         where: { contentId: nextContentId },
       });
       if (!existing) break;
-      nextContentId = generateContentId();
+
+      const prefix = getChannelPrefix(data.channel);
+      const sequence = prefix
+        ? parseChannelContentIdSequence(nextContentId, prefix)
+        : null;
+      if (!prefix || sequence === null || sequence >= MAX_CONTENT_ID_SEQUENCE) {
+        break;
+      }
+      nextContentId = formatChannelContentId(prefix, sequence + 1);
       attempts++;
     }
 
@@ -67,7 +120,7 @@ export async function createContent(
     return { success: true, data: toContentItem(record) };
   } catch (error) {
     logActionError("createContent", error, {
-      contentId,
+      channel: data.channel,
       mediaType: data.mediaType,
       name: data.name,
       userId: session.user.id,

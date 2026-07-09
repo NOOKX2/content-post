@@ -30,6 +30,10 @@ function parseImageMeta(value: unknown): ImageMeta {
   };
 }
 
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value : [];
+}
+
 export function toContentItem(record: PrismaContent): ContentItem {
   return {
     id: record.id,
@@ -39,14 +43,15 @@ export function toContentItem(record: PrismaContent): ContentItem {
     channel: record.channel,
     platforms: record.platforms as Platform[],
     details: record.details,
-    location: record.location,
+    location: toStringArray(record.location),
     scheduledDate: record.scheduledDate,
     scheduledTime: record.scheduledTime,
     endTime: record.endTime ?? undefined,
     team: record.team as unknown as TeamRow[],
-    productsNeeded: record.productsNeeded,
+    productsNeeded: toStringArray(record.productsNeeded),
     itemsToPrepare: record.itemsToPrepare,
-    attachments: record.attachments,
+    filmingEquipment: toStringArray(record.filmingEquipment),
+    attachments: toStringArray(record.attachments),
     script: (Array.isArray(record.script) ? record.script : []).map((row) =>
       normalizeScriptRow(row as unknown as ScriptRow)
     ),
@@ -75,9 +80,10 @@ export function contentItemToFormData(content: ContentItem): ContentFormData {
     scheduledTime: content.scheduledTime,
     endTime: content.endTime ?? "",
     team: content.team,
-    productsNeeded: content.productsNeeded,
+    productsNeeded: toStringArray(content.productsNeeded),
     itemsToPrepare: content.itemsToPrepare,
-    attachments: content.attachments,
+    filmingEquipment: toStringArray(content.filmingEquipment),
+    attachments: toStringArray(content.attachments),
     script: content.script.map(normalizeScriptRow),
     ideaCreator: content.ideaCreator,
     photographer: content.photographer,
@@ -104,6 +110,7 @@ export function formDataToUpdateInput(
     team: data.team as unknown as Prisma.InputJsonValue,
     productsNeeded: data.productsNeeded,
     itemsToPrepare: data.itemsToPrepare,
+    filmingEquipment: data.filmingEquipment,
     attachments: data.attachments,
     script: data.script as unknown as Prisma.InputJsonValue,
     ideaCreator: data.ideaCreator,
@@ -134,6 +141,7 @@ export function formDataToCreateInput(
     team: data.team as unknown as Prisma.InputJsonValue,
     productsNeeded: data.productsNeeded,
     itemsToPrepare: data.itemsToPrepare,
+    filmingEquipment: data.filmingEquipment,
     attachments: data.attachments,
     script: data.script as unknown as Prisma.InputJsonValue,
     ideaCreator: data.ideaCreator,

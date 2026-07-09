@@ -25,7 +25,7 @@ export const MEDIA_FORM_CONFIG: Record<
     locationOptional: false,
     productsOptional: false,
     itemsPrepareOptional: false,
-    photographerLabel: "ช่างภาพ",
+    photographerLabel: "ช่างภาพ/วีดีโอ",
     showScript: true,
     showEditor: true,
   },

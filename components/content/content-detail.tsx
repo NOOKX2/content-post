@@ -261,7 +261,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
           )}
 
           {(content.ideaCreator || content.photographer || content.editor) && (
-            <UtilityCard title="ทีมงาน">
+            <UtilityCard title="ผู้สร้าง content นี้">
               <dl>
                 {content.ideaCreator && (
                   <MetaListRow
@@ -336,21 +336,45 @@ export function ContentDetail({ content }: ContentDetailProps) {
           )}
 
           {isVideo &&
-            (content.productsNeeded.length > 0 || content.itemsToPrepare) && (
-            <UtilityCard title="ของที่ต้องเตรียม">
+            (content.productsNeeded.length > 0 ||
+              content.itemsToPrepare ||
+              (content.filmingEquipment?.length ?? 0) > 0) && (
+            <UtilityCard title="สิ่งที่ต้องเตรียม">
               {content.productsNeeded.length > 0 && (
-                <div className="mb-4 flex flex-wrap gap-2">
-                  {content.productsNeeded.map((product) => (
-                    <span key={product} className="apple-pearl-chip">
-                      {product}
-                    </span>
-                  ))}
+                <div className="mb-4">
+                  <p className="apple-caption mb-2 text-[#7a7a7a]">สินค้าที่ต้องเตรียม</p>
+                  <div className="flex flex-wrap gap-2">
+                    {content.productsNeeded.map((product) => (
+                      <span key={product} className="apple-pearl-chip">
+                        {product}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
               {content.itemsToPrepare && (
-                <p className="apple-body whitespace-pre-wrap text-[#333333]">
-                  {content.itemsToPrepare}
-                </p>
+                <div className="mb-4">
+                  <p className="apple-caption mb-2 text-[#7a7a7a]">
+                    อุปกรณ์ประกอบฉากที่ต้องเตรียม
+                  </p>
+                  <p className="apple-body whitespace-pre-wrap text-[#333333]">
+                    {content.itemsToPrepare}
+                  </p>
+                </div>
+              )}
+              {(content.filmingEquipment?.length ?? 0) > 0 && (
+                <div>
+                  <p className="apple-caption mb-2 text-[#7a7a7a]">
+                    อุปกรณ์ถ่ายที่ต้องเตรียม
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(content.filmingEquipment ?? []).map((item) => (
+                      <span key={item} className="apple-pearl-chip">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
             </UtilityCard>
           )}

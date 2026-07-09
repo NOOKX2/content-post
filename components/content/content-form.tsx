@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Send } from "lucide-react";
 import { MediaTypeToggle } from "./media-type-toggle";
 import { TeamTable } from "./team-table";
@@ -20,6 +20,7 @@ import {
   CHANNELS,
   TEAM_MEMBERS,
   PRODUCTS,
+  FILMING_EQUIPMENT,
   IMAGE_OBJECTIVES,
   IMAGE_REQUIRED_ELEMENTS,
   IMAGE_WORK_SIZES,
@@ -33,8 +34,12 @@ import type {
   Platform,
 } from "@/lib/types";
 import { EMPTY_IMAGE_META } from "@/lib/types";
-import { generateContentId } from "@/lib/utils";
-import { createContent, updateContent } from "@/lib/content/actions";
+import { resolveNextContentIdFromList } from "@/lib/content/content-id";
+import {
+  createContent,
+  previewNextContentId,
+  updateContent,
+} from "@/lib/content/actions";
 import { contentItemToFormData } from "@/lib/content/mappers";
 import { useContents } from "@/lib/content/contents-provider";
 
@@ -51,6 +56,7 @@ const EMPTY_FORM: ContentFormData = {
   team: [],
   productsNeeded: [],
   itemsToPrepare: "",
+  filmingEquipment: [],
   attachments: [],
   script: [],
   ideaCreator: "",
@@ -79,11 +85,11 @@ export function ContentForm({
     initialContent ? contentItemToFormData(initialContent) : EMPTY_FORM
   );
   const [contentId, setContentId] = useState(
-    () => initialContent?.contentId ?? generateContentId()
+    () => initialContent?.contentId ?? ""
   );
   const [submittedItem, setSubmittedItem] = useState<ContentItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const { mutateContents } = useContents();
+  const { contents, mutateContents } = useContents();
 
   const config = MEDIA_FORM_CONFIG[form.mediaType];
   const isVideo = form.mediaType === "video";
@@ -115,15 +121,69 @@ export function ContentForm({
     }));
   };
 
+  const syncContentIdForChannel = useCallback(
+    async (channel: string, active: () => boolean) => {
+      if (isEdit) return;
+
+      if (!channel) {
+        if (active()) setContentId("");
+        return;
+      }
+
+      const localId = resolveNextContentIdFromList(channel, contents);
+      if (localId && active()) {
+        setContentId(localId);
+      }
+
+      const result = await previewNextContentId(channel);
+      if (!active()) return;
+
+      if (result.success) {
+        setContentId(result.data);
+      } else if (!localId) {
+        setContentId("");
+        console.error("[content-form] preview content id failed", result.error);
+      }
+    },
+    [contents, isEdit]
+  );
+
+  const handleChannelChange = (channel: string) => {
+    update("channel", channel);
+    if (isEdit) return;
+
+    if (!channel) {
+      setContentId("");
+      return;
+    }
+
+    const localId = resolveNextContentIdFromList(channel, contents);
+    if (localId) {
+      setContentId(localId);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    void syncContentIdForChannel(form.channel, () => active);
+    return () => {
+      active = false;
+    };
+  }, [form.channel, syncContentIdForChannel]);
+
   const startNewContent = (mediaType: MediaType = "video") => {
     setSubmittedItem(null);
-    setContentId(generateContentId());
+    setContentId("");
     setForm({ ...EMPTY_FORM, mediaType });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || submitting) return;
+    if (!isEdit && !form.channel.trim()) {
+      alert("กรุณาเลือกช่องที่ลง");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -137,7 +197,7 @@ export function ContentForm({
 
       const result = isEdit
         ? await updateContent(initialContent!.id, payload)
-        : await createContent(payload, contentId);
+        : await createContent(payload);
 
       if (!result.success) {
         console.error("[content-form] action failed", {
@@ -201,10 +261,10 @@ export function ContentForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card className={isVideo ? "border-amber-100" : "border-pink-100"}>
         <CardHeader>
-          <CardTitle>Module 1: Content Ideation</CardTitle>
+          <CardTitle>Content Idea</CardTitle>
           <CardDescription>
             {isVideo
-              ? "สำหรับ Video — กรอกข้อมูลถ่ายทำและสคริป"
+              ? "สำหรับ Video - กรอกข้อมูลรายละเอียดการถ่ายทำ Video"
               : "สำหรับ Picture — กรอก brief งานออกแบบภาพ"}
           </CardDescription>
         </CardHeader>
@@ -216,11 +276,20 @@ export function ContentForm({
           <CardTitle>ข้อมูล Content</CardTitle>
         </CardHeader>
         <div className="grid gap-4 sm:grid-cols-2">
+          <Select
+            label="ช่องที่ลง *"
+            options={CHANNELS}
+            placeholder="เลือกช่อง..."
+            value={form.channel}
+            onChange={(e) => handleChannelChange(e.target.value)}
+            required={!isEdit}
+          />
           <Input
             label="รหัส Content"
             value={contentId}
             readOnly
-            className="bg-stone-50"
+            placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
+            className="bg-stone-50 font-mono"
           />
           <Input
             label="ชื่อ Content *"
@@ -230,13 +299,6 @@ export function ContentForm({
               isVideo ? "เช่น Hero Serum Launch Video" : "เช่น Herbal Lifestyle Post"
             }
             required
-          />
-          <Select
-            label="ช่องที่ลง"
-            options={CHANNELS}
-            placeholder="เลือกช่อง..."
-            value={form.channel}
-            onChange={(e) => update("channel", e.target.value)}
           />
           {!isVideo && (
             <Select
@@ -406,11 +468,11 @@ export function ContentForm({
         <>
           <Card>
             <CardHeader>
-              <CardTitle>ทรัพยากร &amp; อุปกรณ์</CardTitle>
+              <CardTitle>สิ่งที่ต้องเตรียม</CardTitle>
             </CardHeader>
             <div className="space-y-4">
               <CreatableMultiSelect
-                label="สินค้าที่ต้องใช้"
+                label="สินค้าที่ต้องเตรียม"
                 options={PRODUCTS}
                 value={form.productsNeeded}
                 onChange={(items) => update("productsNeeded", items)}
@@ -418,10 +480,18 @@ export function ContentForm({
                 addPlaceholder="พิมพ์สินค้าเพิ่มเอง..."
               />
               <Input
-                label="ของที่ต้องเตรียม"
+                label="อุปกรณ์ประกอบฉากที่ต้องเตรียม"
                 value={form.itemsToPrepare}
                 onChange={(e) => update("itemsToPrepare", e.target.value)}
                 placeholder="Backdrop, Props, Equipment..."
+              />
+              <CreatableMultiSelect
+                label="อุปกรณ์ถ่ายที่ต้องเตรียม"
+                options={FILMING_EQUIPMENT}
+                value={form.filmingEquipment}
+                onChange={(items) => update("filmingEquipment", items)}
+                placeholder="เลือกอุปกรณ์..."
+                addPlaceholder="พิมพ์อุปกรณ์เพิ่มเอง..."
               />
               <AttachmentLinks
                 links={form.attachments}
@@ -447,7 +517,7 @@ export function ContentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>ทีมงานหลัก</CardTitle>
+          <CardTitle>ผู้สร้าง content นี้</CardTitle>
         </CardHeader>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select

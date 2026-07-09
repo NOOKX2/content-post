@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CreatableSingleSelect } from "@/components/ui/creatable-single-select";
 import { TEAM_MEMBERS, RESPONSIBILITIES } from "@/lib/constants";
 import type { TeamRow } from "@/lib/types";
 import { generateId } from "@/lib/utils";
@@ -42,7 +43,12 @@ export function TeamTable({ rows, onChange }: TeamTableProps) {
         </p>
       ) : (
         <div className="overflow-hidden rounded-lg border border-stone-200">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm">
+            <colgroup>
+              <col className="w-[46%]" />
+              <col className="w-[46%]" />
+              <col className="w-[8%]" />
+            </colgroup>
             <thead>
               <tr className="bg-stone-50 text-left">
                 <th className="px-3 py-2.5 font-medium text-stone-600">
@@ -57,37 +63,29 @@ export function TeamTable({ rows, onChange }: TeamTableProps) {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className="border-t border-stone-100">
-                  <td className="px-3 py-2">
-                    <input
-                      list={`team-members-${row.id}`}
+                  <td className="overflow-hidden px-3 py-2">
+                    <CreatableSingleSelect
+                      options={TEAM_MEMBERS}
                       value={row.participant}
-                      onChange={(e) =>
-                        updateRow(row.id, "participant", e.target.value)
+                      onChange={(value) =>
+                        updateRow(row.id, "participant", value)
                       }
-                      placeholder="เลือกหรือพิมพ์ชื่อ..."
-                      className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      placeholder="เลือกชื่อ..."
+                      customPlaceholder="พิมพ์ชื่อ..."
+                      customOptionLabel="ระบุเอง..."
                     />
-                    <datalist id={`team-members-${row.id}`}>
-                      {TEAM_MEMBERS.map((member) => (
-                        <option key={member} value={member} />
-                      ))}
-                    </datalist>
                   </td>
-                  <td className="px-3 py-2">
-                    <input
-                      list={`responsibilities-${row.id}`}
+                  <td className="overflow-hidden px-3 py-2">
+                    <CreatableSingleSelect
+                      options={RESPONSIBILITIES}
                       value={row.responsibility}
-                      onChange={(e) =>
-                        updateRow(row.id, "responsibility", e.target.value)
+                      onChange={(value) =>
+                        updateRow(row.id, "responsibility", value)
                       }
-                      placeholder="เลือกหรือพิมพ์หน้าที่..."
-                      className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      placeholder="เลือกหน้าที่..."
+                      customPlaceholder="พิมพ์หน้าที่..."
+                      customOptionLabel="ระบุเอง..."
                     />
-                    <datalist id={`responsibilities-${row.id}`}>
-                      {RESPONSIBILITIES.map((item) => (
-                        <option key={item} value={item} />
-                      ))}
-                    </datalist>
                   </td>
                   <td className="px-2 py-2">
                     <button

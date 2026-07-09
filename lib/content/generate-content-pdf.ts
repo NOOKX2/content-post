@@ -216,7 +216,7 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
     }
 
     if (content.ideaCreator || content.photographer || content.editor) {
-      sectionTitle(doc, "ทีมงาน");
+      sectionTitle(doc, "ผู้สร้าง content นี้");
       if (content.ideaCreator) {
         fieldRow(doc, "ผู้คิด Content", content.ideaCreator);
       }
@@ -241,13 +241,24 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
 
     if (
       isVideo &&
-      (content.productsNeeded.length > 0 || content.itemsToPrepare)
+      (content.productsNeeded.length > 0 ||
+        content.itemsToPrepare ||
+        (content.filmingEquipment?.length ?? 0) > 0)
     ) {
-      sectionTitle(doc, "ของที่ต้องเตรียม");
+      sectionTitle(doc, "สิ่งที่ต้องเตรียม");
       if (content.productsNeeded.length > 0) {
-        fieldRow(doc, "สินค้า", content.productsNeeded.join(", "));
+        fieldRow(doc, "สินค้าที่ต้องเตรียม", content.productsNeeded.join(", "));
       }
-      if (content.itemsToPrepare) paragraph(doc, content.itemsToPrepare);
+      if (content.itemsToPrepare) {
+        fieldRow(doc, "อุปกรณ์ประกอบฉากที่ต้องเตรียม", content.itemsToPrepare);
+      }
+      if ((content.filmingEquipment?.length ?? 0) > 0) {
+        fieldRow(
+          doc,
+          "อุปกรณ์ถ่ายที่ต้องเตรียม",
+          content.filmingEquipment?.join(", ") ?? ""
+        );
+      }
     }
 
     if (content.attachments.length > 0) {

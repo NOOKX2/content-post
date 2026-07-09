@@ -1,13 +1,7 @@
 import type { Platform } from "./types";
+import { CONTENT_CHANNELS } from "@/lib/content/content-id";
 
-export const CHANNELS = [
-  "Official",
-  "ลูกสาว",
-  "สายพี่ป๋อง",
-  "ของชำร่วย",
-  "วังน้ำเขียวฟาร์ม",
-  "Hero Product",
-] as const;
+export const CHANNELS = CONTENT_CHANNELS;
 
 export const PLATFORMS: {
   id: Platform;
@@ -48,6 +42,18 @@ export const PRODUCTS = [
   "Farm Fresh Honey",
   "Wellness Bundle",
   "Gift Set",
+] as const;
+
+export const FILMING_EQUIPMENT = [
+  "Camera",
+  "Lighting",
+  "Microphone",
+  "Tripod",
+  "Gimbal",
+  "Drone",
+  "Reflector",
+  "Backdrop",
+  "Props",
 ] as const;
 
 export const LOCATIONS = [

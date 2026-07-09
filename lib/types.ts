@@ -66,6 +66,7 @@ export interface ContentItem {
   team: TeamRow[];
   productsNeeded: string[];
   itemsToPrepare: string;
+  filmingEquipment: string[];
   attachments: string[];
   script: ScriptRow[];
   ideaCreator: string;
@@ -93,6 +94,7 @@ export interface ContentFormData {
   team: TeamRow[];
   productsNeeded: string[];
   itemsToPrepare: string;
+  filmingEquipment: string[];
   attachments: string[];
   script: ScriptRow[];
   ideaCreator: string;

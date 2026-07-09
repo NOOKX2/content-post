@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 const SEED_CONTENT = [
   {
-    contentId: "10001",
+    contentId: "VWW0001",
     name: "Hero Serum Launch Video",
     mediaType: "video" as const,
-    channel: "Official",
+    channel: "วังวาน",
     platforms: ["facebook", "instagram", "tiktok"] as const,
     details: "วิดีโอเปิดตัว Hero Serum สไตล์ lifestyle herbal",
     location: ["Studio A"],
@@ -21,6 +21,7 @@ const SEED_CONTENT = [
     ],
     productsNeeded: ["Hero Serum"],
     itemsToPrepare: "Backdrop สีเขียว, Props สมุนไพร",
+    filmingEquipment: ["Camera", "Lighting"],
     attachments: [] as string[],
     script: [
       {
@@ -40,7 +41,7 @@ const SEED_CONTENT = [
     tags: ["Hero Product"],
   },
   {
-    contentId: "10002",
+    contentId: "VWF0001",
     name: "Farm Fresh Behind the Scenes",
     mediaType: "video" as const,
     channel: "วังน้ำเขียวฟาร์ม",
@@ -52,7 +53,8 @@ const SEED_CONTENT = [
     endTime: "11:00",
     team: [{ id: "1", participant: "มานี มีสุข", responsibility: "Presenter" }],
     productsNeeded: ["Herbal Tea Set"],
-    itemsToPrepare: "Outdoor mic, Drone",
+    itemsToPrepare: "Outdoor setup",
+    filmingEquipment: ["Microphone", "Drone"],
     attachments: [] as string[],
     script: [] as object[],
     ideaCreator: "มานี มีสุข",
@@ -63,7 +65,7 @@ const SEED_CONTENT = [
     tags: ["Farm"],
   },
   {
-    contentId: "10003",
+    contentId: "VWG0001",
     name: "Gift Set Teaser",
     mediaType: "image" as const,
     channel: "ของชำร่วย",
@@ -76,6 +78,7 @@ const SEED_CONTENT = [
     team: [] as object[],
     productsNeeded: ["Gift Set"],
     itemsToPrepare: "Ribbon, Gift box props",
+    filmingEquipment: [] as string[],
     attachments: [] as string[],
     script: [] as object[],
     ideaCreator: "Laura Power",
