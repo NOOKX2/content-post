@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, List, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
 import type { Session } from "next-auth";
 
 export function UserMenu({ session }: { session: Session | null }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { navigate, activePath } = useDashboardNav();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -38,8 +40,8 @@ export function UserMenu({ session }: { session: Session | null }) {
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
           {initial}
         </div>
-        <div className="hidden sm:block text-left">
-          <p className="text-sm font-medium text-stone-900 leading-tight">
+        <div className="hidden text-left sm:block">
+          <p className="text-sm leading-tight font-medium text-stone-900">
             {session.user.name}
           </p>
           <p className="text-xs text-stone-500">{roleLabel}</p>
@@ -53,7 +55,7 @@ export function UserMenu({ session }: { session: Session | null }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg">
+        <div className="absolute top-full right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg">
           <div className="border-b border-stone-100 px-4 py-3">
             <p className="text-sm font-medium text-stone-900">
               {session.user.name}
@@ -63,7 +65,25 @@ export function UserMenu({ session }: { session: Session | null }) {
               {roleLabel}
             </span>
           </div>
-          <div className="p-1.5">
+          <div className="space-y-0.5 p-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                if (activePath !== "/posts") {
+                  navigate("/posts");
+                }
+              }}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                activePath === "/posts"
+                  ? "bg-blue-50 text-blue-700"
+                  : "text-stone-700 hover:bg-stone-50"
+              )}
+            >
+              <List className="h-4 w-4" />
+              รายการ post ทั้งหมด
+            </button>
             <button
               type="button"
               onClick={() => signOut({ callbackUrl: "/login" })}

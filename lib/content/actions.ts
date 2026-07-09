@@ -12,6 +12,10 @@ import {
   formDataToUpdateInput,
   toContentItem,
 } from "@/lib/content/mappers";
+import {
+  formatActionError,
+  logActionError,
+} from "@/lib/content/action-errors";
 import { assertCanModifyContent } from "@/lib/content/permissions";
 import type { ContentFormData, ContentItem } from "@/lib/types";
 import { generateContentId } from "@/lib/utils";
@@ -58,10 +62,20 @@ export async function createContent(
     revalidatePath("/calendar");
     revalidatePath("/admin");
     revalidatePath("/create");
+    revalidatePath("/posts");
 
     return { success: true, data: toContentItem(record) };
-  } catch {
-    return { success: false, error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
+  } catch (error) {
+    logActionError("createContent", error, {
+      contentId,
+      mediaType: data.mediaType,
+      name: data.name,
+      userId: session.user.id,
+    });
+    return {
+      success: false,
+      error: formatActionError(error),
+    };
   }
 }
 
@@ -89,11 +103,16 @@ export async function approveContent(id: string): Promise<ActionResult> {
     updateTag(contentCacheTag(id));
     revalidatePath("/admin");
     revalidatePath("/calendar");
+    revalidatePath("/posts");
     revalidatePath(`/content/${id}`);
 
     return { success: true, data: undefined };
-  } catch {
-    return { success: false, error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
+  } catch (error) {
+    logActionError("approveContent", error, { id });
+    return {
+      success: false,
+      error: formatActionError(error),
+    };
   }
 }
 
@@ -130,11 +149,21 @@ export async function updateContent(
     updateTag(contentCacheTag(id));
     revalidatePath("/admin");
     revalidatePath("/calendar");
+    revalidatePath("/posts");
     revalidatePath(`/content/${id}`);
 
     return { success: true, data: toContentItem(record) };
-  } catch {
-    return { success: false, error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
+  } catch (error) {
+    logActionError("updateContent", error, {
+      id,
+      mediaType: data.mediaType,
+      name: data.name,
+      userId: session.user.id,
+    });
+    return {
+      success: false,
+      error: formatActionError(error),
+    };
   }
 }
 
@@ -161,10 +190,15 @@ export async function deleteContent(id: string): Promise<ActionResult> {
     updateTag(contentCacheTag(id));
     revalidatePath("/admin");
     revalidatePath("/calendar");
+    revalidatePath("/posts");
 
     return { success: true, data: undefined };
-  } catch {
-    return { success: false, error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
+  } catch (error) {
+    logActionError("deleteContent", error, { id, userId: session.user.id });
+    return {
+      success: false,
+      error: formatActionError(error),
+    };
   }
 }
 
@@ -189,10 +223,15 @@ export async function rejectContent(id: string): Promise<ActionResult> {
     updateTag(contentCacheTag(id));
     revalidatePath("/admin");
     revalidatePath("/calendar");
+    revalidatePath("/posts");
     revalidatePath(`/content/${id}`);
 
     return { success: true, data: undefined };
-  } catch {
-    return { success: false, error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
+  } catch (error) {
+    logActionError("rejectContent", error, { id });
+    return {
+      success: false,
+      error: formatActionError(error),
+    };
   }
 }

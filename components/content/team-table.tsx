@@ -24,17 +24,12 @@ export function TeamTable({ rows, onChange }: TeamTableProps) {
   };
 
   const updateRow = (id: string, field: keyof TeamRow, value: string) => {
-    onChange(
-      rows.map((r) => (r.id === id ? { ...r, [field]: value } : r))
-    );
+    onChange(rows.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-stone-700">
-          ผู้เข้าร่วม & หน้าที่รับผิดชอบ
-        </h4>
+      <div className="flex justify-end">
         <Button type="button" variant="ghost" size="sm" onClick={addRow}>
           <Plus className="h-4 w-4" />
           เพิ่มแถว
@@ -63,36 +58,36 @@ export function TeamTable({ rows, onChange }: TeamTableProps) {
               {rows.map((row) => (
                 <tr key={row.id} className="border-t border-stone-100">
                   <td className="px-3 py-2">
-                    <select
+                    <input
+                      list={`team-members-${row.id}`}
                       value={row.participant}
                       onChange={(e) =>
                         updateRow(row.id, "participant", e.target.value)
                       }
+                      placeholder="เลือกหรือพิมพ์ชื่อ..."
                       className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    >
-                      <option value="">เลือก...</option>
-                      {TEAM_MEMBERS.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
+                    />
+                    <datalist id={`team-members-${row.id}`}>
+                      {TEAM_MEMBERS.map((member) => (
+                        <option key={member} value={member} />
                       ))}
-                    </select>
+                    </datalist>
                   </td>
                   <td className="px-3 py-2">
-                    <select
+                    <input
+                      list={`responsibilities-${row.id}`}
                       value={row.responsibility}
                       onChange={(e) =>
                         updateRow(row.id, "responsibility", e.target.value)
                       }
+                      placeholder="เลือกหรือพิมพ์หน้าที่..."
                       className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    >
-                      <option value="">เลือก...</option>
-                      {RESPONSIBILITIES.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
+                    />
+                    <datalist id={`responsibilities-${row.id}`}>
+                      {RESPONSIBILITIES.map((item) => (
+                        <option key={item} value={item} />
                       ))}
-                    </select>
+                    </datalist>
                   </td>
                   <td className="px-2 py-2">
                     <button

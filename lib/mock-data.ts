@@ -24,7 +24,8 @@ export const MOCK_CONTENT: ContentItem[] = [
     script: [
       {
         id: "s1",
-        duration: "0:00-0:15",
+        startTime: "00:00",
+        endTime: "00:15",
         action: "Open with product shot",
         dialogue: "สวัสดีค่ะ วันนี้มาแนะนำ Hero Serum",
         notes: "Close-up macro",

@@ -18,7 +18,10 @@ export type Platform =
 
 export interface ScriptRow {
   id: string;
-  duration: string;
+  startTime: string;
+  endTime: string;
+  /** @deprecated Prefer startTime/endTime. Kept for legacy script rows. */
+  duration?: string;
   action: string;
   dialogue: string;
   notes: string;

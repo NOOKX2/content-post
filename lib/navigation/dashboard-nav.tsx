@@ -63,6 +63,7 @@ export type DashboardRoute =
   | { view: "calendar" }
   | { view: "admin" }
   | { view: "create" }
+  | { view: "posts" }
   | { view: "content-detail"; id: string }
   | null;
 
@@ -75,6 +76,9 @@ export function parseDashboardRoute(path: string): DashboardRoute {
   }
   if (path === "/create") {
     return { view: "create" };
+  }
+  if (path === "/posts") {
+    return { view: "posts" };
   }
 
   const match = path.match(/^\/content\/([^/]+)$/);

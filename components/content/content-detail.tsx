@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { PlatformBadgeGroup } from "@/components/ui/platform-icon";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
 import { isImageAttachment } from "@/lib/content/attachments";
+import { formatScriptDuration } from "@/lib/content/script";
 import { STATUS_LABELS } from "@/lib/constants";
 import { cn, formatLocations, formatThaiDate } from "@/lib/utils";
 
@@ -320,7 +321,9 @@ export function ContentDetail({ content }: ContentDetailProps) {
                   <tbody>
                     {content.script.map((row) => (
                       <tr key={row.id}>
-                        <td className="pr-4">{row.duration}</td>
+                        <td className="pr-4">
+                          {formatScriptDuration(row) || "—"}
+                        </td>
                         <td className="pr-4 text-[#333333]">{row.action}</td>
                         <td className="pr-4 text-[#333333]">{row.dialogue}</td>
                         <td className="text-[#7a7a7a]">{row.notes}</td>

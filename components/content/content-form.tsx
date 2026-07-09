@@ -13,7 +13,7 @@ import { SubmitSuccess } from "./submit-success";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { CreatableMultiSelect } from "@/components/ui/creatable-multi-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -105,19 +105,6 @@ export function ContentForm({
     }));
   };
 
-  const toggleImageMetaList = (
-    key: "requiredElements" | "workSizes",
-    item: string
-  ) => {
-    const current = form.imageMeta[key];
-    updateImageMeta(
-      key,
-      current.includes(item)
-        ? current.filter((value) => value !== item)
-        : [...current, item]
-    );
-  };
-
   const handleMediaTypeChange = (mediaType: MediaType) => {
     setForm((prev) => ({
       ...prev,
@@ -132,16 +119,6 @@ export function ContentForm({
     setSubmittedItem(null);
     setContentId(generateContentId());
     setForm({ ...EMPTY_FORM, mediaType });
-  };
-
-  const toggleProduct = (product: string) => {
-    const current = form.productsNeeded;
-    update(
-      "productsNeeded",
-      current.includes(product)
-        ? current.filter((p) => p !== product)
-        : [...current, product]
-    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,6 +140,12 @@ export function ContentForm({
         : await createContent(payload, contentId);
 
       if (!result.success) {
+        console.error("[content-form] action failed", {
+          isEdit,
+          contentId,
+          mediaType: form.mediaType,
+          error: result.error,
+        });
         alert(result.error);
         return;
       }
@@ -186,12 +169,20 @@ export function ContentForm({
 
       setSubmittedItem(result.data);
       onSubmitSuccess?.();
-    } catch {
-      alert(
-        isEdit
-          ? "บันทึกการแก้ไขไม่สำเร็จ กรุณาลองใหม่"
-          : "ส่ง Content ไม่สำเร็จ กรุณาลองใหม่"
-      );
+    } catch (error) {
+      console.error("[content-form] submit crashed", {
+        isEdit,
+        contentId,
+        mediaType: form.mediaType,
+        error,
+      });
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : isEdit
+            ? "บันทึกการแก้ไขไม่สำเร็จ กรุณาลองใหม่"
+            : "ส่ง Content ไม่สำเร็จ กรุณาลองใหม่";
+      alert(message);
     } finally {
       setSubmitting(false);
     }
@@ -334,38 +325,22 @@ export function ContentForm({
               <CardTitle>องค์ประกอบ &amp; ขนาดงาน</CardTitle>
             </CardHeader>
             <div className="space-y-5">
-              <div>
-                <span className="text-sm font-medium text-stone-700">
-                  องค์ประกอบที่ต้องมี
-                </span>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-                  {IMAGE_REQUIRED_ELEMENTS.map((item) => (
-                    <Checkbox
-                      key={item}
-                      label={item}
-                      checked={form.imageMeta.requiredElements.includes(item)}
-                      onChange={() =>
-                        toggleImageMetaList("requiredElements", item)
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="text-sm font-medium text-stone-700">
-                  ขนาดงาน
-                </span>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-                  {IMAGE_WORK_SIZES.map((size) => (
-                    <Checkbox
-                      key={size}
-                      label={size}
-                      checked={form.imageMeta.workSizes.includes(size)}
-                      onChange={() => toggleImageMetaList("workSizes", size)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <CreatableMultiSelect
+                label="องค์ประกอบที่ต้องมี"
+                options={IMAGE_REQUIRED_ELEMENTS}
+                value={form.imageMeta.requiredElements}
+                onChange={(items) => updateImageMeta("requiredElements", items)}
+                placeholder="เลือกองค์ประกอบ..."
+                addPlaceholder="พิมพ์องค์ประกอบเพิ่มเอง..."
+              />
+              <CreatableMultiSelect
+                label="ขนาดงาน"
+                options={IMAGE_WORK_SIZES}
+                value={form.imageMeta.workSizes}
+                onChange={(items) => updateImageMeta("workSizes", items)}
+                placeholder="เลือกขนาดงาน..."
+                addPlaceholder="พิมพ์ขนาดเพิ่มเอง..."
+              />
             </div>
           </Card>
 
@@ -434,21 +409,14 @@ export function ContentForm({
               <CardTitle>ทรัพยากร &amp; อุปกรณ์</CardTitle>
             </CardHeader>
             <div className="space-y-4">
-              <div>
-                <span className="text-sm font-medium text-stone-700">
-                  สินค้าที่ต้องใช้
-                </span>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-                  {PRODUCTS.map((p) => (
-                    <Checkbox
-                      key={p}
-                      label={p}
-                      checked={form.productsNeeded.includes(p)}
-                      onChange={() => toggleProduct(p)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <CreatableMultiSelect
+                label="สินค้าที่ต้องใช้"
+                options={PRODUCTS}
+                value={form.productsNeeded}
+                onChange={(items) => update("productsNeeded", items)}
+                placeholder="เลือกสินค้า..."
+                addPlaceholder="พิมพ์สินค้าเพิ่มเอง..."
+              />
               <Input
                 label="ของที่ต้องเตรียม"
                 value={form.itemsToPrepare}
@@ -465,7 +433,9 @@ export function ContentForm({
           <Card className="border-amber-100">
             <CardHeader>
               <CardTitle>สคริป</CardTitle>
-              <CardDescription>ระยะเวลา, Action, บทพูด, หมายเหตุ</CardDescription>
+              <CardDescription>
+                เวลาเริ่มต้น, เวลาสิ้นสุด, Action, บทพูด, หมายเหตุ
+              </CardDescription>
             </CardHeader>
             <ScriptTable
               rows={form.script}

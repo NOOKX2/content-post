@@ -3,6 +3,7 @@
 import { CalendarPageClient } from "@/components/calendar/calendar-page-client";
 import { AdminView } from "@/components/views/admin-view";
 import { CreateView } from "@/components/views/create-view";
+import { PostsView } from "@/components/views/posts-view";
 import { ContentDetailViewPage } from "@/components/views/content-detail-view-page";
 import {
   parseDashboardRoute,
@@ -33,6 +34,9 @@ export function DashboardRouter() {
       </Panel>
       <Panel active={route?.view === "create"}>
         <CreateView />
+      </Panel>
+      <Panel active={route?.view === "posts"}>
+        <PostsView />
       </Panel>
       {route?.view === "content-detail" && (
         <ContentDetailViewPage key={route.id} id={route.id} />

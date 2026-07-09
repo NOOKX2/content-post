@@ -10,6 +10,7 @@ import type {
   ImageMeta,
 } from "@/lib/types";
 import { EMPTY_IMAGE_META } from "@/lib/types";
+import { normalizeScriptRow } from "@/lib/content/script";
 
 function parseImageMeta(value: unknown): ImageMeta {
   if (!value || typeof value !== "object") {
@@ -46,7 +47,9 @@ export function toContentItem(record: PrismaContent): ContentItem {
     productsNeeded: record.productsNeeded,
     itemsToPrepare: record.itemsToPrepare,
     attachments: record.attachments,
-    script: record.script as unknown as ScriptRow[],
+    script: (Array.isArray(record.script) ? record.script : []).map((row) =>
+      normalizeScriptRow(row as unknown as ScriptRow)
+    ),
     ideaCreator: record.ideaCreator,
     photographer: record.photographer,
     editor: record.editor,
@@ -75,7 +78,7 @@ export function contentItemToFormData(content: ContentItem): ContentFormData {
     productsNeeded: content.productsNeeded,
     itemsToPrepare: content.itemsToPrepare,
     attachments: content.attachments,
-    script: content.script,
+    script: content.script.map(normalizeScriptRow),
     ideaCreator: content.ideaCreator,
     photographer: content.photographer,
     editor: content.editor,

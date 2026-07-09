@@ -4,6 +4,7 @@ import type PDFKit from "pdfkit";
 import type { ContentItem, Platform } from "@/lib/types";
 import { PLATFORMS, STATUS_LABELS } from "@/lib/constants";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
+import { formatScriptDuration } from "@/lib/content/script";
 import { formatLocations, formatThaiDate } from "@/lib/utils";
 
 const MARGIN = 50;
@@ -97,7 +98,7 @@ function scriptTable(doc: Doc, content: ContentItem) {
       .font(FONT_BOLD)
       .fontSize(10)
       .fillColor("#7a7a7a")
-      .text(row.duration || "—", { continued: false });
+      .text(formatScriptDuration(row) || "—", { continued: false });
     doc.moveDown(0.15);
     if (row.action) {
       doc.font(FONT_REGULAR).fontSize(11).fillColor("#1d1d1f").text(row.action, {
