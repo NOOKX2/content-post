@@ -16,10 +16,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { TEAM_MEMBERS, CHANNELS } from "@/lib/constants";
 import {
-  getCalendarContents,
   CALENDAR_EVENT_STYLES,
   formatDateKey,
 } from "@/lib/calendar/content";
+import {
+  getContentCalendarDate,
+  getPostStatusDotClass,
+  type CalendarDateField,
+} from "@/lib/calendar/filters";
 import { cn, formatLocations } from "@/lib/utils";
 
 interface EventModalProps {
@@ -166,12 +170,16 @@ export function EventModal({
 
 interface CalendarViewProps {
   contents: ContentItem[];
+  dateField?: CalendarDateField;
 }
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8);
 const DAYS = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
 
-export function CalendarView({ contents }: CalendarViewProps) {
+export function CalendarView({
+  contents,
+  dateField = "post",
+}: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(
@@ -187,11 +195,11 @@ export function CalendarView({ contents }: CalendarViewProps) {
     return d;
   });
 
-  const calendarContents = getCalendarContents(contents);
-
   const getEventsForDay = (date: Date) => {
     const dateStr = formatDateKey(date);
-    return calendarContents.filter((c) => c.scheduledDate === dateStr);
+    return contents.filter(
+      (content) => getContentCalendarDate(content, dateField) === dateStr
+    );
   };
 
   const navigate = (dir: -1 | 1) => {

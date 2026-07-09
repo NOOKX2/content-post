@@ -7,18 +7,32 @@ interface TabsProps {
   activeTab: string;
   onChange: (id: string) => void;
   className?: string;
+  compact?: boolean;
 }
 
-export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
+export function Tabs({
+  tabs,
+  activeTab,
+  onChange,
+  className,
+  compact = false,
+}: TabsProps) {
   return (
-    <div className={cn("flex gap-1 p-1 bg-stone-100 rounded-lg", className)}>
+    <div
+      className={cn(
+        "flex gap-1 rounded-lg bg-stone-100",
+        compact ? "p-0.5" : "p-1",
+        className
+      )}
+    >
       {tabs.map((tab) => (
         <button
           key={tab.id}
           type="button"
           onClick={() => onChange(tab.id)}
           className={cn(
-            "flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all",
+            "rounded-md font-medium whitespace-nowrap transition-all",
+            compact ? "min-w-[6.25rem] px-4 py-1 text-xs" : "flex-1 px-4 py-2 text-sm",
             activeTab === tab.id
               ? "bg-white text-stone-900 shadow-sm"
               : "text-stone-500 hover:text-stone-700"

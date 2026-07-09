@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
   const records = await prisma.content.findMany({
     where: {
-      status: { in: ["approved", "scheduled"] },
+      status: "scheduled",
     },
     orderBy: [{ scheduledDate: "asc" }, { scheduledTime: "asc" }],
   });
