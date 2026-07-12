@@ -1,15 +1,16 @@
 import { PrismaClient, Role } from "@prisma/client";
 import { hashPassword } from "../lib/auth/password";
+import { seedDefaultPostingChannels } from "../lib/content/posting-channels";
 
 const prisma = new PrismaClient();
 
 const SEED_CONTENT = [
   {
-    contentId: "VWW0001",
+    contentId: "NKT0001",
     name: "Hero Serum Launch Video",
     mediaType: "video" as const,
-    channel: "วังวาน",
-    platforms: ["facebook", "instagram", "tiktok"] as const,
+    channel: "nook__th",
+    platforms: ["instagram"] as const,
     details: "วิดีโอเปิดตัว Hero Serum สไตล์ lifestyle herbal",
     location: ["Studio A"],
     scheduledDate: "2026-06-15",
@@ -41,11 +42,11 @@ const SEED_CONTENT = [
     tags: ["Hero Product"],
   },
   {
-    contentId: "VWF0001",
+    contentId: "NKD0001",
     name: "Farm Fresh Behind the Scenes",
     mediaType: "video" as const,
-    channel: "วังน้ำเขียวฟาร์ม",
-    platforms: ["facebook", "tiktok", "line"] as const,
+    channel: "nook_down",
+    platforms: ["tiktok"] as const,
     details: "Behind the scenes การเก็บเกี่ยวสมุนไพรที่ฟาร์ม",
     location: ["Farm Location"],
     scheduledDate: "2026-06-17",
@@ -65,11 +66,11 @@ const SEED_CONTENT = [
     tags: ["Farm"],
   },
   {
-    contentId: "VWG0001",
+    contentId: "ICP0001",
     name: "Gift Set Teaser",
     mediaType: "image" as const,
-    channel: "ของชำร่วย",
-    platforms: ["instagram", "lemon8"] as const,
+    channel: "idea_content_post",
+    platforms: ["instagram"] as const,
     details: "ภาพ Teaser ชุดของขวัญสมุนไพร",
     location: ["Studio A"],
     scheduledDate: "2026-06-18",
@@ -127,6 +128,8 @@ async function main() {
       },
     });
   }
+
+  await seedDefaultPostingChannels();
 
   console.log("Seed completed:");
   console.log("  Admin:   admin@idea.local / admin1234");

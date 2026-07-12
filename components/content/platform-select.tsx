@@ -8,10 +8,18 @@ import { cn } from "@/lib/utils";
 interface PlatformSelectProps {
   selected: Platform[];
   onChange: (platforms: Platform[]) => void;
+  availablePlatforms: Platform[];
+  disabled?: boolean;
 }
 
-export function PlatformSelect({ selected, onChange }: PlatformSelectProps) {
+export function PlatformSelect({
+  selected,
+  onChange,
+  availablePlatforms,
+  disabled = false,
+}: PlatformSelectProps) {
   const toggle = (platform: Platform) => {
+    if (disabled || !availablePlatforms.includes(platform)) return;
     if (selected.includes(platform)) {
       onChange(selected.filter((p) => p !== platform));
     } else {
@@ -22,28 +30,40 @@ export function PlatformSelect({ selected, onChange }: PlatformSelectProps) {
   return (
     <div className="flex flex-col gap-2">
       <span className="text-sm font-medium text-stone-700">แพลตฟอร์ม</span>
-      <div className="flex flex-wrap gap-2">
-        {PLATFORMS.map((p) => {
-          const isSelected = selected.includes(p.id);
-          return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => toggle(p.id)}
-              aria-pressed={isSelected}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
-                isSelected
-                  ? "border-blue-500 bg-blue-50 text-blue-800"
-                  : "border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-50"
-              )}
-            >
-              <PlatformLogo platform={p.id} size={20} />
-              <span>{p.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {availablePlatforms.length === 0 ? (
+        <p className="text-sm text-stone-500">
+          {disabled
+            ? "เลือกช่องที่ลงก่อน"
+            : "ช่องนี้ยังไม่ได้ตั้งค่า — ให้ Admin ตั้งที่เมนู ตั้งค่าช่อง"}
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {PLATFORMS.filter((p) => availablePlatforms.includes(p.id)).map(
+            (p) => {
+              const isSelected = selected.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => toggle(p.id)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                    isSelected
+                      ? "border-blue-500 bg-blue-50 text-blue-800"
+                      : "border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-50",
+                    disabled && "cursor-not-allowed opacity-50"
+                  )}
+                >
+                  <PlatformLogo platform={p.id} size={20} />
+                  <span>{p.label}</span>
+                </button>
+              );
+            }
+          )}
+        </div>
+      )}
     </div>
   );
 }

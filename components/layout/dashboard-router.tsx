@@ -1,9 +1,11 @@
 "use client";
 
 import { CalendarPageClient } from "@/components/calendar/calendar-page-client";
+import { AdminChannelsView } from "@/components/views/admin-channels-view";
 import { AdminView } from "@/components/views/admin-view";
 import { CreateView } from "@/components/views/create-view";
 import { DashboardView } from "@/components/views/dashboard-view";
+import { CollaborationView } from "@/components/views/collaboration-view";
 import { PostsView } from "@/components/views/posts-view";
 import { ContentDetailViewPage } from "@/components/views/content-detail-view-page";
 import {
@@ -32,11 +34,19 @@ export function DashboardRouter() {
           <DashboardView />
         </div>
       </Panel>
+      <Panel active={route?.view === "collaboration"}>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <CollaborationView />
+        </div>
+      </Panel>
       <Panel active={route?.view === "calendar"}>
         <CalendarPageClient />
       </Panel>
       <Panel active={route?.view === "admin"}>
         <AdminView />
+      </Panel>
+      <Panel active={route?.view === "admin-channels"}>
+        <AdminChannelsView />
       </Panel>
       <Panel active={route?.view === "create"}>
         <CreateView />

@@ -205,7 +205,7 @@ export function ContentCalendarGrid({
         <CalendarPostLegend />
         <div className="flex flex-wrap items-center gap-4">
           <span className="text-xs font-medium text-stone-500">Platform:</span>
-          {PLATFORMS.slice(0, 5).map((platform) => (
+          {PLATFORMS.map((platform) => (
             <span
               key={platform.id}
               className="flex items-center gap-1.5 text-xs text-stone-600"

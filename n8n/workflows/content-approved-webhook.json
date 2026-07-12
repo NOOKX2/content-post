@@ -1,0 +1,237 @@
+{
+  "id": "9J5wEbnUb0FPaUgk",
+  "name": "Content Approved → Buffer",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-approved",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a332170a-9702-4686-89a0-1434e1cf17e3",
+      "name": "Content Approved",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "content-approved"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function log(step, message, data) {\n  const suffix =\n    data === undefined ? \"\" : ` ${JSON.stringify(data, null, 2)}`;\n  console.log(`[content-approved] ${step} | ${message}${suffix}`);\n}\n\nfunction unwrapContent(raw) {\n  if (raw?.body && typeof raw.body === \"object\" && !Array.isArray(raw.body)) {\n    return raw.body;\n  }\n  return raw;\n}\n\nconst raw = $input.first().json;\nlog(\"1/5 Compute Wait Until\", \"webhook payload received\", {\n  topLevelKeys: Object.keys(raw ?? {}),\n  hasBody: Boolean(raw?.body),\n});\n\nconst content = unwrapContent(raw);\nconst date = content.scheduledDate;\nconst time = content.scheduledTime || \"00:00\";\n\nlog(\"1/5 Compute Wait Until\", \"unwrapped content\", {\n  contentId: content.contentId,\n  id: content.id,\n  scheduledDate: date,\n  scheduledTime: time,\n  channel: content.channel,\n  platforms: content.platforms,\n});\n\nif (!date) {\n  log(\"1/5 Compute Wait Until\", \"ERROR missing scheduledDate\", { content });\n  throw new Error(\n    `Content ${content.contentId || content.id || \"unknown\"} has no scheduledDate`\n  );\n}\n\nconst normalizedTime = time.length === 5 ? `${time}:00` : time;\nconst scheduledAt = new Date(`${date}T${normalizedTime}+07:00`);\nconst now = new Date();\nconst isDue = scheduledAt.getTime() <= now.getTime();\n\nlog(\"1/5 Compute Wait Until\", \"schedule check\", {\n  contentId: content.contentId,\n  scheduledAt: scheduledAt.toISOString(),\n  now: now.toISOString(),\n  isDue,\n  nextStep: isDue ? \"Due Now? → true → Prepare Buffer Posts\" : \"Due Now? → false → Wait Until Post Time\",\n});\n\nreturn [\n  {\n    json: {\n      ...content,\n      isDue,\n      scheduledAt: scheduledAt.toISOString(),\n      resumeAt: scheduledAt.toISOString(),\n      checkedAt: now.toISOString(),\n    },\n  },\n];\n"
+      },
+      "id": "d815c361-40d8-404b-a93a-5109850ddaa2",
+      "name": "Compute Wait Until",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-due",
+              "leftValue": "={{ $json.isDue }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f8e2a1b0-4c3d-4e5f-9a8b-7c6d5e4f3a2b",
+      "name": "Due Now?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "specificTime",
+        "dateTime": "={{ $json.resumeAt }}"
+      },
+      "id": "aa80e3bc-c5e6-4686-bb51-3661f5186393",
+      "name": "Wait Until Post Time",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function log(step, message, data) {\n  const suffix =\n    data === undefined ? \"\" : ` ${JSON.stringify(data, null, 2)}`;\n  console.log(`[content-approved] ${step} | ${message}${suffix}`);\n}\n\nconst item = $input.first().json;\n\nlog(\"Wait Until Post Time\", \"wait finished — resuming workflow\", {\n  contentId: item.contentId,\n  scheduledAt: item.scheduledAt,\n  resumeAt: item.resumeAt,\n  checkedAt: item.checkedAt,\n});\n\nreturn [{ json: item }];\n"
+      },
+      "id": "b2c3d4e5-f6a7-4890-b1c2-d3e4f5a6b7c8",
+      "name": "Log After Wait",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function log(step, message, data) {\n  const suffix =\n    data === undefined ? \"\" : ` ${JSON.stringify(data, null, 2)}`;\n  console.log(`[content-approved] ${step} | ${message}${suffix}`);\n}\n\nconst legacyBufferChannels = {\n  instagram: $env.BUFFER_IG_CHANNEL_ID,\n  tiktok: $env.BUFFER_TIKTOK_CHANNEL_ID,\n  facebook: $env.BUFFER_FB_CHANNEL_ID,\n  youtube: $env.BUFFER_YOUTUBE_CHANNEL_ID,\n};\n\nconst appUrl = ($env.APP_PUBLIC_URL || \"http://localhost:3001\").replace(/\\/$/, \"\");\n\nfunction toPublicUrl(url) {\n  if (!url) return null;\n  if (url.startsWith(\"http://\") || url.startsWith(\"https://\")) return url;\n  return `${appUrl}${url.startsWith(\"/\") ? url : `/${url}`}`;\n}\n\nfunction resolveTargets(content) {\n  if (Array.isArray(content.bufferTargets) && content.bufferTargets.length > 0) {\n    return content.bufferTargets;\n  }\n\n  return (content.platforms || [])\n    .map((platform) => ({\n      platform,\n      bufferChannelId: legacyBufferChannels[platform],\n    }))\n    .filter((target) => Boolean(target.bufferChannelId));\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const content = item.json;\n\n  log(\"2/5 Prepare Buffer Posts\", \"start\", {\n    contentId: content.contentId,\n    id: content.id,\n    channel: content.channel,\n    isDue: content.isDue,\n    checkedAt: content.checkedAt,\n  });\n\n  const captionParts = [content.name, content.details];\n  if (content.tags?.length) {\n    captionParts.push(\n      content.tags.map((tag) => `#${String(tag).replace(/^#/, \"\")}`).join(\" \")\n    );\n  }\n  const text = captionParts.filter(Boolean).join(\"\\n\\n\");\n\n  const mediaUrl =\n    toPublicUrl(content.mediaUrl) ||\n    (content.attachments || []).map(toPublicUrl).find(Boolean);\n\n  if (!mediaUrl) {\n    log(\"2/5 Prepare Buffer Posts\", \"ERROR no media URL\", {\n      contentId: content.contentId,\n      attachments: content.attachments,\n    });\n    throw new Error(\n      `Content ${content.id} (${content.contentId}) has no media URL`\n    );\n  }\n\n  const videoExt = /\\.(mp4|mov|webm|m4v)$/i;\n  const assetKey = videoExt.test(mediaUrl.split(\"?\")[0]) ? \"video\" : \"image\";\n\n  function instagramMetadata() {\n    if (assetKey === \"video\") {\n      return \"metadata: { instagram: { type: reel } }\";\n    }\n    return \"metadata: { instagram: { type: post, shouldShareToFeed: true } }\";\n  }\n\n  const targets = resolveTargets(content);\n  if (targets.length === 0) {\n    log(\"2/5 Prepare Buffer Posts\", \"ERROR no buffer targets\", {\n      contentId: content.contentId,\n      channel: content.channel,\n      platforms: content.platforms,\n      bufferTargets: content.bufferTargets,\n    });\n    throw new Error(\n      `No Buffer channel mapping for content ${content.contentId} (ช่องที่ลง: ${content.channel || \"ไม่ระบุ\"}). ตั้งค่า BUFFER_CHANNEL_MAP ใน .env`\n    );\n  }\n\n  log(\"2/5 Prepare Buffer Posts\", \"resolved targets\", {\n    contentId: content.contentId,\n    assetKey,\n    mediaUrl,\n    targetCount: targets.length,\n    targets: targets.map(({ platform, bufferChannelId }) => ({\n      platform,\n      bufferChannelId,\n    })),\n  });\n\n  for (const { platform, bufferChannelId: channelId } of targets) {\n    const instagramLine =\n      platform === \"instagram\" ? `\\n    ${instagramMetadata()}` : \"\";\n\n    const query = `mutation CreatePost {\n  createPost(input: {\n    channelId: ${JSON.stringify(channelId)}\n    text: ${JSON.stringify(text)}\n    schedulingType: automatic\n    mode: shareNow\n    assets: [{ ${assetKey}: { url: ${JSON.stringify(mediaUrl)} } }]${instagramLine}\n  }) {\n    ... on PostActionSuccess {\n      post { id }\n    }\n    ... on MutationError {\n      message\n    }\n  }\n}`;\n\n    const bufferApiKey = $env.BUFFER_API_KEY;\n    if (!bufferApiKey) {\n      log(\"2/5 Prepare Buffer Posts\", \"ERROR BUFFER_API_KEY missing\", {\n        contentId: content.contentId,\n      });\n      throw new Error(\n        \"BUFFER_API_KEY is missing in n8n environment. Check .env and restart n8n.\"\n      );\n    }\n\n    results.push({\n      json: {\n        contentId: content.id,\n        contentCode: content.contentId,\n        contentChannel: content.channel,\n        platform,\n        channelId,\n        mediaUrl,\n        caption: text,\n        graphqlQuery: query,\n        bufferBody: JSON.stringify({ query }),\n        bufferAuth: `Bearer ${bufferApiKey}`,\n      },\n    });\n  }\n}\n\nif (results.length === 0) {\n  log(\"2/5 Prepare Buffer Posts\", \"ERROR no results\", {});\n  throw new Error(\n    \"No supported Buffer platforms. Check BUFFER_CHANNEL_MAP or BUFFER_*_CHANNEL_ID env vars.\"\n  );\n}\n\nlog(\"2/5 Prepare Buffer Posts\", \"done\", {\n  contentId: results[0]?.json?.contentCode,\n  itemCount: results.length,\n});\n\nreturn results;\n"
+      },
+      "id": "edfd6df9-b928-4645-9d99-139544017cf1",
+      "name": "Prepare Buffer Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function log(step, message, data) {\n  const suffix =\n    data === undefined ? \"\" : ` ${JSON.stringify(data, null, 2)}`;\n  console.log(`[content-approved] ${step} | ${message}${suffix}`);\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const {\n    bufferAuth,\n    bufferBody,\n    contentId,\n    contentCode,\n    platform,\n    channelId,\n    mediaUrl,\n    caption,\n  } = item.json;\n\n  log(\"3/4 Post to Buffer\", \"start\", {\n    contentCode,\n    contentId,\n    platform,\n    channelId,\n  });\n\n  if (!bufferAuth || !bufferBody) {\n    throw new Error(\n      `Missing bufferAuth/bufferBody for content ${contentId}. Update Prepare Buffer Posts code.`\n    );\n  }\n\n  let data;\n  try {\n    data = await this.helpers.httpRequest({\n      method: \"POST\",\n      url: \"https://api.buffer.com\",\n      headers: {\n        \"Content-Type\": \"application/json\",\n        Authorization: bufferAuth,\n      },\n      body: JSON.parse(bufferBody),\n    });\n  } catch (error) {\n    const status = error.statusCode ?? error.httpCode ?? \"?\";\n    const detail =\n      typeof error.message === \"string\"\n        ? error.message\n        : JSON.stringify(error).slice(0, 300);\n    log(\"3/4 Post to Buffer\", \"ERROR HTTP request failed\", {\n      contentCode,\n      platform,\n      status,\n      detail,\n    });\n    throw new Error(`Buffer HTTP ${status} (${platform}): ${detail}`);\n  }\n\n  const bufferPostId = data?.data?.createPost?.post?.id;\n  const errorMessage = data?.data?.createPost?.message;\n\n  log(\"3/4 Post to Buffer\", \"Buffer response\", {\n    contentCode,\n    platform,\n    bufferPostId: bufferPostId ?? null,\n    errorMessage: errorMessage ?? null,\n  });\n\n  if (!bufferPostId && errorMessage) {\n    throw new Error(`Buffer mutation error (${platform}): ${errorMessage}`);\n  }\n\n  if (!bufferPostId) {\n    throw new Error(\n      `Buffer returned no post id for ${contentCode} (${platform}). Response: ${JSON.stringify(data).slice(0, 500)}`\n    );\n  }\n\n  log(\"3/4 Post to Buffer\", \"success\", { contentCode, platform, bufferPostId });\n\n  results.push({\n    json: {\n      contentId,\n      contentCode,\n      platform,\n      channelId,\n      mediaUrl,\n      caption,\n      bufferPostId,\n      data,\n    },\n  });\n}\n\nreturn results;\n"
+      },
+      "id": "be72b92d-9d1e-476a-9f64-1dfc3273a5f0",
+      "name": "Post to Buffer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function log(step, message, data) {\n  const suffix =\n    data === undefined ? \"\" : ` ${JSON.stringify(data, null, 2)}`;\n  console.log(`[content-approved] ${step} | ${message}${suffix}`);\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const { contentId, contentCode, platform, bufferPostId } = item.json;\n\n  const apiKey = $env.N8N_API_KEY;\n  const url = `http://app:3000/api/content/${contentId}`;\n\n  log(\"4/4 Mark Posted\", \"start PATCH\", {\n    contentCode,\n    contentId,\n    platform,\n    bufferPostId,\n    url,\n    hasApiKey: Boolean(apiKey),\n  });\n\n  if (!apiKey) {\n    throw new Error(\"N8N_API_KEY is missing in n8n environment.\");\n  }\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: \"PATCH\",\n      url,\n      headers: {\n        \"Content-Type\": \"application/json\",\n        \"x-api-key\": apiKey,\n      },\n      body: { status: \"posted\" },\n    });\n\n    log(\"4/4 Mark Posted\", \"SUCCESS — flow complete\", {\n      contentCode,\n      contentId,\n      platform,\n      bufferPostId,\n      newStatus: response?.status ?? \"posted\",\n    });\n\n    results.push({\n      json: {\n        ...item.json,\n        markPostedResponse: response,\n      },\n    });\n  } catch (error) {\n    const status = error.statusCode ?? error.httpCode ?? \"?\";\n    const detail =\n      typeof error.message === \"string\"\n        ? error.message\n        : JSON.stringify(error).slice(0, 300);\n\n    log(\"4/4 Mark Posted\", \"ERROR PATCH failed\", {\n      contentCode,\n      contentId,\n      status,\n      detail,\n    });\n\n    throw new Error(`Mark Posted HTTP ${status}: ${detail}`);\n  }\n}\n\nreturn results;\n"
+      },
+      "id": "4c6a2468-a3a6-463b-bb15-61e9fe45baec",
+      "name": "Mark Posted",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Content Approved": {
+      "main": [
+        [
+          {
+            "node": "Compute Wait Until",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Wait Until": {
+      "main": [
+        [
+          {
+            "node": "Due Now?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Due Now?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Buffer Posts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait Until Post Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Until Post Time": {
+      "main": [
+        [
+          {
+            "node": "Log After Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log After Wait": {
+      "main": [
+        [
+          {
+            "node": "Prepare Buffer Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Buffer Posts": {
+      "main": [
+        [
+          {
+            "node": "Post to Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Buffer": {
+      "main": [
+        [
+          {
+            "node": "Mark Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Bangkok"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

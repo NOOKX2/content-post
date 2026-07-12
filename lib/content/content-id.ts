@@ -1,29 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 
-export const CHANNEL_PREFIXES = {
-  วังวาน: "VWW",
-  "ลูกสาว วังวาน": "VDW",
-  สามพี่น้องวังวาน: "V3W",
-  ของชำร่วย: "VWG",
-  วังน้ำเขียวฟาร์ม: "VWF",
-} as const;
-
-export type ContentChannel = keyof typeof CHANNEL_PREFIXES;
-
-export const CONTENT_CHANNELS = Object.keys(
-  CHANNEL_PREFIXES
-) as ContentChannel[];
+import { getPostingChannelPrefix } from "@/lib/content/posting-channels";
 
 export const MAX_CONTENT_ID_SEQUENCE = 9999;
-
-export function isValidChannel(channel: string): channel is ContentChannel {
-  return channel in CHANNEL_PREFIXES;
-}
-
-export function getChannelPrefix(channel: string): string | undefined {
-  if (!isValidChannel(channel)) return undefined;
-  return CHANNEL_PREFIXES[channel];
-}
 
 export function formatChannelContentId(
   prefix: string,
@@ -45,7 +24,7 @@ export async function resolveNextContentIdForChannel(
   channel: string,
   db: PrismaClient
 ): Promise<string> {
-  const prefix = getChannelPrefix(channel);
+  const prefix = await getPostingChannelPrefix(channel);
   if (!prefix) {
     throw new Error("ช่องที่ลงไม่ถูกต้อง");
   }
@@ -72,11 +51,9 @@ export async function resolveNextContentIdForChannel(
 
 export function resolveNextContentIdFromList(
   channel: string,
-  contents: Array<{ contentId: string }>
+  contents: Array<{ contentId: string }>,
+  prefix: string
 ): string | null {
-  const prefix = getChannelPrefix(channel);
-  if (!prefix) return null;
-
   let maxSequence = 0;
   for (const item of contents) {
     const sequence = parseChannelContentIdSequence(item.contentId, prefix);

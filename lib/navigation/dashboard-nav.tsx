@@ -61,8 +61,10 @@ export function useDashboardNav() {
 
 export type DashboardRoute =
   | { view: "dashboard" }
+  | { view: "collaboration" }
   | { view: "calendar" }
   | { view: "admin" }
+  | { view: "admin-channels" }
   | { view: "create" }
   | { view: "posts" }
   | { view: "content-detail"; id: string }
@@ -72,8 +74,14 @@ export function parseDashboardRoute(path: string): DashboardRoute {
   if (path === "/dashboard") {
     return { view: "dashboard" };
   }
+  if (path === "/collaboration") {
+    return { view: "collaboration" };
+  }
   if (path === "/calendar" || path === "/content-calendar") {
     return { view: "calendar" };
+  }
+  if (path === "/admin/channels") {
+    return { view: "admin-channels" };
   }
   if (path === "/admin") {
     return { view: "admin" };

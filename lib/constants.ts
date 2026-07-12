@@ -1,7 +1,7 @@
 import type { Platform } from "./types";
-import { CONTENT_CHANNELS } from "@/lib/content/content-id";
+import { CHANNEL_SELECT_OPTIONS } from "@/lib/content/channels";
 
-export const CHANNELS = CONTENT_CHANNELS;
+export const CHANNELS = CHANNEL_SELECT_OPTIONS;
 
 export const PLATFORMS: {
   id: Platform;
@@ -12,8 +12,6 @@ export const PLATFORMS: {
   { id: "facebook", label: "Facebook", shortLabel: "FB", color: "#1877F2" },
   { id: "instagram", label: "Instagram", shortLabel: "IG", color: "#E4405F" },
   { id: "tiktok", label: "TikTok", shortLabel: "TT", color: "#000000" },
-  { id: "line", label: "LINE", shortLabel: "LI", color: "#06C755" },
-  { id: "lemon8", label: "Lemon8", shortLabel: "L8", color: "#FFF100" },
   { id: "youtube", label: "YouTube", shortLabel: "YT", color: "#FF0000" },
 ];
 

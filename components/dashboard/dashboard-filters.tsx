@@ -1,6 +1,6 @@
 "use client";
 
-import { CONTENT_CHANNELS } from "@/lib/content/content-id";
+import useSWR from "swr";
 import { PLATFORMS } from "@/lib/constants";
 import type { DashboardFilters, DashboardPeriod } from "@/lib/dashboard/types";
 import { getDateRangeForPeriod } from "@/lib/dashboard/filters";
@@ -28,6 +28,9 @@ export function DashboardFiltersBar({
   showPlatform = true,
   showMediaType = true,
 }: DashboardFiltersBarProps) {
+  const { data: postingData } = useSWR("/api/posting-channels", (url: string) =>
+    fetch(url).then((res) => res.json())
+  );
   const range = getDateRangeForPeriod(
     filters.period,
     filters.startDate,
@@ -48,11 +51,13 @@ export function DashboardFiltersBar({
           }
         >
           <option value="all">ทุกช่อง</option>
-          {CONTENT_CHANNELS.map((channel) => (
-            <option key={channel} value={channel}>
-              {channel}
-            </option>
-          ))}
+          {(postingData?.channels ?? []).map(
+            (channel: { slug: string; label: string }) => (
+              <option key={channel.slug} value={channel.slug}>
+                {channel.label}
+              </option>
+            )
+          )}
         </NativeSelect>
       </InlineFilter>
 

@@ -1,0 +1,11 @@
+import { NextResponse } from "next/server";
+import { requireSession } from "@/lib/content/api-auth";
+import { listPostingChannelsForForm } from "@/lib/content/posting-channels";
+
+export async function GET() {
+  const authResult = await requireSession();
+  if ("error" in authResult) return authResult.error;
+
+  const channels = await listPostingChannelsForForm();
+  return NextResponse.json({ channels });
+}

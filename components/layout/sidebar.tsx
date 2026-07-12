@@ -4,8 +4,10 @@ import {
   BarChart3,
   CalendarDays,
   ClipboardList,
+  MessageSquare,
   PenSquare,
   ShieldCheck,
+  Settings,
   Leaf,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,13 +17,16 @@ import type { Session } from "next-auth";
 
 const CREATOR_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/collaboration", label: "Team", icon: MessageSquare },
   { href: "/create", label: "สร้าง Content", icon: PenSquare },
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
 ] as const;
 
 const ADMIN_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/collaboration", label: "Team", icon: MessageSquare },
   { href: "/admin", label: "Admin อนุมัติ", icon: ShieldCheck },
+  { href: "/admin/channels", label: "ตั้งค่าช่อง", icon: Settings },
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
 ] as const;
 
@@ -81,7 +86,7 @@ export function Sidebar({ session }: { session: Session | null }) {
         <div className="rounded-lg bg-stone-50 p-3">
           <div className="flex items-center gap-2 text-xs text-stone-500">
             <ClipboardList className="h-3.5 w-3.5" />
-            <span>Module 1: Content Creation</span>
+            <span>Module 2: Team Collaboration</span>
           </div>
         </div>
       </div>

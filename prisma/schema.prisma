@@ -30,8 +30,6 @@ enum Platform {
   facebook
   instagram
   tiktok
-  line
-  lemon8
   youtube
 }
 
@@ -49,17 +47,51 @@ enum NotificationType {
   monthly_summary
 }
 
+enum CollaborationMessageType {
+  text
+  approval_request
+  meeting
+  system
+}
+
 model User {
-  id           String            @id @default(cuid())
-  name         String
-  email        String            @unique
-  password     String
-  role         Role              @default(USER)
-  contents     Content[]
-  notifications Notification[]
-  comments     ContentComment[]
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id              String                  @id @default(cuid())
+  name            String
+  email           String                  @unique
+  password        String
+  role            Role                    @default(USER)
+  contents        Content[]
+  notifications   Notification[]
+  comments        ContentComment[]
+  collabMessages  CollaborationMessage[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+}
+
+model CollaborationChannel {
+  id        String                 @id @default(cuid())
+  slug      String                 @unique
+  name      String
+  contentId String?                @unique
+  content   Content?               @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  messages  CollaborationMessage[]
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+}
+
+model CollaborationMessage {
+  id          String                   @id @default(cuid())
+  channelId   String
+  channel     CollaborationChannel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  authorId    String?
+  author      User?                    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorName  String
+  body        String                   @default("")
+  messageType CollaborationMessageType @default(text)
+  metadata    Json                     @default("{}")
+  createdAt   DateTime                 @default(now())
+
+  @@index([channelId, createdAt])
 }
 
 model Notification {
@@ -94,6 +126,32 @@ model ContentComment {
   @@index([contentId, createdAt])
 }
 
+model PostingChannel {
+  id        String                   @id @default(cuid())
+  slug      String                   @unique
+  label     String
+  prefix    String                   @unique
+  sortOrder Int                      @default(0)
+  enabled   Boolean                  @default(true)
+  links     PostingChannelPlatform[]
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime                 @updatedAt
+}
+
+model PostingChannelPlatform {
+  id                String         @id @default(cuid())
+  postingChannelId  String
+  postingChannel    PostingChannel @relation(fields: [postingChannelId], references: [id], onDelete: Cascade)
+  platform          Platform
+  bufferChannelId   String
+  bufferChannelName String         @default("")
+  enabled           Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([postingChannelId, platform])
+}
+
 model Content {
   id             String        @id @default(cuid())
   contentId      String        @unique
@@ -124,6 +182,7 @@ model Content {
   createdBy      User?         @relation(fields: [createdById], references: [id])
   notifications  Notification[]
   comments       ContentComment[]
+  collabChannel  CollaborationChannel?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

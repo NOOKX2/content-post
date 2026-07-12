@@ -7,10 +7,11 @@ import {
 import { toContentItem } from "@/lib/content/mappers";
 import type { ContentStatus } from "@/lib/types";
 import {
-  notifyApprovalApproved,
   notifyApprovalRejected,
   notifyPostStatusUpdate,
 } from "@/lib/notifications/events";
+import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/service";
+import { approveContentRecord } from "@/lib/content/approve-content-record";
 
 const N8N_ALLOWED_STATUSES: ContentStatus[] = ["posted", "scheduled"];
 
@@ -58,23 +59,28 @@ export async function PATCH(
       const adminResult = await requireAdmin();
       if ("error" in adminResult) return adminResult.error;
 
-      const record = await prisma.content.update({
-        where: { id },
-        data: {
-          status: body.status,
-          approver:
-            body.status === "approved"
-              ? body.approver || adminResult.session.user.name || "Admin"
-              : null,
-        },
-      });
-
       if (body.status === "approved") {
-        await notifyApprovalApproved(record);
+        await approveContentRecord(
+          id,
+          body.approver || adminResult.session.user.name || "Admin"
+        );
       } else {
-        await notifyApprovalRejected(record);
+        await prisma.content.update({
+          where: { id },
+          data: {
+            status: "rejected",
+            approver: null,
+          },
+        });
+        await notifyApprovalRejected(existing);
+        await syncContentWorkflowToCollaboration({
+          content: existing,
+          actorName: adminResult.session.user.name ?? "Admin",
+          action: "rejected",
+        });
       }
 
+      const record = await prisma.content.findUniqueOrThrow({ where: { id } });
       return NextResponse.json(toContentItem(record));
     }
 

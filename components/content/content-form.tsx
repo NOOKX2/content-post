@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import useSWR from "swr";
 import { Send } from "lucide-react";
 import { MediaTypeToggle } from "./media-type-toggle";
 import { TeamTable } from "./team-table";
@@ -17,7 +18,6 @@ import { CreatableMultiSelect } from "@/components/ui/creatable-multi-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-  CHANNELS,
   TEAM_MEMBERS,
   PRODUCTS,
   FILMING_EQUIPMENT,
@@ -42,6 +42,18 @@ import {
 } from "@/lib/content/actions";
 import { contentItemToFormData } from "@/lib/content/mappers";
 import { useContents } from "@/lib/content/contents-provider";
+
+type PostingChannelOption = {
+  slug: string;
+  label: string;
+  prefix: string;
+  platforms: Platform[];
+};
+
+const fetchPostingChannels = () =>
+  fetch("/api/posting-channels").then((res) => res.json()) as Promise<{
+    channels: PostingChannelOption[];
+  }>;
 
 const EMPTY_FORM: ContentFormData = {
   name: "",
@@ -90,6 +102,17 @@ export function ContentForm({
   const [submittedItem, setSubmittedItem] = useState<ContentItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { contents, mutateContents } = useContents();
+  const { data: postingData } = useSWR("posting-channels", fetchPostingChannels);
+
+  const channelOptions =
+    postingData?.channels.map((channel) => ({
+      value: channel.slug,
+      label: channel.label,
+    })) ?? [];
+  const selectedChannel = postingData?.channels.find(
+    (channel) => channel.slug === form.channel
+  );
+  const availablePlatforms = selectedChannel?.platforms ?? [];
 
   const config = MEDIA_FORM_CONFIG[form.mediaType];
   const isVideo = form.mediaType === "video";
@@ -149,15 +172,25 @@ export function ContentForm({
   );
 
   const handleChannelChange = (channel: string) => {
-    update("channel", channel);
+    const nextChannel = postingData?.channels.find((item) => item.slug === channel);
+    const nextAvailable = nextChannel?.platforms ?? [];
+    setForm((prev) => ({
+      ...prev,
+      channel,
+      platforms: prev.platforms.filter((p) => nextAvailable.includes(p)),
+    }));
     if (isEdit) return;
 
-    if (!channel) {
+    if (!channel || !nextChannel) {
       setContentId("");
       return;
     }
 
-    const localId = resolveNextContentIdFromList(channel, contents);
+    const localId = resolveNextContentIdFromList(
+      channel,
+      contents,
+      nextChannel.prefix
+    );
     if (localId) {
       setContentId(localId);
     }
@@ -182,6 +215,10 @@ export function ContentForm({
     if (!form.name.trim() || submitting) return;
     if (!isEdit && !form.channel.trim()) {
       alert("กรุณาเลือกช่องที่ลง");
+      return;
+    }
+    if (!isEdit && form.platforms.length === 0) {
+      alert("กรุณาเลือกแพลตฟอร์มอย่างน้อย 1 แพลตฟอร์ม");
       return;
     }
 
@@ -278,7 +315,7 @@ export function ContentForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <Select
             label="ช่องที่ลง *"
-            options={CHANNELS}
+            options={channelOptions}
             placeholder="เลือกช่อง..."
             value={form.channel}
             onChange={(e) => handleChannelChange(e.target.value)}
@@ -313,7 +350,9 @@ export function ContentForm({
         <div className="mt-4">
           <PlatformSelect
             selected={form.platforms}
-            onChange={(p: Platform[]) => update("platforms", p)}
+            availablePlatforms={availablePlatforms}
+            disabled={!form.channel}
+            onChange={(platforms: Platform[]) => update("platforms", platforms)}
           />
         </div>
         <div className="mt-4">

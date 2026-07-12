@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { DashboardLink } from "@/components/layout/dashboard-link";
 import {
   ChevronLeft,
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
-import { TEAM_MEMBERS, CHANNELS } from "@/lib/constants";
+import { TEAM_MEMBERS } from "@/lib/constants";
 import {
   CALENDAR_EVENT_STYLES,
   formatDateKey,
@@ -60,6 +61,14 @@ export function EventModal({
   const [channel, setChannel] = useState(content?.channel ?? "");
   const [details, setDetails] = useState(content?.details ?? "");
   const [ideaCreator, setIdeaCreator] = useState(content?.ideaCreator ?? "");
+  const { data: postingData } = useSWR("/api/posting-channels", (url: string) =>
+    fetch(url).then((res) => res.json())
+  );
+  const channelOptions =
+    postingData?.channels?.map((item: { slug: string; label: string }) => ({
+      value: item.slug,
+      label: item.label,
+    })) ?? [];
 
   if (!open) return null;
 
@@ -122,7 +131,7 @@ export function EventModal({
           </div>
           <Select
             label="ช่อง"
-            options={CHANNELS}
+            options={channelOptions}
             placeholder="เลือก..."
             value={channel}
             onChange={(e) => setChannel(e.target.value)}

@@ -19,6 +19,8 @@ export function AppShell({
   const pathname = usePathname();
   const isAuthPage = AUTH_PATHS.includes(pathname);
   const isDashboard = pathname === "/dashboard";
+  const isCollaboration = pathname === "/collaboration";
+  const isFullHeightView = isDashboard || isCollaboration;
 
   if (isAuthPage) {
     return <>{children}</>;
@@ -31,7 +33,7 @@ export function AppShell({
         <main
           className={cn(
             "flex min-h-0 flex-1 flex-col",
-            isDashboard ? "overflow-hidden" : "overflow-y-auto"
+            isFullHeightView ? "overflow-hidden" : "overflow-y-auto"
           )}
         >
           <DashboardRouter />

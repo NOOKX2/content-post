@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { ApprovalCard } from "./approval-card";
 import { Tabs } from "@/components/ui/tabs";
-import { approveContent, rejectContent } from "@/lib/content/actions";
 import { useContents } from "@/lib/content/contents-provider";
 import type { ContentItem, ContentStatus } from "@/lib/types";
 
@@ -21,6 +20,31 @@ function updateContentStatus(
 ): ContentItem[] {
   return contents.map((content) =>
     content.id === id ? { ...content, status } : content
+  );
+}
+
+async function patchContentStatus(
+  id: string,
+  status: "approved" | "rejected"
+): Promise<ContentItem> {
+  const res = await fetch(`/api/content/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  const json = (await res.json()) as ContentItem & { error?: string };
+  if (!res.ok) {
+    throw new Error(json.error ?? "อัปเดตสถานะไม่สำเร็จ");
+  }
+  return json;
+}
+
+function replaceContentItem(
+  contents: ContentItem[],
+  updated: ContentItem
+): ContentItem[] {
+  return contents.map((content) =>
+    content.id === updated.id ? updated : content
   );
 }
 
@@ -44,17 +68,14 @@ export function ApprovalList() {
   const handleApprove = (id: string) => {
     void mutateContents(
       async (current = []) => {
-        const result = await approveContent(id);
-        if (!result.success) {
-          throw new Error(result.error);
-        }
-        return updateContentStatus(current, id, "approved");
+        const updated = await patchContentStatus(id, "approved");
+        return replaceContentItem(current, updated);
       },
       {
         optimisticData: (current = []) =>
-          updateContentStatus(current, id, "approved"),
+          updateContentStatus(current, id, "scheduled"),
         rollbackOnError: true,
-        revalidate: true,
+        revalidate: false,
       }
     ).catch((error: Error) => {
       alert(error.message);
@@ -64,17 +85,14 @@ export function ApprovalList() {
   const handleReject = (id: string) => {
     void mutateContents(
       async (current = []) => {
-        const result = await rejectContent(id);
-        if (!result.success) {
-          throw new Error(result.error);
-        }
-        return updateContentStatus(current, id, "rejected");
+        const updated = await patchContentStatus(id, "rejected");
+        return replaceContentItem(current, updated);
       },
       {
         optimisticData: (current = []) =>
           updateContentStatus(current, id, "rejected"),
         rollbackOnError: true,
-        revalidate: true,
+        revalidate: false,
       }
     ).catch((error: Error) => {
       alert(error.message);

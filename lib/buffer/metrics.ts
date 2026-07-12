@@ -207,7 +207,7 @@ export async function fetchSocialAnalytics(options: {
   }
 
   const organizationId = process.env.BUFFER_ORG_ID!;
-  const channelIds = getBufferChannelIdsForPlatform(options.platform);
+  const channelIds = await getBufferChannelIdsForPlatform(options.platform);
   const { startDateTime, endDateTime } = {
     startDateTime: `${options.startDate}T00:00:00Z`,
     endDateTime: `${options.endDate}T23:59:59Z`,

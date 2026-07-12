@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 
 const PLATFORM_IMAGE_SRC: Partial<Record<Platform, string>> = {
   instagram: "/platforms/instagram.png",
-  line: "/platforms/line.png",
 };
 
 interface PlatformLogoProps {
@@ -50,23 +49,6 @@ export function PlatformLogo({
       return (
         <svg viewBox="0 0 24 24" fill="#000000" {...props}>
           <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .55.04.81.12V9.01a6.37 6.37 0 0 0-.81-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z" />
-        </svg>
-      );
-    case "lemon8":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" {...props}>
-          <rect width="24" height="24" rx="6" fill="#FFF100" />
-          <text
-            x="12"
-            y="16"
-            textAnchor="middle"
-            fontSize="11"
-            fontWeight="800"
-            fill="#1a1a1a"
-            fontFamily="system-ui, sans-serif"
-          >
-            L8
-          </text>
         </svg>
       );
     case "youtube":

@@ -8,7 +8,6 @@ import {
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
-  formDataToCreateInput,
   formDataToUpdateInput,
   toContentItem,
 } from "@/lib/content/mappers";
@@ -18,19 +17,21 @@ import {
 } from "@/lib/content/action-errors";
 import { assertCanModifyContent } from "@/lib/content/permissions";
 import {
+  syncContentWorkflowToCollaboration,
+} from "@/lib/collaboration/service";
+import {
   detectContentChanges,
-  notifyApprovalApproved,
   notifyApprovalRejected,
   notifyContentDetailChanged,
 } from "@/lib/notifications/events";
 import {
-  formatChannelContentId,
-  getChannelPrefix,
-  isValidChannel,
-  MAX_CONTENT_ID_SEQUENCE,
-  parseChannelContentIdSequence,
   resolveNextContentIdForChannel,
 } from "@/lib/content/content-id";
+import {
+  isValidPostingChannel,
+} from "@/lib/content/posting-channels";
+import { createContentRecord, validateContentFormData } from "@/lib/content/create-content-record";
+import { approveContentRecord } from "@/lib/content/approve-content-record";
 import type { ContentFormData, ContentItem } from "@/lib/types";
 
 export type ActionResult<T = void> =
@@ -49,7 +50,7 @@ export async function previewNextContentId(
     return { success: false, error: "กรุณาเลือกช่องที่ลง" };
   }
 
-  if (!isValidChannel(channel)) {
+  if (!(await isValidPostingChannel(channel))) {
     return { success: false, error: "ช่องที่ลงไม่ถูกต้อง" };
   }
 
@@ -77,53 +78,13 @@ export async function createContent(
     return { success: false, error: "Forbidden" };
   }
 
-  if (!data.name?.trim()) {
-    return { success: false, error: "กรุณากรอกชื่อ Content" };
-  }
-
-  if (!data.channel?.trim()) {
-    return { success: false, error: "กรุณาเลือกช่องที่ลง" };
-  }
-
-  if (!isValidChannel(data.channel)) {
-    return { success: false, error: "ช่องที่ลงไม่ถูกต้อง" };
-  }
-
   try {
-    let nextContentId = await resolveNextContentIdForChannel(
-      data.channel,
-      prisma
+    const item = await createContentRecord(
+      data,
+      session.user.id,
+      session.user.name ?? "ผู้ใช้"
     );
-    let attempts = 0;
-
-    while (attempts < 5) {
-      const existing = await prisma.content.findUnique({
-        where: { contentId: nextContentId },
-      });
-      if (!existing) break;
-
-      const prefix = getChannelPrefix(data.channel);
-      const sequence = prefix
-        ? parseChannelContentIdSequence(nextContentId, prefix)
-        : null;
-      if (!prefix || sequence === null || sequence >= MAX_CONTENT_ID_SEQUENCE) {
-        break;
-      }
-      nextContentId = formatChannelContentId(prefix, sequence + 1);
-      attempts++;
-    }
-
-    const record = await prisma.content.create({
-      data: formDataToCreateInput(data, nextContentId, session.user.id),
-    });
-
-    updateTag(CONTENTS_CACHE_TAG);
-    revalidatePath("/calendar");
-    revalidatePath("/admin");
-    revalidatePath("/create");
-    revalidatePath("/posts");
-
-    return { success: true, data: toContentItem(record) };
+    return { success: true, data: item };
   } catch (error) {
     logActionError("createContent", error, {
       channel: data.channel,
@@ -145,20 +106,7 @@ export async function approveContent(id: string): Promise<ActionResult> {
   }
 
   try {
-    const existing = await prisma.content.findUnique({ where: { id } });
-    if (!existing) {
-      return { success: false, error: "Not found" };
-    }
-
-    await prisma.content.update({
-      where: { id },
-      data: {
-        status: "approved",
-        approver: session.user.name || "Admin",
-      },
-    });
-
-    await notifyApprovalApproved(existing);
+    await approveContentRecord(id, session.user.name || "Admin");
 
     updateTag(CONTENTS_CACHE_TAG);
     updateTag(contentCacheTag(id));
@@ -186,8 +134,9 @@ export async function updateContent(
     return { success: false, error: "Unauthorized" };
   }
 
-  if (!data.name?.trim()) {
-    return { success: false, error: "กรุณากรอกชื่อ Content" };
+  const validationError = await validateContentFormData(data);
+  if (validationError) {
+    return { success: false, error: validationError };
   }
 
   try {
@@ -210,6 +159,11 @@ export async function updateContent(
     const changedFields = detectContentChanges(existing, data);
     if (changedFields.length > 0) {
       await notifyContentDetailChanged(record, changedFields, session.user.id);
+      await syncContentWorkflowToCollaboration({
+        content: record,
+        actorName: session.user.name ?? "ผู้ใช้",
+        action: "updated",
+      });
     }
 
     updateTag(CONTENTS_CACHE_TAG);
@@ -269,7 +223,10 @@ export async function deleteContent(id: string): Promise<ActionResult> {
   }
 }
 
-export async function rejectContent(id: string): Promise<ActionResult> {
+export async function rejectContent(
+  id: string,
+  rejectNote?: string
+): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
     return { success: false, error: "Forbidden" };
@@ -287,6 +244,12 @@ export async function rejectContent(id: string): Promise<ActionResult> {
     });
 
     await notifyApprovalRejected(existing);
+    await syncContentWorkflowToCollaboration({
+      content: existing,
+      actorName: session.user.name ?? "Admin",
+      action: "rejected",
+      note: rejectNote,
+    });
 
     updateTag(CONTENTS_CACHE_TAG);
     updateTag(contentCacheTag(id));

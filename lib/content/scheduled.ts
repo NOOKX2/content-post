@@ -8,7 +8,7 @@ export function parseScheduledAt(date: string, time: string): Date {
 }
 
 export function isContentDue(content: Content, now = new Date()): boolean {
-  if (content.status !== "scheduled") {
+  if (content.status !== "scheduled" && content.status !== "approved") {
     return false;
   }
   if (!content.scheduledDate || !content.scheduledTime) {

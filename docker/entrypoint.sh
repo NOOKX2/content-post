@@ -1,14 +1,14 @@
 #!/bin/sh
 set -e
 
-echo "==> Generating Prisma Client..."
-bunx prisma generate
-
 echo "==> Syncing dependencies..."
 bun install
 
+echo "==> Generating Prisma Client..."
+bun run db:generate
+
 echo "==> Running migrations..."
-bunx prisma migrate deploy
+bun run db:deploy
 
 echo "==> Seeding database..."
 bun run db:seed || true

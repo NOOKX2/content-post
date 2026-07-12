@@ -15,7 +15,7 @@ COPY prisma ./prisma
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-RUN bunx prisma generate
+RUN bun run db:generate
 
 EXPOSE 3000
 

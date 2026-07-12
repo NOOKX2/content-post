@@ -43,3 +43,44 @@ export function requireN8nApiKey(request: Request) {
   }
   return { n8n: true as const };
 }
+
+export async function requireCreator(request: Request) {
+  if (verifyN8nApiKey(request)) {
+    const { prisma } = await import("@/lib/prisma");
+    const email =
+      request.headers.get("x-user-email")?.trim() || "creator@idea.local";
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return {
+        error: NextResponse.json(
+          { error: `ไม่พบ user: ${email}` },
+          { status: 401 }
+        ),
+      };
+    }
+    if (user.role !== "USER") {
+      return {
+        error: NextResponse.json(
+          { error: "Admin ไม่สามารถสร้าง Content ได้" },
+          { status: 403 }
+        ),
+      };
+    }
+    return { user: { id: user.id, name: user.name, role: user.role } };
+  }
+
+  const result = await requireSession();
+  if ("error" in result) return result;
+  if (result.session.user.role === "ADMIN") {
+    return {
+      error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    };
+  }
+  return {
+    user: {
+      id: result.session.user.id,
+      name: result.session.user.name ?? "ผู้ใช้",
+      role: result.session.user.role,
+    },
+  };
+}

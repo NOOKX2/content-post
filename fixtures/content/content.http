@@ -1,0 +1,76 @@
+# REST Client — สร้าง Content ทดสอบ
+# ใช้ใน Cursor/VS Code: ติดตั้ง extension "REST Client" แล้วกด "Send Request" เหนือแต่ละ ###
+#
+# แก้ @channel ให้ตรงกับ slug ใน /admin/channels
+# แก้ JSON ในไฟล์ .json หรือใน ### Template ด้านล่าง แล้วกด Send
+
+@baseUrl = http://localhost:3001
+@apiKey = dev-n8n-api-key-change-in-production
+@creatorEmail = creator@idea.local
+
+### สร้าง Content — video nook__th (IG + TikTok)
+POST {{baseUrl}}/api/content
+Content-Type: application/json
+x-api-key: {{apiKey}}
+x-user-email: {{creatorEmail}}
+
+< ./video-nook-th.json
+
+### สร้าง Content — image idea_content_post (IG)
+POST {{baseUrl}}/api/content
+Content-Type: application/json
+x-api-key: {{apiKey}}
+x-user-email: {{creatorEmail}}
+
+< ./image-idea-content-post.json
+
+### สร้าง Content — video nook_down (TikTok)
+POST {{baseUrl}}/api/content
+Content-Type: application/json
+x-api-key: {{apiKey}}
+x-user-email: {{creatorEmail}}
+
+< ./video-nook-down.json
+
+### Template — แก้ JSON ด้านล่างแล้วกด Send
+POST {{baseUrl}}/api/content
+Content-Type: application/json
+x-api-key: {{apiKey}}
+x-user-email: {{creatorEmail}}
+
+{
+  "name": "ชื่อ Content ทดสอบ",
+  "mediaType": "video",
+  "channel": "nook__th",
+  "platforms": ["instagram"],
+  "details": "รายละเอียดงาน",
+  "location": ["Studio A"],
+  "scheduledDate": "2026-07-20",
+  "scheduledTime": "10:00",
+  "endTime": "12:00",
+  "team": [],
+  "productsNeeded": [],
+  "itemsToPrepare": "",
+  "filmingEquipment": [],
+  "attachments": [],
+  "script": [],
+  "ideaCreator": "Creator Demo",
+  "photographer": "",
+  "editor": "",
+  "category": "",
+  "tags": [],
+  "imageMeta": {
+    "objective": "",
+    "headline": "",
+    "subHead": "",
+    "callToAction": "",
+    "requiredElements": [],
+    "workSizes": []
+  }
+}
+
+### ทดสอบ n8n webhook — NK0001 (หลังแก้ Compute Wait Until แล้ว)
+POST http://localhost:5678/webhook/content-approved
+Content-Type: application/json
+
+< ./test-nk0001.json

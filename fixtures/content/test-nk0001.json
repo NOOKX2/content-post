@@ -1,0 +1,40 @@
+{
+  "id": "cmrhgwjtn004sql729h6vnfjo",
+  "contentId": "NK0001",
+  "name": "content-post",
+  "mediaType": "image",
+  "channel": "nook",
+  "platforms": ["instagram"],
+  "details": "content post detail",
+  "location": [],
+  "scheduledDate": "2026-07-12",
+  "scheduledTime": "12:23",
+  "team": [],
+  "productsNeeded": [],
+  "itemsToPrepare": "",
+  "filmingEquipment": [],
+  "attachments": [
+    "https://pub-0dbc5da7004145578f115f5733abcc52.r2.dev/uploads/8a75d60d-3d99-4c5e-bff0-f7c87052472d.jpg"
+  ],
+  "script": [],
+  "ideaCreator": "",
+  "photographer": "",
+  "editor": "",
+  "category": "",
+  "tags": [],
+  "imageMeta": {
+    "objective": "Brand Awareness",
+    "headline": "headline",
+    "subHead": "sub head",
+    "callToAction": "call to action",
+    "requiredElements": [],
+    "workSizes": []
+  },
+  "mediaUrl": "https://pub-0dbc5da7004145578f115f5733abcc52.r2.dev/uploads/8a75d60d-3d99-4c5e-bff0-f7c87052472d.jpg",
+  "bufferTargets": [
+    {
+      "platform": "instagram",
+      "bufferChannelId": "6a473ba65ab6d2f1069bd878"
+    }
+  ]
+}

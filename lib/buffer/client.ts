@@ -38,27 +38,16 @@ export async function bufferGraphql<T>(
   return json.data;
 }
 
-export function getBufferChannelIdsForPlatform(
-  platform?: string
-): string[] | undefined {
-  const mapping: Record<string, string | undefined> = {
-    instagram: process.env.BUFFER_IG_CHANNEL_ID,
-    tiktok: process.env.BUFFER_TIKTOK_CHANNEL_ID,
-    facebook: process.env.BUFFER_FB_CHANNEL_ID,
-  };
+import { getAllMappedBufferChannelIds } from "@/lib/buffer/channel-map";
 
-  if (!platform || platform === "all") {
-    return Object.values(mapping).filter((id): id is string => Boolean(id));
-  }
-
-  const channelId = mapping[platform];
-  return channelId ? [channelId] : [];
+export async function getBufferChannelIdsForPlatform(
+  platform?: string,
+  contentChannel?: string
+): Promise<string[] | undefined> {
+  const ids = await getAllMappedBufferChannelIds(contentChannel, platform);
+  return ids.length > 0 ? ids : undefined;
 }
 
 export function isBufferConfigured(): boolean {
-  return Boolean(
-    process.env.BUFFER_API_KEY &&
-      process.env.BUFFER_ORG_ID &&
-      getBufferChannelIdsForPlatform()?.length
-  );
+  return Boolean(process.env.BUFFER_API_KEY && process.env.BUFFER_ORG_ID);
 }

@@ -12,8 +12,6 @@ export type Platform =
   | "facebook"
   | "instagram"
   | "tiktok"
-  | "line"
-  | "lemon8"
   | "youtube";
 
 export interface ScriptRow {

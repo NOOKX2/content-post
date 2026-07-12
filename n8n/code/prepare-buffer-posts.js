@@ -1,11 +1,16 @@
 // n8n Code node — Run Once for All Items
-// Input: content item(s) from Split Out (field: items)
-// Output: one item per platform (e.g. IG + TikTok = 2 items)
 
-const bufferChannels = {
+function log(step, message, data) {
+  const suffix =
+    data === undefined ? "" : ` ${JSON.stringify(data, null, 2)}`;
+  console.log(`[content-approved] ${step} | ${message}${suffix}`);
+}
+
+const legacyBufferChannels = {
   instagram: $env.BUFFER_IG_CHANNEL_ID,
   tiktok: $env.BUFFER_TIKTOK_CHANNEL_ID,
   facebook: $env.BUFFER_FB_CHANNEL_ID,
+  youtube: $env.BUFFER_YOUTUBE_CHANNEL_ID,
 };
 
 const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3001").replace(/\/$/, "");
@@ -16,10 +21,31 @@ function toPublicUrl(url) {
   return `${appUrl}${url.startsWith("/") ? url : `/${url}`}`;
 }
 
+function resolveTargets(content) {
+  if (Array.isArray(content.bufferTargets) && content.bufferTargets.length > 0) {
+    return content.bufferTargets;
+  }
+
+  return (content.platforms || [])
+    .map((platform) => ({
+      platform,
+      bufferChannelId: legacyBufferChannels[platform],
+    }))
+    .filter((target) => Boolean(target.bufferChannelId));
+}
+
 const results = [];
 
 for (const item of $input.all()) {
   const content = item.json;
+
+  log("2/5 Prepare Buffer Posts", "start", {
+    contentId: content.contentId,
+    id: content.id,
+    channel: content.channel,
+    isDue: content.isDue,
+    checkedAt: content.checkedAt,
+  });
 
   const captionParts = [content.name, content.details];
   if (content.tags?.length) {
@@ -34,6 +60,10 @@ for (const item of $input.all()) {
     (content.attachments || []).map(toPublicUrl).find(Boolean);
 
   if (!mediaUrl) {
+    log("2/5 Prepare Buffer Posts", "ERROR no media URL", {
+      contentId: content.contentId,
+      attachments: content.attachments,
+    });
     throw new Error(
       `Content ${content.id} (${content.contentId}) has no media URL`
     );
@@ -49,10 +79,31 @@ for (const item of $input.all()) {
     return "metadata: { instagram: { type: post, shouldShareToFeed: true } }";
   }
 
-  for (const platform of content.platforms || []) {
-    const channelId = bufferChannels[platform];
-    if (!channelId) continue;
+  const targets = resolveTargets(content);
+  if (targets.length === 0) {
+    log("2/5 Prepare Buffer Posts", "ERROR no buffer targets", {
+      contentId: content.contentId,
+      channel: content.channel,
+      platforms: content.platforms,
+      bufferTargets: content.bufferTargets,
+    });
+    throw new Error(
+      `No Buffer channel mapping for content ${content.contentId} (ช่องที่ลง: ${content.channel || "ไม่ระบุ"}). ตั้งค่า BUFFER_CHANNEL_MAP ใน .env`
+    );
+  }
 
+  log("2/5 Prepare Buffer Posts", "resolved targets", {
+    contentId: content.contentId,
+    assetKey,
+    mediaUrl,
+    targetCount: targets.length,
+    targets: targets.map(({ platform, bufferChannelId }) => ({
+      platform,
+      bufferChannelId,
+    })),
+  });
+
+  for (const { platform, bufferChannelId: channelId } of targets) {
     const instagramLine =
       platform === "instagram" ? `\n    ${instagramMetadata()}` : "";
 
@@ -75,6 +126,9 @@ for (const item of $input.all()) {
 
     const bufferApiKey = $env.BUFFER_API_KEY;
     if (!bufferApiKey) {
+      log("2/5 Prepare Buffer Posts", "ERROR BUFFER_API_KEY missing", {
+        contentId: content.contentId,
+      });
       throw new Error(
         "BUFFER_API_KEY is missing in n8n environment. Check .env and restart n8n."
       );
@@ -84,6 +138,7 @@ for (const item of $input.all()) {
       json: {
         contentId: content.id,
         contentCode: content.contentId,
+        contentChannel: content.channel,
         platform,
         channelId,
         mediaUrl,
@@ -97,9 +152,15 @@ for (const item of $input.all()) {
 }
 
 if (results.length === 0) {
+  log("2/5 Prepare Buffer Posts", "ERROR no results", {});
   throw new Error(
-    "No supported Buffer platforms. Check BUFFER_*_CHANNEL_ID env vars."
+    "No supported Buffer platforms. Check BUFFER_CHANNEL_MAP or BUFFER_*_CHANNEL_ID env vars."
   );
 }
+
+log("2/5 Prepare Buffer Posts", "done", {
+  contentId: results[0]?.json?.contentCode,
+  itemCount: results.length,
+});
 
 return results;

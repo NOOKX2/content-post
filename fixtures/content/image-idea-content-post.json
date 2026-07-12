@@ -1,0 +1,30 @@
+{
+  "name": "Gift Set Teaser",
+  "mediaType": "image",
+  "channel": "idea_content_post",
+  "platforms": ["instagram"],
+  "details": "ภาพ Teaser ชุดของขวัญสมุนไพร",
+  "location": ["Studio A"],
+  "scheduledDate": "2026-07-18",
+  "scheduledTime": "14:00",
+  "endTime": "15:00",
+  "team": [],
+  "productsNeeded": ["Gift Set"],
+  "itemsToPrepare": "Ribbon, Gift box props",
+  "filmingEquipment": [],
+  "attachments": [],
+  "script": [],
+  "ideaCreator": "Laura Power",
+  "photographer": "พิมพ์ใจ ถ่ายทำ",
+  "editor": "กนก ตัดต่อ",
+  "category": "Recap / Teaser",
+  "tags": ["Gift", "Teaser"],
+  "imageMeta": {
+    "objective": "Teaser ชุดของขวัญสมุนไพร",
+    "headline": "ของขวัญจากธรรมชาติ",
+    "subHead": "ชุดสมุนไพรพรีเมียม",
+    "callToAction": "สั่งซื้อวันนี้",
+    "requiredElements": ["โลโก้", "ราคา"],
+    "workSizes": ["1080x1080", "1080x1350"]
+  }
+}

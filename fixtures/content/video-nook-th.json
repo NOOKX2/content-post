@@ -1,0 +1,42 @@
+{
+  "name": "Hero Serum Launch Video",
+  "mediaType": "video",
+  "channel": "nook__th",
+  "platforms": ["instagram", "tiktok"],
+  "details": "วิดีโอเปิดตัว Hero Serum สไตล์ lifestyle herbal",
+  "location": ["Studio A"],
+  "scheduledDate": "2026-07-15",
+  "scheduledTime": "10:00",
+  "endTime": "12:00",
+  "team": [
+    { "id": "1", "participant": "Laura Power", "responsibility": "Presenter" },
+    { "id": "2", "participant": "วิชัย สร้างสรรค์", "responsibility": "Camera" }
+  ],
+  "productsNeeded": ["Hero Serum"],
+  "itemsToPrepare": "Backdrop สีเขียว, Props สมุนไพร",
+  "filmingEquipment": ["Camera", "Lighting"],
+  "attachments": [],
+  "script": [
+    {
+      "id": "s1",
+      "startTime": "00:00",
+      "endTime": "00:15",
+      "action": "Open with product shot",
+      "dialogue": "สวัสดีค่ะ วันนี้มาแนะนำ Hero Serum",
+      "notes": "Close-up macro"
+    }
+  ],
+  "ideaCreator": "Laura Power",
+  "photographer": "พิมพ์ใจ ถ่ายทำ",
+  "editor": "กนก ตัดต่อ",
+  "category": "Hero Video",
+  "tags": ["Hero Product", "Launch"],
+  "imageMeta": {
+    "objective": "",
+    "headline": "",
+    "subHead": "",
+    "callToAction": "",
+    "requiredElements": [],
+    "workSizes": []
+  }
+}

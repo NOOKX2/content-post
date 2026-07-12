@@ -44,10 +44,15 @@ export const authConfig = {
         !!process.env.N8N_API_KEY && apiKey === process.env.N8N_API_KEY;
       const isN8nScheduledRoute = pathname === "/api/content/scheduled";
       const isN8nPatchRoute = /^\/api\/content\/[^/]+$/.test(pathname);
+      const isN8nContentCreateRoute =
+        pathname === "/api/content" && request.method === "POST";
 
       if (
         isPublicApiRoute ||
-        (isValidN8nKey && (isN8nScheduledRoute || isN8nPatchRoute))
+        (isValidN8nKey &&
+          (isN8nScheduledRoute ||
+            isN8nPatchRoute ||
+            isN8nContentCreateRoute))
       ) {
         return true;
       }
