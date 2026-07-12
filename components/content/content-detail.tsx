@@ -261,7 +261,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
           )}
 
           {(content.ideaCreator || content.photographer || content.editor) && (
-            <UtilityCard title="ผู้สร้าง content นี้">
+            <UtilityCard title="ผู้สร้าง content">
               <dl>
                 {content.ideaCreator && (
                   <MetaListRow

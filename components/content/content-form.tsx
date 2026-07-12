@@ -561,7 +561,7 @@ export function ContentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>ผู้สร้าง content นี้</CardTitle>
+          <CardTitle>ผู้สร้าง content</CardTitle>
         </CardHeader>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select

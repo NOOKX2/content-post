@@ -216,7 +216,7 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
     }
 
     if (content.ideaCreator || content.photographer || content.editor) {
-      sectionTitle(doc, "ผู้สร้าง content นี้");
+      sectionTitle(doc, "ผู้สร้าง content");
       if (content.ideaCreator) {
         fieldRow(doc, "ผู้คิด Content", content.ideaCreator);
       }
