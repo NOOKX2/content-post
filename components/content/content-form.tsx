@@ -153,7 +153,12 @@ export function ContentForm({
         return;
       }
 
-      const localId = resolveNextContentIdFromList(channel, contents);
+      const channelPrefix = postingData?.channels.find(
+        (item) => item.slug === channel
+      )?.prefix;
+      const localId = channelPrefix
+        ? resolveNextContentIdFromList(channel, contents, channelPrefix)
+        : null;
       if (localId && active()) {
         setContentId(localId);
       }
@@ -168,7 +173,7 @@ export function ContentForm({
         console.error("[content-form] preview content id failed", result.error);
       }
     },
-    [contents, isEdit]
+    [contents, isEdit, postingData?.channels]
   );
 
   const handleChannelChange = (channel: string) => {

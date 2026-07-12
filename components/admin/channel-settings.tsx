@@ -30,13 +30,13 @@ type BufferChannel = {
   isDisconnected: boolean;
 };
 
-const fetcher = async (url: string) => {
+async function fetcher<T>(url: string): Promise<T> {
   const res = await fetch(url);
   const text = await res.text();
-  let json: { error?: string; channels?: unknown[] } = {};
+  let json: { error?: string } = {};
   if (text) {
     try {
-      json = JSON.parse(text) as typeof json;
+      json = JSON.parse(text) as { error?: string };
     } catch {
       throw new Error("เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง — ลอง restart app");
     }
@@ -44,8 +44,8 @@ const fetcher = async (url: string) => {
   if (!res.ok) {
     throw new Error(json.error ?? "โหลดข้อมูลไม่สำเร็จ");
   }
-  return json;
-};
+  return json as T;
+}
 
 function mapBufferServiceToPlatform(service: string): Platform | null {
   if (service === "instagram") return "instagram";
@@ -55,6 +55,16 @@ function mapBufferServiceToPlatform(service: string): Platform | null {
   return null;
 }
 
+const postingChannelsFetcher = (url: string) =>
+  fetcher<{ channels: AdminChannel[] }>(url);
+
+const bufferChannelsFetcher = (url: string) =>
+  fetcher<{
+    configured: boolean;
+    channels: BufferChannel[];
+    error?: string;
+  }>(url);
+
 export function ChannelSettings() {
   const {
     data: channelData,
@@ -63,13 +73,13 @@ export function ChannelSettings() {
     error: channelError,
   } = useSWR<{ channels: AdminChannel[] }>(
     "/api/admin/posting-channels",
-    fetcher
+    postingChannelsFetcher
   );
   const { data: bufferData, mutate: mutateBuffer } = useSWR<{
     configured: boolean;
     channels: BufferChannel[];
     error?: string;
-  }>("/api/admin/buffer-channels", fetcher);
+  }>("/api/admin/buffer-channels", bufferChannelsFetcher);
 
   const [label, setLabel] = useState("");
   const [prefix, setPrefix] = useState("");

@@ -34,15 +34,13 @@ export async function POST(request: Request) {
   const authResult = await requireCreator(request);
   if ("error" in authResult) return authResult.error;
 
+  const { user } = authResult;
+
   try {
     const body = normalizeContentPayload(
       (await request.json()) as Partial<ContentFormData>
     );
-    const content = await createContentRecord(
-      body,
-      authResult.user.id,
-      authResult.user.name
-    );
+    const content = await createContentRecord(body, user.id, user.name);
     return NextResponse.json({ content }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
