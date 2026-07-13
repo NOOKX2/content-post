@@ -12,12 +12,15 @@ const STATUS_COLORS: Record<ContentStatus, string> = {
   pending: "#f59e0b",
   approved: "#3b82f6",
   scheduled: "#8b5cf6",
+  posting: "#f59e0b",
   posted: "#10b981",
   rejected: "#ef4444",
 };
 
 function isInProgress(status: ContentStatus): boolean {
-  return ["draft", "pending", "approved", "scheduled"].includes(status);
+  return ["draft", "pending", "approved", "scheduled", "posting"].includes(
+    status
+  );
 }
 
 function isNearDeadline(content: ContentItem, withinDays = 1): boolean {

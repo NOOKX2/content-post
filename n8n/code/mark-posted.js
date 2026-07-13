@@ -43,7 +43,7 @@ for (const item of $input.all()) {
     url,
     requestBody,
     hasApiKey: Boolean(apiKey),
-    note: "If this fails, content stays scheduled even though Buffer may have posted",
+    note: "If this fails, content stays posting even though Buffer may have posted",
   });
 
   if (!apiKey) {
@@ -89,7 +89,7 @@ for (const item of $input.all()) {
       bufferPostId,
       durationMs: Date.now() - startedAt,
       ...detail,
-      note: "Content likely still shows scheduled in app UI",
+      note: "Content likely still shows posting in app UI",
     });
 
     throw new Error(`Mark Posted HTTP ${detail.status}: ${detail.message}`);

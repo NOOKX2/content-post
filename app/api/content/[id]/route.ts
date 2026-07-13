@@ -13,7 +13,11 @@ import {
 import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/service";
 import { approveContentRecord } from "@/lib/content/approve-content-record";
 
-const N8N_ALLOWED_STATUSES: ContentStatus[] = ["posted", "scheduled"];
+const N8N_ALLOWED_STATUSES: ContentStatus[] = [
+  "posted",
+  "scheduled",
+  "posting",
+];
 
 function logContentApproved(
   step: string,

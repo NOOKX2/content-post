@@ -22,6 +22,7 @@ enum ContentStatus {
   pending
   approved
   scheduled
+  posting
   posted
   rejected
 }

@@ -9,12 +9,11 @@ import {
   Video,
 } from "lucide-react";
 import type { ContentItem } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
 import { PlatformBadgeGroup } from "@/components/ui/platform-icon";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
 import { isImageAttachment } from "@/lib/content/attachments";
 import { formatScriptDuration } from "@/lib/content/script";
-import { STATUS_LABELS } from "@/lib/constants";
+import { ContentStatusBadge } from "@/components/content/content-status-badge";
 import { cn, formatLocations, formatThaiDate } from "@/lib/utils";
 
 interface ContentDetailProps {
@@ -81,7 +80,6 @@ function MetaListRow({
 }
 
 export function ContentDetail({ content }: ContentDetailProps) {
-  const status = STATUS_LABELS[content.status];
   const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
   const isVideo = content.mediaType === "video";
 
@@ -131,9 +129,10 @@ export function ContentDetail({ content }: ContentDetailProps) {
               <span className="font-mono text-[12px] text-[#7a7a7a]">
                 #{content.contentId}
               </span>
-              <Badge className={cn("rounded-full", status.color)}>
-                {status.label}
-              </Badge>
+              <ContentStatusBadge
+                status={content.status}
+                className="rounded-full"
+              />
               <span className="apple-pearl-chip !px-3 !py-1 !text-[13px]">
                 {mediaConfig.label}
               </span>

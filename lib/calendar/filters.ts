@@ -9,6 +9,7 @@ export type DateRangePreset = "today" | "7d" | "30d" | "custom";
 export const CALENDAR_POST_STATUSES: ContentStatus[] = [
   "approved",
   "scheduled",
+  "posting",
   "posted",
 ];
 
@@ -25,12 +26,17 @@ export function isWaitingToPost(status: ContentStatus): boolean {
   return status === "approved" || status === "scheduled";
 }
 
+export function isPosting(status: ContentStatus): boolean {
+  return status === "posting";
+}
+
 export function isPosted(status: ContentStatus): boolean {
   return status === "posted";
 }
 
 export function getPostStatusDotClass(status: ContentStatus): string {
   if (isPosted(status)) return "bg-emerald-500";
+  if (isPosting(status)) return "bg-amber-500";
   if (isWaitingToPost(status)) return "bg-orange-500";
   return "bg-stone-300";
 }

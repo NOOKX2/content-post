@@ -17,7 +17,7 @@ export function canEditContent(
   content: ContentAccess
 ): boolean {
   if (!session?.user) return false;
-  if (content.status === "posted") return false;
+  if (content.status === "posted" || content.status === "posting") return false;
   if (session.user.role === "ADMIN") return true;
   return isOwner(session, content);
 }
@@ -28,7 +28,7 @@ export function canDeleteContent(
 ): boolean {
   if (!session?.user) return false;
   if (session.user.role === "ADMIN") return true;
-  if (content.status === "posted") return false;
+  if (content.status === "posted" || content.status === "posting") return false;
   return isOwner(session, content);
 }
 

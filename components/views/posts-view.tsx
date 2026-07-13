@@ -10,14 +10,13 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { DashboardLink } from "@/components/layout/dashboard-link";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
 import { PlatformBadgeGroup } from "@/components/ui/platform-icon";
 import { useContents } from "@/lib/content/contents-provider";
+import { ContentStatusBadge } from "@/components/content/content-status-badge";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
-import { STATUS_LABELS } from "@/lib/constants";
 import { formatThaiDate } from "@/lib/utils";
 import type { ContentStatus } from "@/lib/types";
 import { useSession } from "next-auth/react";
@@ -27,6 +26,7 @@ const FILTER_TABS: { id: ContentStatus | "all"; label: string }[] = [
   { id: "pending", label: "รออนุมัติ" },
   { id: "approved", label: "อนุมัติแล้ว" },
   { id: "scheduled", label: "กำหนดการแล้ว" },
+  { id: "posting", label: "กำลังโพสต์" },
   { id: "posted", label: "โพสต์แล้ว" },
   { id: "rejected", label: "ไม่อนุมัติ" },
 ];
@@ -90,7 +90,6 @@ export function PostsView() {
         ) : (
           <div className="space-y-3">
             {filtered.map((content) => {
-              const status = STATUS_LABELS[content.status];
               const media = MEDIA_FORM_CONFIG[content.mediaType];
 
               return (
@@ -118,9 +117,7 @@ export function PostsView() {
                               <span className="font-mono text-xs text-stone-400">
                                 #{content.contentId}
                               </span>
-                              <Badge className={status.color}>
-                                {status.label}
-                              </Badge>
+                              <ContentStatusBadge status={content.status} />
                               <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
                                 {media.label}
                               </span>

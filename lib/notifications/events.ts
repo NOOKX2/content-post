@@ -64,9 +64,11 @@ export async function notifyPostStatusUpdate(
   const statusLabel =
     newStatus === "posted"
       ? "โพสต์สำเร็จแล้ว"
-      : newStatus === "scheduled"
-        ? "ตั้งเวลาโพสต์แล้ว"
-        : `สถานะเปลี่ยนเป็น ${newStatus}`;
+      : newStatus === "posting"
+        ? "กำลังโพสต์"
+        : newStatus === "scheduled"
+          ? "ตั้งเวลาโพสต์แล้ว"
+          : `สถานะเปลี่ยนเป็น ${newStatus}`;
 
   await createNotifications(userIds, {
     type: "post_status_update",

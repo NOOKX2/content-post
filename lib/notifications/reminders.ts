@@ -45,7 +45,7 @@ export async function processDeadlineReminders(): Promise<number> {
   const shootContents = await prisma.content.findMany({
     where: {
       mediaType: "video",
-      status: { in: ["approved", "scheduled"] },
+      status: { in: ["approved", "scheduled", "posting"] },
       scheduledDate: targetDate,
     },
   });

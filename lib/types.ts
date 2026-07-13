@@ -5,6 +5,7 @@ export type ContentStatus =
   | "pending"
   | "approved"
   | "scheduled"
+  | "posting"
   | "posted"
   | "rejected";
 

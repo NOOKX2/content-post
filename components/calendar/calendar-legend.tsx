@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 const LEGEND_STATUSES: ContentStatus[] = [
   "pending",
   "approved",
+  "scheduled",
+  "posting",
   "posted",
   "rejected",
 ];

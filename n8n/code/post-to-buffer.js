@@ -26,6 +26,16 @@ function extractHttpError(error) {
   };
 }
 
+function isAlreadyOnBufferError(message) {
+  if (!message) return false;
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("already got this") ||
+    lower.includes("already scheduled or posted") ||
+    lower.includes("not able to post the same thing twice")
+  );
+}
+
 const results = [];
 
 for (const item of $input.all()) {
@@ -112,6 +122,30 @@ for (const item of $input.all()) {
   });
 
   if (!bufferPostId && errorMessage) {
+    if (isAlreadyOnBufferError(errorMessage)) {
+      log("3/5 Post to Buffer", "WARN duplicate on Buffer — treating as success", {
+        contentCode,
+        platform,
+        errorMessage,
+        note: "Post likely already queued from a prior attempt; will Mark Posted",
+      });
+
+      results.push({
+        json: {
+          contentId,
+          contentCode,
+          platform,
+          channelId,
+          mediaUrl,
+          caption,
+          bufferPostId: "already-on-buffer",
+          duplicateSkipped: true,
+          data,
+        },
+      });
+      continue;
+    }
+
     log("3/5 Post to Buffer", "ERROR Buffer mutation rejected", {
       contentCode,
       platform,

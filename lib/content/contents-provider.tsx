@@ -11,6 +11,10 @@ import {
   fetchContentByIdForClient,
   fetchContentsForClient,
 } from "@/lib/content/fetch-actions";
+import {
+  getContentRefreshInterval,
+  getContentsRefreshInterval,
+} from "@/lib/content/live-status-polling";
 import type { ContentItem } from "@/lib/types";
 
 export const CONTENTS_KEY = "contents";
@@ -33,8 +37,10 @@ export function ContentsProvider({
     fallbackData: initialContents,
     revalidateOnMount: initialContents === undefined,
     revalidateOnFocus: true,
-    dedupingInterval: 5000,
+    dedupingInterval: 2000,
     keepPreviousData: true,
+    refreshInterval: (latestData) => getContentsRefreshInterval(latestData),
+    refreshWhenHidden: false,
   });
 
   const value = useMemo(
@@ -78,8 +84,11 @@ export function useContentById(id: string): ContentItem | null | undefined {
     () => fetchContentByIdForClient(id),
     {
       fallbackData: cached ?? undefined,
-      revalidateOnFocus: false,
+      revalidateOnFocus: true,
       keepPreviousData: true,
+      refreshInterval: (latestData) =>
+        getContentRefreshInterval(latestData ?? cached),
+      refreshWhenHidden: false,
     }
   );
 

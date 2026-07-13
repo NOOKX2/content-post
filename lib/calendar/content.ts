@@ -16,6 +16,7 @@ export const CALENDAR_EVENT_STYLES: Record<ContentStatus, string> = {
     "bg-amber-100 text-amber-900 border border-dashed border-amber-300 hover:bg-amber-200",
   approved: "bg-blue-100 text-blue-800 hover:bg-blue-200",
   scheduled: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+  posting: "bg-amber-100 text-amber-800 hover:bg-amber-200",
   posted: "bg-violet-100 text-violet-800 hover:bg-violet-200",
   rejected: "bg-red-50 text-red-700 opacity-80 hover:bg-red-100",
 };
@@ -25,6 +26,7 @@ export const CALENDAR_CELL_STYLES: Record<ContentStatus, string> = {
   pending: "border-amber-300 bg-amber-50/80",
   approved: "border-blue-200 bg-blue-50/80",
   scheduled: "border-blue-200 bg-blue-50/80",
+  posting: "border-amber-200 bg-amber-50/80",
   posted: "border-violet-200 bg-violet-50/80",
   rejected: "border-red-200 bg-red-50/80 opacity-80",
 };
