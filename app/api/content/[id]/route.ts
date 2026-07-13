@@ -15,6 +15,16 @@ import { approveContentRecord } from "@/lib/content/approve-content-record";
 
 const N8N_ALLOWED_STATUSES: ContentStatus[] = ["posted", "scheduled"];
 
+function logContentApproved(
+  step: string,
+  message: string,
+  data?: Record<string, unknown>
+) {
+  const suffix =
+    data === undefined ? "" : ` ${JSON.stringify(data, null, 2)}`;
+  console.log(`[content-approved] ${step} | ${message}${suffix}`);
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -37,11 +47,23 @@ export async function PATCH(
 
     if ("n8n" in authResult) {
       if (!body.status || !N8N_ALLOWED_STATUSES.includes(body.status)) {
+        logContentApproved("app/api", "ERROR invalid n8n status update", {
+          id,
+          requestedStatus: body.status,
+          allowed: N8N_ALLOWED_STATUSES,
+        });
         return NextResponse.json(
           { error: "Invalid status for automation" },
           { status: 400 }
         );
       }
+
+      logContentApproved("app/api", "n8n status update request", {
+        id,
+        contentId: existing.contentId,
+        previousStatus: existing.status,
+        requestedStatus: body.status,
+      });
 
       const record = await prisma.content.update({
         where: { id },
@@ -52,6 +74,14 @@ export async function PATCH(
         await notifyPostStatusUpdate(record, body.status);
       }
 
+      logContentApproved("app/api", "n8n status update applied", {
+        id: record.id,
+        contentId: record.contentId,
+        previousStatus: existing.status,
+        newStatus: record.status,
+        flowComplete: body.status === "posted",
+      });
+
       return NextResponse.json(toContentItem(record));
     }
 
@@ -60,6 +90,11 @@ export async function PATCH(
       if ("error" in adminResult) return adminResult.error;
 
       if (body.status === "approved") {
+        logContentApproved("app/api", "admin approve request", {
+          id,
+          contentId: existing.contentId,
+          previousStatus: existing.status,
+        });
         await approveContentRecord(
           id,
           body.approver || adminResult.session.user.name || "Admin"
@@ -93,7 +128,13 @@ export async function PATCH(
     });
 
     return NextResponse.json(toContentItem(record));
-  } catch {
+  } catch (error) {
+    logContentApproved("app/api", "ERROR PATCH failed", {
+      error:
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : String(error),
+    });
     return NextResponse.json(
       { error: "เกิดข้อผิดพลาด กรุณาลองใหม่" },
       { status: 500 }

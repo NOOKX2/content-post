@@ -30,6 +30,9 @@ log("1/5 Compute Wait Until", "unwrapped content", {
   scheduledTime: time,
   channel: content.channel,
   platforms: content.platforms,
+  bufferTargets: content.bufferTargets,
+  attachmentCount: content.attachments?.length ?? 0,
+  mediaUrl: content.mediaUrl ?? content.attachments?.[0] ?? null,
 });
 
 if (!date) {
@@ -49,6 +52,8 @@ log("1/5 Compute Wait Until", "schedule check", {
   scheduledAt: scheduledAt.toISOString(),
   now: now.toISOString(),
   isDue,
+  msUntilDue: scheduledAt.getTime() - now.getTime(),
+  timezone: "Asia/Bangkok (+07:00)",
   nextStep: isDue ? "Due Now? → true → Prepare Buffer Posts" : "Due Now? → false → Wait Until Post Time",
 });
 

@@ -1,7 +1,5 @@
 {
-  "id": "9J5wEbnUb0FPaUgk",
   "name": "Content Approved → Buffer",
-  "active": false,
   "nodes": [
     {
       "parameters": {
@@ -229,9 +227,5 @@
     "executionOrder": "v1",
     "timezone": "Asia/Bangkok"
   },
-  "pinData": {},
-  "meta": {
-    "templateCredsSetupCompleted": true
-  },
-  "tags": []
+  "active": true
 }

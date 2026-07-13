@@ -1,6 +1,37 @@
 import type { Content } from "@prisma/client";
 import { buildN8nContentPayload } from "@/lib/n8n/build-content-payload";
 
+function logContentApproved(
+  step: string,
+  message: string,
+  data?: Record<string, unknown>
+) {
+  const suffix =
+    data === undefined ? "" : ` ${JSON.stringify(data, null, 2)}`;
+  console.log(`[content-approved] ${step} | ${message}${suffix}`);
+}
+
+function getScheduleDebugInfo(
+  scheduledDate: string | null,
+  scheduledTime: string | null
+) {
+  if (!scheduledDate) {
+    return { isDue: false, scheduledAt: null, now: new Date().toISOString() };
+  }
+
+  const time = scheduledTime || "00:00";
+  const normalizedTime = time.length === 5 ? `${time}:00` : time;
+  const scheduledAt = new Date(`${scheduledDate}T${normalizedTime}+07:00`);
+  const now = new Date();
+
+  return {
+    scheduledAt: scheduledAt.toISOString(),
+    now: now.toISOString(),
+    isDue: scheduledAt.getTime() <= now.getTime(),
+    msUntilDue: scheduledAt.getTime() - now.getTime(),
+  };
+}
+
 function getApprovedWebhookUrl(): string {
   if (process.env.N8N_CONTENT_APPROVED_WEBHOOK_URL) {
     return process.env.N8N_CONTENT_APPROVED_WEBHOOK_URL;
@@ -18,8 +49,12 @@ export async function dispatchApprovedContentToN8n(
 ): Promise<boolean> {
   const payload = await buildN8nContentPayload(record);
   const webhookUrl = getApprovedWebhookUrl();
+  const schedule = getScheduleDebugInfo(
+    record.scheduledDate,
+    record.scheduledTime
+  );
 
-  console.log("[content-approved] dispatching to n8n", {
+  logContentApproved("app/dispatch", "dispatching to n8n", {
     contentId: record.contentId,
     id: record.id,
     webhookUrl,
@@ -27,8 +62,16 @@ export async function dispatchApprovedContentToN8n(
     scheduledTime: record.scheduledTime,
     channel: record.channel,
     platforms: record.platforms,
-    bufferTargetCount: payload.bufferTargets?.length ?? 0,
+    bufferTargets: payload.bufferTargets,
+    mediaUrl: payload.mediaUrl,
+    attachmentCount: payload.attachments?.length ?? 0,
+    schedule,
+    expectedN8nPath: schedule.isDue
+      ? "Due Now? true → post immediately"
+      : "Due Now? false → wait until scheduled time",
   });
+
+  const startedAt = Date.now();
 
   try {
     const response = await fetch(webhookUrl, {
@@ -37,23 +80,42 @@ export async function dispatchApprovedContentToN8n(
       body: JSON.stringify(payload),
     });
 
+    const responseText = await response.text();
+    let responseBody: unknown = responseText;
+    try {
+      responseBody = responseText ? JSON.parse(responseText) : null;
+    } catch {
+      // keep raw text
+    }
+
     if (!response.ok) {
-      const text = await response.text();
-      console.error(
-        `[content-approved] n8n webhook failed (${response.status}):`,
-        text
-      );
+      logContentApproved("app/dispatch", "ERROR n8n webhook failed", {
+        contentId: record.contentId,
+        status: response.status,
+        durationMs: Date.now() - startedAt,
+        responseBody,
+      });
       return false;
     }
 
-    console.log("[content-approved] n8n webhook accepted", {
+    logContentApproved("app/dispatch", "n8n webhook accepted", {
       contentId: record.contentId,
       status: response.status,
+      durationMs: Date.now() - startedAt,
+      responseBody,
+      note: "n8n returns 200 when webhook received; check n8n execution logs for Buffer result",
     });
 
     return true;
   } catch (error) {
-    console.error("[content-approved] n8n dispatch error:", error);
+    logContentApproved("app/dispatch", "ERROR n8n dispatch exception", {
+      contentId: record.contentId,
+      durationMs: Date.now() - startedAt,
+      error:
+        error instanceof Error
+          ? { name: error.name, message: error.message, stack: error.stack }
+          : String(error),
+    });
     return false;
   }
 }

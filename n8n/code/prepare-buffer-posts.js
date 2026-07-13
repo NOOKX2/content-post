@@ -72,11 +72,20 @@ for (const item of $input.all()) {
   const videoExt = /\.(mp4|mov|webm|m4v)$/i;
   const assetKey = videoExt.test(mediaUrl.split("?")[0]) ? "video" : "image";
 
-  function instagramMetadata() {
-    if (assetKey === "video") {
-      return "metadata: { instagram: { type: reel } }";
+  function platformMetadata(platform) {
+    if (platform === "instagram") {
+      if (assetKey === "video") {
+        return "metadata: { instagram: { type: reel } }";
+      }
+      return "metadata: { instagram: { type: post, shouldShareToFeed: true } }";
     }
-    return "metadata: { instagram: { type: post, shouldShareToFeed: true } }";
+    if (platform === "facebook") {
+      if (assetKey === "video") {
+        return "metadata: { facebook: { type: reel } }";
+      }
+      return "metadata: { facebook: { type: post } }";
+    }
+    return null;
   }
 
   const targets = resolveTargets(content);
@@ -104,8 +113,8 @@ for (const item of $input.all()) {
   });
 
   for (const { platform, bufferChannelId: channelId } of targets) {
-    const instagramLine =
-      platform === "instagram" ? `\n    ${instagramMetadata()}` : "";
+    const metadataLine = platformMetadata(platform);
+    const metadataFragment = metadataLine ? `\n    ${metadataLine}` : "";
 
     const query = `mutation CreatePost {
   createPost(input: {
@@ -113,7 +122,7 @@ for (const item of $input.all()) {
     text: ${JSON.stringify(text)}
     schedulingType: automatic
     mode: shareNow
-    assets: [{ ${assetKey}: { url: ${JSON.stringify(mediaUrl)} } }]${instagramLine}
+    assets: [{ ${assetKey}: { url: ${JSON.stringify(mediaUrl)} } }]${metadataFragment}
   }) {
     ... on PostActionSuccess {
       post { id }
@@ -123,6 +132,17 @@ for (const item of $input.all()) {
     }
   }
 }`;
+
+    log("2/5 Prepare Buffer Posts", "building Buffer mutation", {
+      contentId: content.contentId,
+      platform,
+      channelId,
+      assetKey,
+      metadataLine: metadataLine ?? "(none)",
+      captionPreview: text.slice(0, 120),
+      mediaUrl,
+      graphqlQuery: query,
+    });
 
     const bufferApiKey = $env.BUFFER_API_KEY;
     if (!bufferApiKey) {

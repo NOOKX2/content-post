@@ -86,9 +86,8 @@ export function ContentDetail({ content }: ContentDetailProps) {
   const isVideo = content.mediaType === "video";
 
   const scheduleLabel = content.scheduledDate
-    ? `${formatThaiDate(content.scheduledDate)}${
-        content.scheduledTime ? ` · ${content.scheduledTime}` : ""
-      }`
+    ? `${formatThaiDate(content.scheduledDate)}${content.scheduledTime ? ` · ${content.scheduledTime}` : ""
+    }`
     : null;
 
   const imageMeta = content.imageMeta;
@@ -339,45 +338,45 @@ export function ContentDetail({ content }: ContentDetailProps) {
             (content.productsNeeded.length > 0 ||
               content.itemsToPrepare ||
               (content.filmingEquipment?.length ?? 0) > 0) && (
-            <UtilityCard title="สิ่งที่ต้องเตรียม">
-              {content.productsNeeded.length > 0 && (
-                <div className="mb-4">
-                  <p className="apple-caption mb-2 text-[#7a7a7a]">สินค้าที่ต้องเตรียม</p>
-                  <div className="flex flex-wrap gap-2">
-                    {content.productsNeeded.map((product) => (
-                      <span key={product} className="apple-pearl-chip">
-                        {product}
-                      </span>
-                    ))}
+              <UtilityCard title="สิ่งที่ต้องเตรียม">
+                {content.productsNeeded.length > 0 && (
+                  <div className="mb-4">
+                    <p className="apple-caption mb-2 text-[#7a7a7a]">สินค้าที่ต้องเตรียม</p>
+                    <div className="flex flex-wrap gap-2">
+                      {content.productsNeeded.map((product) => (
+                        <span key={product} className="apple-pearl-chip">
+                          {product}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-              {content.itemsToPrepare && (
-                <div className="mb-4">
-                  <p className="apple-caption mb-2 text-[#7a7a7a]">
-                    อุปกรณ์ประกอบฉากที่ต้องเตรียม
-                  </p>
-                  <p className="apple-body whitespace-pre-wrap text-[#333333]">
-                    {content.itemsToPrepare}
-                  </p>
-                </div>
-              )}
-              {(content.filmingEquipment?.length ?? 0) > 0 && (
-                <div>
-                  <p className="apple-caption mb-2 text-[#7a7a7a]">
-                    อุปกรณ์ถ่ายที่ต้องเตรียม
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {(content.filmingEquipment ?? []).map((item) => (
-                      <span key={item} className="apple-pearl-chip">
-                        {item}
-                      </span>
-                    ))}
+                )}
+                {content.itemsToPrepare && (
+                  <div className="mb-4">
+                    <p className="apple-caption mb-2 text-[#7a7a7a]">
+                      อุปกรณ์ประกอบฉากที่ต้องเตรียม
+                    </p>
+                    <p className="apple-body whitespace-pre-wrap text-[#333333]">
+                      {content.itemsToPrepare}
+                    </p>
                   </div>
-                </div>
-              )}
-            </UtilityCard>
-          )}
+                )}
+                {(content.filmingEquipment?.length ?? 0) > 0 && (
+                  <div>
+                    <p className="apple-caption mb-2 text-[#7a7a7a]">
+                      อุปกรณ์ถ่ายที่ต้องเตรียม
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {(content.filmingEquipment ?? []).map((item) => (
+                        <span key={item} className="apple-pearl-chip">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </UtilityCard>
+            )}
 
           {content.attachments.length > 0 && (
             <UtilityCard title={isVideo ? "ไฟล์แนบ / ลิงก์" : "แนบตัวอย่าง"}>

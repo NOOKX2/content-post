@@ -6,6 +6,26 @@ function log(step, message, data) {
   console.log(`[content-approved] ${step} | ${message}${suffix}`);
 }
 
+function extractHttpError(error) {
+  const status = error.statusCode ?? error.httpCode ?? "?";
+  const responseBody =
+    error.response?.body ??
+    error.response?.data ??
+    error.body ??
+    error.cause?.response?.body ??
+    null;
+
+  return {
+    status,
+    message:
+      typeof error.message === "string"
+        ? error.message
+        : JSON.stringify(error).slice(0, 500),
+    responseBody,
+    errorKeys: Object.keys(error ?? {}),
+  };
+}
+
 const results = [];
 
 for (const item of $input.all()) {
@@ -13,19 +33,24 @@ for (const item of $input.all()) {
 
   const apiKey = $env.N8N_API_KEY;
   const url = `http://app:3000/api/content/${contentId}`;
+  const requestBody = { status: "posted" };
 
-  log("4/4 Mark Posted", "start PATCH", {
+  log("4/5 Mark Posted", "start PATCH app", {
     contentCode,
     contentId,
     platform,
     bufferPostId,
     url,
+    requestBody,
     hasApiKey: Boolean(apiKey),
+    note: "If this fails, content stays scheduled even though Buffer may have posted",
   });
 
   if (!apiKey) {
     throw new Error("N8N_API_KEY is missing in n8n environment.");
   }
+
+  const startedAt = Date.now();
 
   try {
     const response = await this.helpers.httpRequest({
@@ -35,14 +60,16 @@ for (const item of $input.all()) {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
       },
-      body: { status: "posted" },
+      body: requestBody,
     });
 
-    log("4/4 Mark Posted", "SUCCESS — flow complete", {
+    log("4/5 Mark Posted", "SUCCESS — flow complete", {
       contentCode,
       contentId,
       platform,
       bufferPostId,
+      durationMs: Date.now() - startedAt,
+      response,
       newStatus: response?.status ?? "posted",
     });
 
@@ -53,20 +80,19 @@ for (const item of $input.all()) {
       },
     });
   } catch (error) {
-    const status = error.statusCode ?? error.httpCode ?? "?";
-    const detail =
-      typeof error.message === "string"
-        ? error.message
-        : JSON.stringify(error).slice(0, 300);
+    const detail = extractHttpError(error);
 
-    log("4/4 Mark Posted", "ERROR PATCH failed", {
+    log("4/5 Mark Posted", "ERROR PATCH failed", {
       contentCode,
       contentId,
-      status,
-      detail,
+      platform,
+      bufferPostId,
+      durationMs: Date.now() - startedAt,
+      ...detail,
+      note: "Content likely still shows scheduled in app UI",
     });
 
-    throw new Error(`Mark Posted HTTP ${status}: ${detail}`);
+    throw new Error(`Mark Posted HTTP ${detail.status}: ${detail.message}`);
   }
 }
 
