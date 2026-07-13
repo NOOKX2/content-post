@@ -48,6 +48,31 @@ export async function getBufferChannelIdsForPlatform(
   return ids.length > 0 ? ids : undefined;
 }
 
+type BufferChannel = {
+  id: string;
+  name: string;
+  service: string;
+  isDisconnected: boolean;
+};
+
+export async function fetchAccessibleBufferChannels(
+  organizationId: string
+): Promise<BufferChannel[]> {
+  const data = await bufferGraphql<{ channels: BufferChannel[] }>(
+    `query ListChannels($input: ChannelsInput!) {
+      channels(input: $input) {
+        id
+        name
+        service
+        isDisconnected
+      }
+    }`,
+    { input: { organizationId } }
+  );
+
+  return data.channels ?? [];
+}
+
 export function isBufferConfigured(): boolean {
   return Boolean(process.env.BUFFER_API_KEY && process.env.BUFFER_ORG_ID);
 }

@@ -1,5 +1,6 @@
 import {
   bufferGraphql,
+  fetchAccessibleBufferChannels,
   getBufferChannelIdsForPlatform,
   isBufferConfigured,
 } from "@/lib/buffer/client";
@@ -152,7 +153,7 @@ async function fetchPostsWithMetrics(
             endDate: `${endDate}T23:59:59Z`,
             status: ["sent"],
           },
-          sort: [{ field: "sentAt", direction: "DESC" }],
+          sort: [{ field: "dueAt", direction: "desc" }],
         },
         first: 25,
         after,
@@ -207,13 +208,56 @@ export async function fetchSocialAnalytics(options: {
   }
 
   const organizationId = process.env.BUFFER_ORG_ID!;
-  const channelIds = await getBufferChannelIdsForPlatform(options.platform);
+  const mappedChannelIds = await getBufferChannelIdsForPlatform(
+    options.platform
+  );
   const { startDateTime, endDateTime } = {
     startDateTime: `${options.startDate}T00:00:00Z`,
     endDateTime: `${options.endDate}T23:59:59Z`,
   };
 
   try {
+    // Buffer rejects the whole query if any channelId is inaccessible
+    // (e.g. a channel that was reconnected/removed and now has a new id).
+    // Keep only channels the current token can actually access.
+    let channelIds = mappedChannelIds;
+    if (mappedChannelIds?.length) {
+      const accessible = await fetchAccessibleBufferChannels(organizationId);
+      const accessibleIds = new Set(
+        accessible
+          .filter((channel) => !channel.isDisconnected)
+          .map((channel) => channel.id)
+      );
+      const usable = mappedChannelIds.filter((id) => accessibleIds.has(id));
+      const skipped = mappedChannelIds.filter((id) => !accessibleIds.has(id));
+
+      if (skipped.length) {
+        console.warn(
+          "[dashboard/social] skipping inaccessible Buffer channels",
+          {
+            skipped,
+            usable,
+            hint: "Update or remove stale channel mapping in /admin/channels",
+          }
+        );
+      }
+
+      if (usable.length === 0) {
+        return {
+          summary: emptySummary(),
+          popularPosts: [],
+          unpopularPosts: [],
+          comparison: [],
+          trend: [],
+          configured: true,
+          error:
+            "Buffer channel ที่ตั้งค่าไว้เข้าถึงไม่ได้ (อาจถูก reconnect หรือเปลี่ยนบัญชี) — อัปเดตการแมปช่องที่ /admin/channels",
+        };
+      }
+
+      channelIds = usable;
+    }
+
     const [summary, posts] = await Promise.all([
       fetchAggregatedMetrics(
         organizationId,
