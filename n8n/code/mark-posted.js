@@ -32,7 +32,11 @@ for (const item of $input.all()) {
   const { contentId, contentCode, platform, bufferPostId } = item.json;
 
   const apiKey = $env.N8N_API_KEY;
-  const url = `http://app:3000/api/content/${contentId}`;
+  const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3001").replace(
+    /\/$/,
+    ""
+  );
+  const url = `${appUrl}/api/content/${contentId}`;
   const requestBody = { status: "posted" };
 
   log("4/5 Mark Posted", "start PATCH app", {
