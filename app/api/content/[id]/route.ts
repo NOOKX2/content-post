@@ -12,6 +12,7 @@ import {
 } from "@/lib/notifications/events";
 import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/service";
 import { approveContentRecord } from "@/lib/content/approve-content-record";
+import { invalidateContentsCache } from "@/lib/content/cache-tags";
 
 const N8N_ALLOWED_STATUSES: ContentStatus[] = [
   "posted",
@@ -86,6 +87,7 @@ export async function PATCH(
         flowComplete: body.status === "posted",
       });
 
+      invalidateContentsCache(id);
       return NextResponse.json(toContentItem(record));
     }
 
@@ -120,6 +122,7 @@ export async function PATCH(
       }
 
       const record = await prisma.content.findUniqueOrThrow({ where: { id } });
+      invalidateContentsCache(id);
       return NextResponse.json(toContentItem(record));
     }
 
@@ -131,6 +134,7 @@ export async function PATCH(
       },
     });
 
+    invalidateContentsCache(id);
     return NextResponse.json(toContentItem(record));
   } catch (error) {
     logContentApproved("app/api", "ERROR PATCH failed", {

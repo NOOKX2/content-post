@@ -75,7 +75,8 @@ export function ApprovalList() {
         optimisticData: (current = []) =>
           updateContentStatus(current, id, "scheduled"),
         rollbackOnError: true,
-        revalidate: false,
+        populateCache: true,
+        revalidate: true,
       }
     ).catch((error: Error) => {
       alert(error.message);
@@ -92,7 +93,8 @@ export function ApprovalList() {
         optimisticData: (current = []) =>
           updateContentStatus(current, id, "rejected"),
         rollbackOnError: true,
-        revalidate: false,
+        populateCache: true,
+        revalidate: true,
       }
     ).catch((error: Error) => {
       alert(error.message);
