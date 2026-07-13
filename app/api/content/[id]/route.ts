@@ -13,6 +13,7 @@ import {
 import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/service";
 import { approveContentRecord } from "@/lib/content/approve-content-record";
 import { invalidateContentsCache } from "@/lib/content/cache-tags";
+import { formatApiErrorResponse } from "@/lib/content/action-errors";
 
 const N8N_ALLOWED_STATUSES: ContentStatus[] = [
   "posted",
@@ -137,15 +138,10 @@ export async function PATCH(
     invalidateContentsCache(id);
     return NextResponse.json(toContentItem(record));
   } catch (error) {
+    const { error: message, details } = formatApiErrorResponse(error);
     logContentApproved("app/api", "ERROR PATCH failed", {
-      error:
-        error instanceof Error
-          ? { name: error.name, message: error.message }
-          : String(error),
+      error: details,
     });
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาด กรุณาลองใหม่" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message, details }, { status: 500 });
   }
 }

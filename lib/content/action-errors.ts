@@ -25,6 +25,43 @@ export function formatActionError(
   return `${fallback}: ${message}`;
 }
 
+export type ApiErrorBody = {
+  error: string;
+  details?: Record<string, unknown>;
+};
+
+export function formatApiErrorResponse(error: unknown): ApiErrorBody {
+  const details =
+    error instanceof Error
+      ? {
+          name: error.name,
+          message: error.message,
+          ...(typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof (error as { code?: unknown }).code === "string"
+            ? { code: (error as { code: string }).code }
+            : {}),
+        }
+      : { value: String(error) };
+
+  return {
+    error: formatActionError(error),
+    details,
+  };
+}
+
+export function formatClientApiError(
+  status: number,
+  body: { error?: string; details?: Record<string, unknown> }
+): string {
+  const lines = [`HTTP ${status}`, body.error ?? "Request failed"];
+  if (body.details) {
+    lines.push(JSON.stringify(body.details, null, 2));
+  }
+  return lines.join("\n\n");
+}
+
 export function logActionError(
   action: string,
   error: unknown,

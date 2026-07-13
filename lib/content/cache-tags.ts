@@ -1,4 +1,4 @@
-import { updateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 export const CONTENTS_CACHE_TAG = "contents";
 
@@ -6,9 +6,10 @@ export function contentCacheTag(id: string) {
   return `content-${id}`;
 }
 
+/** Route Handlers must use revalidateTag — updateTag is Server Actions only. */
 export function invalidateContentsCache(id?: string) {
-  updateTag(CONTENTS_CACHE_TAG);
+  revalidateTag(CONTENTS_CACHE_TAG, "max");
   if (id) {
-    updateTag(contentCacheTag(id));
+    revalidateTag(contentCacheTag(id), "max");
   }
 }

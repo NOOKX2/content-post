@@ -4,7 +4,13 @@ import { useMemo, useState } from "react";
 import { ApprovalCard } from "./approval-card";
 import { Tabs } from "@/components/ui/tabs";
 import { useContents } from "@/lib/content/contents-provider";
+import { formatClientApiError } from "@/lib/content/action-errors";
 import type { ContentItem, ContentStatus } from "@/lib/types";
+
+type PatchErrorBody = {
+  error?: string;
+  details?: Record<string, unknown>;
+};
 
 const FILTER_TABS: { id: ContentStatus | "all"; label: string }[] = [
   { id: "pending", label: "รออนุมัติ" },
@@ -32,9 +38,9 @@ async function patchContentStatus(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
-  const json = (await res.json()) as ContentItem & { error?: string };
+  const json = (await res.json()) as ContentItem & PatchErrorBody;
   if (!res.ok) {
-    throw new Error(json.error ?? "อัปเดตสถานะไม่สำเร็จ");
+    throw new Error(formatClientApiError(res.status, json));
   }
   return json;
 }
