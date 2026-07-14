@@ -20,13 +20,19 @@ import {
 interface AttachmentLinksProps {
   links: string[];
   onChange: (links: string[]) => void;
+  /** Hide inline section title when wrapped in a Card with its own title */
+  hideHeader?: boolean;
 }
 
 function isImageAttachment(value: string) {
   return /\.(jpe?g|png|webp|gif)$/i.test(value.split("?")[0]);
 }
 
-export function AttachmentLinks({ links, onChange }: AttachmentLinksProps) {
+export function AttachmentLinks({
+  links,
+  onChange,
+  hideHeader = false,
+}: AttachmentLinksProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -102,8 +108,15 @@ export function AttachmentLinks({ links, onChange }: AttachmentLinksProps) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium text-stone-700">แนบตัวอย่าง</span>
-        <div className="flex flex-wrap gap-2">
+        {!hideHeader && (
+          <span className="text-sm font-medium text-stone-700">ตัวอย่าง</span>
+        )}
+        <div
+          className={cn(
+            "flex flex-wrap gap-2",
+            hideHeader && "ml-auto"
+          )}
+        >
           <Button type="button" variant="ghost" size="sm" onClick={addLink}>
             <Plus className="h-4 w-4" />
             เพิ่มลิงก์

@@ -93,8 +93,11 @@ export async function notifyContentDetailChanged(
   if (userIds.length === 0) return;
 
   const fieldLabels: Record<string, string> = {
-    scheduledDate: "วันที่นัด",
-    scheduledTime: "เวลานัด",
+    scheduledDate: "วันที่โพสต์",
+    scheduledTime: "เวลาโพสต์",
+    ideaFinishedDate: "วันที่คิดเสร็จ",
+    shootDate: "นัดวันถ่าย",
+    editFinishedDate: "วันที่ตัดเสร็จ",
     details: "รายละเอียด",
     location: "สถานที่",
     team: "ทีมงาน",
@@ -175,6 +178,9 @@ export function detectContentChanges(
   const fields: { key: keyof ContentFormData; formKey: keyof ContentFormData }[] = [
     { key: "scheduledDate", formKey: "scheduledDate" },
     { key: "scheduledTime", formKey: "scheduledTime" },
+    { key: "ideaFinishedDate", formKey: "ideaFinishedDate" },
+    { key: "shootDate", formKey: "shootDate" },
+    { key: "editFinishedDate", formKey: "editFinishedDate" },
     { key: "details", formKey: "details" },
     { key: "location", formKey: "location" },
     { key: "team", formKey: "team" },

@@ -6,13 +6,10 @@ import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type {
   CalendarDateField,
+  CalendarMode,
   DateRangePreset,
 } from "@/lib/calendar/filters";
-
-const DATE_FIELD_OPTIONS: { value: CalendarDateField; label: string }[] = [
-  { value: "post", label: "วันที่นัดส่งงาน" },
-  { value: "shoot", label: "วันที่นัดถ่าย" },
-];
+import { PREPOST_DATE_FIELD_OPTIONS } from "@/lib/calendar/filters";
 
 const PRESET_BUTTONS: {
   id: Exclude<DateRangePreset, "custom">;
@@ -39,6 +36,7 @@ function formatRangeDisplay(start: string, end: string): string {
 }
 
 interface CalendarDateRangeFilterProps {
+  mode: CalendarMode;
   dateField: CalendarDateField;
   onDateFieldChange: (value: CalendarDateField) => void;
   rangeStart: string;
@@ -51,6 +49,7 @@ interface CalendarDateRangeFilterProps {
 }
 
 export function CalendarDateRangeFilter({
+  mode,
   dateField,
   onDateFieldChange,
   rangeStart,
@@ -96,15 +95,25 @@ export function CalendarDateRangeFilter({
 
         {open && (
           <div className="absolute top-[calc(100%+6px)] left-0 z-30 w-[min(100%,320px)] rounded-lg border border-stone-200 bg-white p-3 shadow-lg">
-            <Select
-              label="กรองตาม"
-              options={DATE_FIELD_OPTIONS}
-              value={dateField}
-              onChange={(e) =>
-                onDateFieldChange(e.target.value as CalendarDateField)
-              }
-              className="mb-3"
-            />
+            {mode === "prepost" && (
+              <Select
+                label="กรองตาม"
+                options={PREPOST_DATE_FIELD_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                }))}
+                value={dateField}
+                onChange={(e) =>
+                  onDateFieldChange(e.target.value as CalendarDateField)
+                }
+                className="mb-3"
+              />
+            )}
+            {mode === "post" && (
+              <p className="mb-3 text-xs text-stone-500">
+                กรองตามวันที่โพสต์
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <label className="flex flex-col gap-1 text-xs font-medium text-stone-600">
                 จากวันที่

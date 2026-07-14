@@ -104,7 +104,10 @@ export function ContentDetail({ content }: ContentDetailProps) {
     content.location.length > 0 ||
     content.category ||
     imageMeta?.objective ||
-    content.approver;
+    content.approver ||
+    content.ideaFinishedDate ||
+    content.shootDate ||
+    content.editFinishedDate;
 
   return (
     <div className="apple-detail">
@@ -166,8 +169,29 @@ export function ContentDetail({ content }: ContentDetailProps) {
             <div className="apple-spec-grid grid grid-cols-2 lg:grid-cols-4">
               {scheduleLabel && (
                 <SpecCell
-                  label="วันเวลา"
+                  label="วันเวลาโพสต์"
                   value={scheduleLabel}
+                  icon={Calendar}
+                />
+              )}
+              {content.ideaFinishedDate && (
+                <SpecCell
+                  label="คิดเสร็จ"
+                  value={formatThaiDate(content.ideaFinishedDate)}
+                  icon={Calendar}
+                />
+              )}
+              {content.shootDate && (
+                <SpecCell
+                  label="นัดถ่าย"
+                  value={formatThaiDate(content.shootDate)}
+                  icon={Calendar}
+                />
+              )}
+              {content.editFinishedDate && (
+                <SpecCell
+                  label="ตัดเสร็จ"
+                  value={formatThaiDate(content.editFinishedDate)}
                   icon={Calendar}
                 />
               )}
@@ -180,7 +204,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
               )}
               {content.category && isVideo && (
                 <SpecCell
-                  label="หมวดหมู่"
+                  label="วัตถุประสงค์"
                   value={content.category}
                   icon={Tag}
                 />
@@ -313,7 +337,8 @@ export function ContentDetail({ content }: ContentDetailProps) {
                       <th className="pr-4">เวลา</th>
                       <th className="pr-4">Action</th>
                       <th className="pr-4">Dialogue</th>
-                      <th>หมายเหตุ</th>
+                      <th className="pr-4">หมายเหตุ</th>
+                      <th>รูปภาพ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -324,7 +349,19 @@ export function ContentDetail({ content }: ContentDetailProps) {
                         </td>
                         <td className="pr-4 text-[#333333]">{row.action}</td>
                         <td className="pr-4 text-[#333333]">{row.dialogue}</td>
-                        <td className="text-[#7a7a7a]">{row.notes}</td>
+                        <td className="pr-4 text-[#7a7a7a]">{row.notes}</td>
+                        <td>
+                          {row.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={row.imageUrl}
+                              alt=""
+                              className="h-10 w-10 rounded object-cover"
+                            />
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -378,7 +415,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
             )}
 
           {content.attachments.length > 0 && (
-            <UtilityCard title={isVideo ? "ไฟล์แนบ / ลิงก์" : "แนบตัวอย่าง"}>
+            <UtilityCard title="ตัวอย่าง">
               <div className="space-y-4">
                 {content.attachments.map((link, i) =>
                   isImageAttachment(link) ? (

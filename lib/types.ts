@@ -24,6 +24,8 @@ export interface ScriptRow {
   action: string;
   dialogue: string;
   notes: string;
+  /** Reference image URL for this scene */
+  imageUrl?: string;
 }
 
 export interface TeamRow {
@@ -62,6 +64,9 @@ export interface ContentItem {
   scheduledDate: string;
   scheduledTime: string;
   endTime?: string;
+  ideaFinishedDate: string;
+  shootDate: string;
+  editFinishedDate: string;
   team: TeamRow[];
   productsNeeded: string[];
   itemsToPrepare: string;
@@ -90,6 +95,9 @@ export interface ContentFormData {
   scheduledDate: string;
   scheduledTime: string;
   endTime: string;
+  ideaFinishedDate: string;
+  shootDate: string;
+  editFinishedDate: string;
   team: TeamRow[];
   productsNeeded: string[];
   itemsToPrepare: string;

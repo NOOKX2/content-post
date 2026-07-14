@@ -162,9 +162,12 @@ model Content {
   platforms      Platform[]
   details        String        @default("")
   location       String[]
-  scheduledDate  String
-  scheduledTime  String
-  endTime        String?
+  scheduledDate     String
+  scheduledTime     String
+  endTime           String?
+  ideaFinishedDate  String        @default("")
+  shootDate         String        @default("")
+  editFinishedDate  String        @default("")
   team           Json          @default("[]")
   productsNeeded String[]
   itemsToPrepare String        @default("")

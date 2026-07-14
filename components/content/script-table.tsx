@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ScriptRow } from "@/lib/types";
 import { generateId } from "@/lib/utils";
@@ -11,7 +12,14 @@ interface ScriptTableProps {
   onChange: (rows: ScriptRow[]) => void;
 }
 
+type ScriptField = "startTime" | "endTime" | "action" | "dialogue" | "notes";
+
 export function ScriptTable({ rows, onChange }: ScriptTableProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingRowId, setUploadingRowId] = useState<string | null>(null);
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState("");
+
   const addRow = () => {
     onChange([
       ...rows,
@@ -22,6 +30,7 @@ export function ScriptTable({ rows, onChange }: ScriptTableProps) {
         action: "",
         dialogue: "",
         notes: "",
+        imageUrl: "",
       },
     ]);
   };
@@ -30,11 +39,7 @@ export function ScriptTable({ rows, onChange }: ScriptTableProps) {
     onChange(rows.filter((r) => r.id !== id));
   };
 
-  const updateRow = (
-    id: string,
-    field: "startTime" | "endTime" | "action" | "dialogue" | "notes",
-    value: string
-  ) => {
+  const updateRow = (id: string, field: ScriptField, value: string) => {
     onChange(
       rows.map((r) =>
         r.id === id
@@ -50,23 +55,77 @@ export function ScriptTable({ rows, onChange }: ScriptTableProps) {
     );
   };
 
+  const updateRowImage = (id: string, imageUrl: string) => {
+    onChange(rows.map((r) => (r.id === id ? { ...r, imageUrl } : r)));
+  };
+
+  const openImagePicker = (rowId: string) => {
+    setUploadTargetId(rowId);
+    setUploadError("");
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (file: File, rowId: string) => {
+    setUploadingRowId(rowId);
+    setUploadError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "อัปโหลดรูปไม่สำเร็จ");
+      }
+
+      updateRowImage(rowId, data.url);
+    } catch (error) {
+      setUploadError(
+        error instanceof Error ? error.message : "อัปโหลดรูปไม่สำเร็จ"
+      );
+    } finally {
+      setUploadingRowId(null);
+      setUploadTargetId(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-stone-700">สคริป</h4>
+      <div className="flex items-center justify-end">
         <Button type="button" variant="ghost" size="sm" onClick={addRow}>
           <Plus className="h-4 w-4" />
           เพิ่ม Scene
         </Button>
       </div>
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file && uploadTargetId) {
+            void handleImageUpload(file, uploadTargetId);
+          }
+        }}
+      />
+
+      {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
+
       {rows.length === 0 ? (
         <p className="rounded-lg border border-dashed border-stone-200 py-6 text-center text-sm text-stone-400">
-          ยังไม่มี Script — กด &quot;เพิ่ม Scene&quot; สำหรับ Video
+          ยังไม่มี Scene — กด &quot;เพิ่ม Scene&quot; สำหรับ Video
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-stone-200">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[880px] text-sm">
             <thead>
               <tr className="bg-stone-50 text-left">
                 <th className="w-36 px-3 py-2.5 font-medium text-stone-600">
@@ -83,6 +142,9 @@ export function ScriptTable({ rows, onChange }: ScriptTableProps) {
                 </th>
                 <th className="px-3 py-2.5 font-medium text-stone-600">
                   หมายเหตุ
+                </th>
+                <th className="w-36 px-3 py-2.5 font-medium text-stone-600">
+                  เพิ่มรูปภาพ
                 </th>
                 <th className="w-10 px-2 py-2.5" />
               </tr>
@@ -130,6 +192,42 @@ export function ScriptTable({ rows, onChange }: ScriptTableProps) {
                       />
                     </td>
                   ))}
+                  <td className="px-3 py-2">
+                    {row.imageUrl ? (
+                      <div className="flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={row.imageUrl}
+                          alt=""
+                          className="h-9 w-9 rounded object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateRowImage(row.id, "")}
+                          className="rounded p-1 text-stone-400 hover:bg-red-50 hover:text-red-500"
+                          aria-label="ลบรูป"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 px-2"
+                        disabled={uploadingRowId === row.id}
+                        onClick={() => openImagePicker(row.id)}
+                      >
+                        {uploadingRowId === row.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ImagePlus className="h-4 w-4" />
+                        )}
+                        รูป
+                      </Button>
+                    )}
+                  </td>
                   <td className="px-2 py-2">
                     <button
                       type="button"

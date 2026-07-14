@@ -21,7 +21,7 @@ import {
   TEAM_MEMBERS,
   PRODUCTS,
   FILMING_EQUIPMENT,
-  IMAGE_OBJECTIVES,
+  CONTENT_OBJECTIVES,
   IMAGE_REQUIRED_ELEMENTS,
   IMAGE_WORK_SIZES,
 } from "@/lib/constants";
@@ -42,6 +42,7 @@ import {
 } from "@/lib/content/actions";
 import { contentItemToFormData } from "@/lib/content/mappers";
 import { useContents } from "@/lib/content/contents-provider";
+import { generateId } from "@/lib/utils";
 
 type PostingChannelOption = {
   slug: string;
@@ -65,7 +66,10 @@ const EMPTY_FORM: ContentFormData = {
   scheduledDate: "",
   scheduledTime: "",
   endTime: "",
-  team: [],
+  ideaFinishedDate: "",
+  shootDate: "",
+  editFinishedDate: "",
+  team: [{ id: generateId(), participant: "", responsibility: "" }],
   productsNeeded: [],
   itemsToPrepare: "",
   filmingEquipment: [],
@@ -84,6 +88,7 @@ interface ContentFormProps {
   initialContent?: ContentItem;
   onCancel?: () => void;
   onSaved?: (item: ContentItem) => void;
+  onMediaTypeChange?: (mediaType: MediaType) => void;
 }
 
 export function ContentForm({
@@ -91,6 +96,7 @@ export function ContentForm({
   initialContent,
   onCancel,
   onSaved,
+  onMediaTypeChange,
 }: ContentFormProps) {
   const isEdit = Boolean(initialContent);
   const [form, setForm] = useState<ContentFormData>(() =>
@@ -142,6 +148,7 @@ export function ContentForm({
       imageMeta:
         mediaType === "image" ? prev.imageMeta : { ...EMPTY_IMAGE_META },
     }));
+    onMediaTypeChange?.(mediaType);
   };
 
   const syncContentIdForChannel = useCallback(
@@ -213,6 +220,7 @@ export function ContentForm({
     setSubmittedItem(null);
     setContentId("");
     setForm({ ...EMPTY_FORM, mediaType });
+    onMediaTypeChange?.(mediaType);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -302,13 +310,8 @@ export function ContentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card className={isVideo ? "border-amber-100" : "border-pink-100"}>
-        <CardHeader>
-          <CardTitle>Content Idea</CardTitle>
-          <CardDescription>
-            {isVideo
-              ? "สำหรับ Video - กรอกข้อมูลรายละเอียดการถ่ายทำ Video"
-              : "สำหรับ Picture — กรอก brief งานออกแบบภาพ"}
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle>{isVideo ? "Video Content" : "Picture Content"}</CardTitle>
         </CardHeader>
         <MediaTypeToggle value={form.mediaType} onChange={handleMediaTypeChange} />
       </Card>
@@ -318,21 +321,6 @@ export function ContentForm({
           <CardTitle>ข้อมูล Content</CardTitle>
         </CardHeader>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label="ช่องที่ลง *"
-            options={channelOptions}
-            placeholder="เลือกช่อง..."
-            value={form.channel}
-            onChange={(e) => handleChannelChange(e.target.value)}
-            required={!isEdit}
-          />
-          <Input
-            label="รหัส Content"
-            value={contentId}
-            readOnly
-            placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
-            className="bg-stone-50 font-mono"
-          />
           <Input
             label="ชื่อ Content *"
             value={form.name}
@@ -342,15 +330,32 @@ export function ContentForm({
             }
             required
           />
-          {!isVideo && (
-            <Select
-              label="วัตถุประสงค์"
-              options={IMAGE_OBJECTIVES}
-              placeholder="เลือกวัตถุประสงค์..."
-              value={form.imageMeta.objective}
-              onChange={(e) => updateImageMeta("objective", e.target.value)}
-            />
-          )}
+          <Input
+            label="รหัส Content"
+            value={contentId}
+            readOnly
+            placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
+            className="bg-stone-50 font-mono"
+          />
+          <Select
+            label="ช่องที่ลง *"
+            options={channelOptions}
+            placeholder="เลือกช่อง..."
+            value={form.channel}
+            onChange={(e) => handleChannelChange(e.target.value)}
+            required={!isEdit}
+          />
+          <Select
+            label="วัตถุประสงค์"
+            options={CONTENT_OBJECTIVES}
+            placeholder="เลือกวัตถุประสงค์..."
+            value={isVideo ? form.category : form.imageMeta.objective}
+            onChange={(e) =>
+              isVideo
+                ? update("category", e.target.value)
+                : updateImageMeta("objective", e.target.value)
+            }
+          />
         </div>
         <div className="mt-4">
           <PlatformSelect
@@ -376,19 +381,48 @@ export function ContentForm({
         {!isVideo && (
           <div className="mt-4 grid gap-4 border-t border-pink-100 pt-4 sm:grid-cols-2">
             <Input
-              label="วันที่"
+              label="วันที่โพสต์"
               type="date"
               value={form.scheduledDate}
               onChange={(e) => update("scheduledDate", e.target.value)}
             />
             <Input
-              label="เวลา post"
+              label="เวลาโพสต์"
               type="time"
               value={form.scheduledTime}
               onChange={(e) => update("scheduledTime", e.target.value)}
             />
           </div>
         )}
+      </Card>
+
+      <Card className={isVideo ? "border-amber-100" : "border-pink-100"}>
+        <CardHeader>
+          <CardTitle>Pre Post</CardTitle>
+          <CardDescription>
+            วันที่คิดเสร็จ นัดถ่าย และตัดเสร็จ — ใช้ในปฏิทิน Pre Post
+          </CardDescription>
+        </CardHeader>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Input
+            label="คอนเทนต์คิดเสร็จ"
+            type="date"
+            value={form.ideaFinishedDate}
+            onChange={(e) => update("ideaFinishedDate", e.target.value)}
+          />
+          <Input
+            label="นัดวันถ่าย"
+            type="date"
+            value={form.shootDate}
+            onChange={(e) => update("shootDate", e.target.value)}
+          />
+          <Input
+            label="ตัดเสร็จ"
+            type="date"
+            value={form.editFinishedDate}
+            onChange={(e) => update("editFinishedDate", e.target.value)}
+          />
+        </div>
       </Card>
 
       {!isVideo && (
@@ -432,12 +466,20 @@ export function ContentForm({
             </CardHeader>
             <div className="space-y-5">
               <CreatableMultiSelect
-                label="องค์ประกอบที่ต้องมี"
+                label="องค์ประกอบ"
                 options={IMAGE_REQUIRED_ELEMENTS}
                 value={form.imageMeta.requiredElements}
                 onChange={(items) => updateImageMeta("requiredElements", items)}
                 placeholder="เลือกองค์ประกอบ..."
                 addPlaceholder="พิมพ์องค์ประกอบเพิ่มเอง..."
+              />
+              <CreatableMultiSelect
+                label="สินค้า"
+                options={PRODUCTS}
+                value={form.productsNeeded}
+                onChange={(items) => update("productsNeeded", items)}
+                placeholder="เลือกสินค้า..."
+                addPlaceholder="อื่นๆ..."
               />
               <CreatableMultiSelect
                 label="ขนาดงาน"
@@ -451,13 +493,6 @@ export function ContentForm({
           </Card>
 
           <Card className="border-pink-100">
-            <CardHeader>
-              <CardTitle>แนบตัวอย่าง</CardTitle>
-              <CardDescription>
-                แนบ reference หรือตัวอย่างภาพ — วางลิงก์หรืออัปโหลดได้มากกว่า 1
-                รายการ
-              </CardDescription>
-            </CardHeader>
             <ImageAttachmentLinks
               links={form.attachments}
               onChange={(links) => update("attachments", links)}
@@ -469,17 +504,17 @@ export function ContentForm({
       {isVideo && (
         <Card>
           <CardHeader>
-            <CardTitle>เวลา post</CardTitle>
+            <CardTitle>วัน/เวลาโพสต์</CardTitle>
           </CardHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
-              label="วันที่"
+              label="วันที่โพสต์"
               type="date"
               value={form.scheduledDate}
               onChange={(e) => update("scheduledDate", e.target.value)}
             />
             <Input
-              label="เวลา post"
+              label="เวลาโพสต์"
               type="time"
               value={form.scheduledTime}
               onChange={(e) => update("scheduledTime", e.target.value)}
@@ -516,39 +551,49 @@ export function ContentForm({
             </CardHeader>
             <div className="space-y-4">
               <CreatableMultiSelect
-                label="สินค้าที่ต้องเตรียม"
+                label="สินค้า"
                 options={PRODUCTS}
                 value={form.productsNeeded}
                 onChange={(items) => update("productsNeeded", items)}
                 placeholder="เลือกสินค้า..."
-                addPlaceholder="พิมพ์สินค้าเพิ่มเอง..."
+                addPlaceholder="อื่นๆ..."
               />
               <Input
-                label="อุปกรณ์ประกอบฉากที่ต้องเตรียม"
+                label="อุปกรณ์ประกอบฉาก"
                 value={form.itemsToPrepare}
                 onChange={(e) => update("itemsToPrepare", e.target.value)}
                 placeholder="Backdrop, Props, Equipment..."
               />
               <CreatableMultiSelect
-                label="อุปกรณ์ถ่ายที่ต้องเตรียม"
+                label="อุปกรณ์ถ่าย"
                 options={FILMING_EQUIPMENT}
                 value={form.filmingEquipment}
                 onChange={(items) => update("filmingEquipment", items)}
                 placeholder="เลือกอุปกรณ์..."
-                addPlaceholder="พิมพ์อุปกรณ์เพิ่มเอง..."
-              />
-              <AttachmentLinks
-                links={form.attachments}
-                onChange={(links) => update("attachments", links)}
+                addPlaceholder="อื่นๆ..."
               />
             </div>
           </Card>
 
           <Card className="border-amber-100">
             <CardHeader>
+              <CardTitle>ตัวอย่าง</CardTitle>
+              <CardDescription>
+                วางลิงก์ reference หรืออัปโหลดรูป / PDF / วิดีโอ (สูงสุด 10 MB)
+              </CardDescription>
+            </CardHeader>
+            <AttachmentLinks
+              links={form.attachments}
+              onChange={(links) => update("attachments", links)}
+              hideHeader
+            />
+          </Card>
+
+          <Card className="border-amber-100">
+            <CardHeader>
               <CardTitle>สคริป</CardTitle>
               <CardDescription>
-                เวลาเริ่มต้น, เวลาสิ้นสุด, Action, บทพูด, หมายเหตุ
+                เวลาเริ่มต้น, เวลาสิ้นสุด, Action, บทพูด, หมายเหตุ, เพิ่มรูปภาพ
               </CardDescription>
             </CardHeader>
             <ScriptTable

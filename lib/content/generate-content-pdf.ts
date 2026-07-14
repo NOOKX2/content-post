@@ -129,6 +129,12 @@ function scriptTable(doc: Doc, content: ContentItem) {
       doc.font(FONT_REGULAR).fontSize(10).fillColor("#7a7a7a").text(row.notes, {
         width: CONTENT_WIDTH,
       });
+      doc.moveDown(0.1);
+    }
+    if (row.imageUrl) {
+      doc.font(FONT_REGULAR).fontSize(10).fillColor("#7a7a7a").text(`รูปภาพ: ${row.imageUrl}`, {
+        width: CONTENT_WIDTH,
+      });
     }
     doc.moveDown(0.35);
   }
@@ -207,11 +213,26 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
       }
 
       sectionTitle(doc, "ข้อมูลหลัก");
-      if (scheduleLabel) fieldRow(doc, "วันเวลา", scheduleLabel);
+      if (scheduleLabel) fieldRow(doc, "วันเวลาโพสต์", scheduleLabel);
+      if (content.ideaFinishedDate) {
+        fieldRow(doc, "คิดเสร็จ", content.ideaFinishedDate);
+      }
+      if (content.shootDate) {
+        fieldRow(doc, "นัดถ่าย", content.shootDate);
+      }
+      if (content.editFinishedDate) {
+        fieldRow(doc, "ตัดเสร็จ", content.editFinishedDate);
+      }
       if (location.length > 0) {
         fieldRow(doc, "สถานที่", formatLocations(location));
       }
-      if (content.category) fieldRow(doc, "หมวดหมู่", content.category);
+      if (content.category) {
+        fieldRow(
+          doc,
+          isVideo ? "วัตถุประสงค์" : "หมวดหมู่",
+          content.category
+        );
+      }
       if (!isVideo && content.imageMeta?.objective) {
         fieldRow(doc, "วัตถุประสงค์", content.imageMeta.objective);
       }
@@ -302,7 +323,7 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
       }
 
       if (attachments.length > 0) {
-        sectionTitle(doc, isVideo ? "ไฟล์แนบ / ลิงก์" : "แนบตัวอย่าง");
+        sectionTitle(doc, "ตัวอย่าง");
         bulletRows(doc, attachments);
       }
 

@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Content" ADD COLUMN "ideaFinishedDate" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Content" ADD COLUMN "shootDate" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Content" ADD COLUMN "editFinishedDate" TEXT NOT NULL DEFAULT '';

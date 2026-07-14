@@ -62,6 +62,7 @@ export function normalizeScriptRow(
       action: row.action ?? "",
       dialogue: row.dialogue ?? "",
       notes: row.notes ?? "",
+      imageUrl: row.imageUrl ?? "",
     };
   }
 
@@ -73,6 +74,7 @@ export function normalizeScriptRow(
     action: row.action ?? "",
     dialogue: row.dialogue ?? "",
     notes: row.notes ?? "",
+    imageUrl: row.imageUrl ?? "",
   };
 }
 

@@ -16,50 +16,62 @@ export const PLATFORMS: {
 ];
 
 export const TEAM_MEMBERS = [
-  "Laura Power",
-  "สมชาย ใจดี",
-  "มานี มีสุข",
-  "วิชัย สร้างสรรค์",
-  "พิมพ์ใจ ถ่ายทำ",
-  "กนก ตัดต่อ",
+  "โอปอ",
+  "เกด",
+  "มิ่ง",
+  "เรย์",
+  "ปิ่น",
 ] as const;
 
 export const RESPONSIBILITIES = [
-  "Presenter",
-  "Camera",
-  "Lighting",
+  "Model",
+  "Videographer",
   "Props",
+  "Producer",
   "Makeup",
-  "Script",
-  "Director",
 ] as const;
 
 export const PRODUCTS = [
-  "Hero Serum",
-  "Herbal Tea Set",
-  "Farm Fresh Honey",
-  "Wellness Bundle",
-  "Gift Set",
+  "ยาหม่องสูตรคลาสสิค 8 กรัม",
+  "ยาหม่องสูตรคลาสสิค 30 กรัม",
+  "ยาหม่องสูตรคลาสสิค 50 กรัม",
+  "ยาหม่องสูตรคลาสสิค 100 กรัม",
+  "ยาน้ำมันสูตรคลาสสิค 3 cc",
+  "ยาน้ำมันสูตรคลาสสิค 8 cc",
+  "ยาน้ำมันสมุนไพร 50 กรัม",
+  "ยาน้ำมันสมุนไพร 100 กรัม",
 ] as const;
 
 export const FILMING_EQUIPMENT = [
-  "Camera",
-  "Lighting",
-  "Microphone",
-  "Tripod",
-  "Gimbal",
-  "Drone",
-  "Reflector",
-  "Backdrop",
-  "Props",
+  "DJI Osmo Pocket 3 - กล่อง",
+  "DJI Osmo Pocket 3 - ซอง",
+  "DJI Osmo Pocket 3 - พาวเวอร์แบงค์ใหญ่",
+  "DJI Osmo Pocket 3 - พาวเวอร์แบงค์เล็ก",
+  "DJI Osmo Pocket 3 - ขาตั้ง",
+  "DJI Osmo Pocket 3 - สายชาร์จ",
+  "DJI Mic 2 - กล่องไมค์",
+  "DJI Mic 2 - ไมค์ 2 ตัว",
+  "DJI Mic 2 - ตัวต่อ Phone",
+  "DJI Mic 2 - ตัวต่อ Type-C",
+  "DJI Mic 2 - ฟองน้ำกันลม",
+  "DJI Mic 2 - สาย",
+  "External Harddisk Sandisk 1 TB",
+  "Flash Drive UGREEN",
 ] as const;
 
 export const LOCATIONS = [
-  "Studio A",
-  "Farm Location",
-  "Office",
-  "Outdoor",
-  "Kitchen Set",
+  "บ้านลาดพร้าว - ห้องนั่งเล่น",
+  "บ้านลาดพร้าว - ครัว",
+  "บ้านลาดพร้าว - สวนหน้าน้ำตก",
+  "บ้านลาดพร้าว - โซนหมา",
+  "ออฟฟิศ - ห้องไลฟ์",
+  "ออฟฟิศ - ห้อง content",
+  "ออฟฟิศ - ห้องประชุม",
+  "ออฟฟิศ - ห้องแอดมิน",
+  "ออฟฟิศ - ห้องซีอีโอ",
+  "โกดัง - สต็อกสินค้า",
+  "โกดัง - โซนแพ็คสินค้า",
+  "โกดัง - หน้าป้ายโกดัง",
 ] as const;
 
 export const CONTENT_CATEGORIES = [
@@ -71,14 +83,20 @@ export const CONTENT_CATEGORIES = [
   "Behind the Scenes",
 ] as const;
 
-export const IMAGE_OBJECTIVES = [
-  "Brand Awareness",
-  "Product Launch",
-  "Promotion / Sale",
-  "Education",
-  "Engagement",
-  "Event Announcement",
+/** วัตถุประสงค์ — ใช้ทั้ง Video (category) และ Picture (imageMeta.objective) */
+export const CONTENT_OBJECTIVES = [
+  "Awareness",
+  "Product Education",
+  "Promotion",
+  "Review & Social Proof",
+  "Lifestyle",
+  "Entertainment",
+  "Seasonal & Campaign",
+  "Sale Support",
 ] as const;
+
+/** @deprecated Use CONTENT_OBJECTIVES */
+export const IMAGE_OBJECTIVES = CONTENT_OBJECTIVES;
 
 export const IMAGE_REQUIRED_ELEMENTS = [
   "Logo",

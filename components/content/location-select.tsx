@@ -22,7 +22,7 @@ export function LocationSelect({
       onChange={onChange}
       optional={optional}
       placeholder="เลือกสถานที่..."
-      addPlaceholder="พิมพ์สถานที่เพิ่มเอง..."
+      addPlaceholder="อื่นๆ..."
     />
   );
 }

@@ -105,7 +105,7 @@ export function ImageAttachmentLinks({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium text-stone-700">แนบตัวอย่าง</span>
+        <span className="text-sm font-medium text-stone-700">ตัวอย่าง</span>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="ghost" size="sm" onClick={addLink}>
             <Plus className="h-4 w-4" />

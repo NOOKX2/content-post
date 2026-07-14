@@ -1,9 +1,34 @@
 import type { ContentItem, ContentStatus } from "@/lib/types";
+import type { CalendarDateField, CalendarMode } from "@/lib/calendar/filters";
 
-export function getCalendarContents(contents: ContentItem[]) {
-  return contents.filter(
-    (c) => !!c.scheduledDate && c.status !== "draft"
-  );
+export function getCalendarContents(
+  contents: ContentItem[],
+  options?: {
+    mode?: CalendarMode;
+    dateField?: CalendarDateField;
+  }
+) {
+  const mode = options?.mode ?? "post";
+  const dateField = options?.dateField ?? "post";
+
+  return contents.filter((c) => {
+    if (c.status === "draft") return false;
+
+    if (mode === "post") {
+      return !!c.scheduledDate?.trim();
+    }
+
+    const value =
+      dateField === "ideaFinished"
+        ? c.ideaFinishedDate
+        : dateField === "shoot"
+          ? c.shootDate
+          : dateField === "editFinished"
+            ? c.editFinishedDate
+            : c.scheduledDate;
+
+    return !!value?.trim();
+  });
 }
 
 export function formatDateKey(date: Date): string {

@@ -6,6 +6,7 @@ export function CalendarPostLegend({ className }: { className?: string }) {
       <span className="text-xs font-medium text-stone-500">สถานะโพส:</span>
       <LegendItem color="bg-orange-500" label="คอนเทนต์ที่รอโพส" />
       <LegendItem color="bg-emerald-500" label="คอนเทนต์ที่โพสแล้ว" />
+      <LegendItem color="bg-red-500" label="คอนเทนต์รอแก้ไข" />
     </div>
   );
 }

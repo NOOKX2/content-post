@@ -4,9 +4,15 @@ interface CalendarSummaryProps {
   total: number;
   waiting: number;
   posted: number;
+  needsEdit: number;
 }
 
-export function CalendarSummary({ total, waiting, posted }: CalendarSummaryProps) {
+export function CalendarSummary({
+  total,
+  waiting,
+  posted,
+  needsEdit,
+}: CalendarSummaryProps) {
   return (
     <Card className="p-5">
       <h3 className="text-sm font-semibold text-stone-800">
@@ -15,7 +21,7 @@ export function CalendarSummary({ total, waiting, posted }: CalendarSummaryProps
       <p className="mt-1 text-xs text-stone-500">
         ตารางสำหรับดูโพสที่ลง — ขั้นตอนการลงโพสอย่างเดียว
       </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryStat label="งานทั้งหมด" value={total} />
         <SummaryStat
           label="คอนเทนต์ที่รอโพส"
@@ -26,6 +32,11 @@ export function CalendarSummary({ total, waiting, posted }: CalendarSummaryProps
           label="คอนเทนต์ที่โพสแล้ว"
           value={posted}
           dotClass="bg-emerald-500"
+        />
+        <SummaryStat
+          label="คอนเทนต์รอแก้ไข"
+          value={needsEdit}
+          dotClass="bg-red-500"
         />
       </div>
     </Card>

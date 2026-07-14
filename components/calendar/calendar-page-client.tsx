@@ -13,7 +13,9 @@ import {
   getCalendarSummary,
   getDateRangeForPreset,
   type CalendarDateField,
+  type CalendarMode,
   type DateRangePreset,
+  type PostStatusFilter,
 } from "@/lib/calendar/filters";
 
 const VIEW_TABS = [
@@ -24,9 +26,11 @@ const VIEW_TABS = [
 type CalendarViewMode = (typeof VIEW_TABS)[number]["id"];
 
 export function CalendarPageClient() {
+  const [mode, setMode] = useState<CalendarMode>("post");
   const [view, setView] = useState<CalendarViewMode>("month");
   const [search, setSearch] = useState("");
   const [dateField, setDateField] = useState<CalendarDateField>("post");
+  const [statusFilter, setStatusFilter] = useState<PostStatusFilter>("all");
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
   const [activePreset, setActivePreset] = useState<DateRangePreset | null>(
@@ -36,21 +40,43 @@ export function CalendarPageClient() {
   const { contents } = useContents();
   const { data: session } = useSession();
 
+  const handleModeChange = (nextMode: CalendarMode) => {
+    setMode(nextMode);
+    setDateField(nextMode === "post" ? "post" : "ideaFinished");
+    if (nextMode === "prepost") {
+      setStatusFilter("all");
+    }
+  };
+
   const filteredContents = useMemo(
     () =>
       filterCalendarContents(contents, {
+        mode,
         search,
         dateField,
         rangeStart: rangeStart || undefined,
         rangeEnd: rangeEnd || undefined,
-        postingOnly: true,
+        statusFilter,
       }),
-    [contents, search, dateField, rangeStart, rangeEnd]
+    [contents, mode, search, dateField, rangeStart, rangeEnd, statusFilter]
+  );
+
+  const summarySource = useMemo(
+    () =>
+      filterCalendarContents(contents, {
+        mode: "post",
+        search,
+        dateField: "post",
+        rangeStart: rangeStart || undefined,
+        rangeEnd: rangeEnd || undefined,
+        statusFilter: "all",
+      }),
+    [contents, search, rangeStart, rangeEnd]
   );
 
   const summary = useMemo(
-    () => getCalendarSummary(filteredContents),
-    [filteredContents]
+    () => getCalendarSummary(summarySource),
+    [summarySource]
   );
 
   const handleClearRange = () => {
@@ -73,13 +99,21 @@ export function CalendarPageClient() {
 
   return (
     <>
-      <Header session={session} title="ตารางลงคอนเทนต์" compact />
+      <Header
+        session={session}
+        title={mode === "post" ? "ตารางลงคอนเทนต์" : "ตาราง Pre Post"}
+        compact
+      />
       <div className="space-y-3 px-4 py-3">
         <CalendarToolbar
+          mode={mode}
+          onModeChange={handleModeChange}
           search={search}
           onSearchChange={setSearch}
           dateField={dateField}
           onDateFieldChange={setDateField}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
           onRangeStartChange={(value) => {
@@ -107,11 +141,14 @@ export function CalendarPageClient() {
           />
         )}
 
-        <CalendarSummary
-          total={summary.total}
-          waiting={summary.waiting}
-          posted={summary.posted}
-        />
+        {mode === "post" && (
+          <CalendarSummary
+            total={summary.total}
+            waiting={summary.waiting}
+            posted={summary.posted}
+            needsEdit={summary.needsEdit}
+          />
+        )}
       </div>
     </>
   );
