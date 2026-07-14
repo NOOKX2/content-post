@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/content/api-auth";
 import { toContentItem } from "@/lib/content/mappers";
-import {
-  generateContentPdf,
-} from "@/lib/content/generate-content-pdf";
+import { generateContentPdf } from "@/lib/content/generate-content-pdf";
 import { contentPdfFilename } from "@/lib/content/pdf-filename";
 
 export async function GET(
@@ -23,8 +21,22 @@ export async function GET(
     }
 
     const content = toContentItem(record);
+    console.log("[content-pdf] generating", {
+      id: content.id,
+      contentId: content.contentId,
+      name: content.name,
+      mediaType: content.mediaType,
+      status: content.status,
+    });
+
     const pdf = await generateContentPdf(content);
     const filename = contentPdfFilename(content);
+
+    console.log("[content-pdf] success", {
+      contentId: content.contentId,
+      bytes: pdf.length,
+      filename,
+    });
 
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
@@ -33,9 +45,22 @@ export async function GET(
         "Cache-Control": "no-store",
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("[content-pdf] ERROR", {
+      id,
+      error:
+        error instanceof Error
+          ? { name: error.name, message: error.message, stack: error.stack }
+          : String(error),
+    });
     return NextResponse.json(
-      { error: "ส่งออก PDF ไม่สำเร็จ กรุณาลองใหม่" },
+      {
+        error: "ส่งออก PDF ไม่สำเร็จ กรุณาลองใหม่",
+        details:
+          error instanceof Error
+            ? { name: error.name, message: error.message }
+            : { value: String(error) },
+      },
       { status: 500 }
     );
   }

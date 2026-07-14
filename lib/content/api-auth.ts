@@ -36,8 +36,23 @@ export async function requireAdmin() {
   const result = await requireSession();
   if ("error" in result) return result;
   if (result.session.user.role !== "ADMIN") {
+    console.warn("[admin-auth] Forbidden — ADMIN role required", {
+      userId: result.session.user.id,
+      name: result.session.user.name,
+      role: result.session.user.role,
+      note: "This is unrelated to Buffer posting. Creator accounts get 403 on /api/admin/*.",
+    });
     return {
-      error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+      error: NextResponse.json(
+        {
+          error: "Forbidden",
+          details: {
+            role: result.session.user.role,
+            required: "ADMIN",
+          },
+        },
+        { status: 403 }
+      ),
     };
   }
   return result;
@@ -52,6 +67,12 @@ export async function requireSessionOrN8n(request: Request) {
 
 export function requireN8nApiKey(request: Request) {
   if (!verifyN8nApiKey(request)) {
+    console.warn("[n8n-auth] Unauthorized — missing or invalid x-api-key", {
+      hasHeader: Boolean(request.headers.get("x-api-key")),
+      hasEnvKey: Boolean(process.env.N8N_API_KEY),
+      path: new URL(request.url).pathname,
+      note: "n8n Mark Posting/Mark Posted will fail if N8N_API_KEY on Railway ≠ Vercel",
+    });
     return {
       error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     };

@@ -14,6 +14,7 @@ import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/service"
 import { approveContentRecord } from "@/lib/content/approve-content-record";
 import { invalidateContentsCache } from "@/lib/content/cache-tags";
 import { formatApiErrorResponse } from "@/lib/content/action-errors";
+import { logPipeline } from "@/lib/content/pipeline-log";
 
 const N8N_ALLOWED_STATUSES: ContentStatus[] = [
   "posted",
@@ -70,6 +71,12 @@ export async function PATCH(
         previousStatus: existing.status,
         requestedStatus: body.status,
       });
+      logPipeline("PATCH from n8n", "received", {
+        id,
+        contentId: existing.contentId,
+        previousStatus: existing.status,
+        requestedStatus: body.status,
+      });
 
       const record = await prisma.content.update({
         where: { id },
@@ -77,7 +84,18 @@ export async function PATCH(
       });
 
       if (body.status !== existing.status) {
-        await notifyPostStatusUpdate(record, body.status);
+        try {
+          await notifyPostStatusUpdate(record, body.status);
+        } catch (notifyError) {
+          logContentApproved("app/api", "WARN notify failed after n8n status update", {
+            contentId: record.contentId,
+            status: body.status,
+            error:
+              notifyError instanceof Error
+                ? notifyError.message
+                : String(notifyError),
+          });
+        }
       }
 
       logContentApproved("app/api", "n8n status update applied", {
@@ -86,6 +104,17 @@ export async function PATCH(
         previousStatus: existing.status,
         newStatus: record.status,
         flowComplete: body.status === "posted",
+      });
+      logPipeline("PATCH from n8n", "status updated", {
+        contentId: record.contentId,
+        previousStatus: existing.status,
+        newStatus: record.status,
+        nextUiLabel:
+          record.status === "posting"
+            ? "กำลังโพสต์"
+            : record.status === "posted"
+              ? "โพสต์แล้ว"
+              : record.status,
       });
 
       invalidateContentsCache(id);

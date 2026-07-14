@@ -73,15 +73,23 @@ try {
   });
 
   return [{ json: item }];
-} catch (error) {
-  const detail = extractHttpError(error);
+  } catch (error) {
+    const detail = extractHttpError(error);
 
-  log("3/5 Mark Posting", "ERROR PATCH failed", {
-    contentCode,
-    contentId,
-    durationMs: Date.now() - startedAt,
-    ...detail,
-  });
+    log("3/5 Mark Posting", "ERROR PATCH failed", {
+      contentCode,
+      contentId,
+      url,
+      durationMs: Date.now() - startedAt,
+      ...detail,
+    });
 
-  throw new Error(`Mark Posting HTTP ${detail.status}: ${detail.message}`);
-}
+    const bodyHint =
+      detail.responseBody === null || detail.responseBody === undefined
+        ? ""
+        : ` body=${typeof detail.responseBody === "string" ? detail.responseBody : JSON.stringify(detail.responseBody)}`;
+
+    throw new Error(
+      `Mark Posting HTTP ${detail.status}: ${detail.message}${bodyHint}`
+    );
+  }

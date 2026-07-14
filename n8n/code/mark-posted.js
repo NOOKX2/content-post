@@ -96,7 +96,14 @@ for (const item of $input.all()) {
       note: "Content likely still shows posting in app UI",
     });
 
-    throw new Error(`Mark Posted HTTP ${detail.status}: ${detail.message}`);
+    const bodyHint =
+      detail.responseBody === null || detail.responseBody === undefined
+        ? ""
+        : ` body=${typeof detail.responseBody === "string" ? detail.responseBody : JSON.stringify(detail.responseBody)}`;
+
+    throw new Error(
+      `Mark Posted HTTP ${detail.status}: ${detail.message}${bodyHint}`
+    );
   }
 }
 

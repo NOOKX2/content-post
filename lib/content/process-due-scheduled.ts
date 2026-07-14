@@ -2,6 +2,7 @@ import type { Content } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { dispatchApprovedContentToN8n } from "@/lib/n8n/dispatch-approved-content";
 import { isContentDue, parseScheduledAt } from "@/lib/content/scheduled";
+import { logPipeline } from "@/lib/content/pipeline-log";
 
 const RETRY_GRACE_MS = 2 * 60 * 1000;
 
@@ -36,10 +37,29 @@ export async function processDueScheduledContent() {
 
   const dueForRetry = records.filter((record) => shouldRetryScheduledPost(record));
 
+  const overdue = records.filter((record) => {
+    if (!record.scheduledDate || !record.scheduledTime) return false;
+    return (
+      parseScheduledAt(record.scheduledDate, record.scheduledTime).getTime() <
+      Date.now()
+    );
+  });
+
   logProcessDue("scan complete", {
     scheduledCount: records.length,
+    overdueCount: overdue.length,
     retryCount: dueForRetry.length,
     contentIds: dueForRetry.map((r) => r.contentId),
+  });
+  logPipeline("process-due", "scan", {
+    scheduledOrPosting: records.length,
+    overdue: overdue.map((r) => ({
+      contentId: r.contentId,
+      status: r.status,
+      scheduledDate: r.scheduledDate,
+      scheduledTime: r.scheduledTime,
+    })),
+    willRetry: dueForRetry.map((r) => r.contentId),
   });
 
   const results: {

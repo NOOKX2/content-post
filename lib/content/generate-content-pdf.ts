@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 import PDFDocument from "pdfkit";
 import type PDFKit from "pdfkit";
@@ -15,12 +16,24 @@ const FONT_BOLD = "Sarabun-Bold";
 
 type Doc = PDFKit.PDFDocument;
 
-function fontPaths() {
-  const base = path.join(process.cwd(), "public/fonts");
-  return {
-    regular: path.join(base, "Sarabun-Regular.ttf"),
-    bold: path.join(base, "Sarabun-SemiBold.ttf"),
-  };
+function resolveFontPaths() {
+  const candidates = [
+    path.join(process.cwd(), "public/fonts"),
+    path.join(process.cwd(), "fonts"),
+  ];
+
+  for (const base of candidates) {
+    const regular = path.join(base, "Sarabun-Regular.ttf");
+    const bold = path.join(base, "Sarabun-SemiBold.ttf");
+    if (fs.existsSync(regular) && fs.existsSync(bold)) {
+      return { regular, bold, base };
+    }
+  }
+
+  throw new Error(
+    `PDF fonts not found. Looked in: ${candidates.join(", ")}. ` +
+      "Ensure public/fonts/Sarabun-*.ttf are deployed (Vercel outputFileTracingIncludes)."
+  );
 }
 
 function formatPlatforms(platforms: Platform[]): string {
@@ -122,10 +135,21 @@ function scriptTable(doc: Doc, content: ContentItem) {
 }
 
 export function generateContentPdf(content: ContentItem): Promise<Buffer> {
-  const fonts = fontPaths();
-  const status = STATUS_LABELS[content.status];
-  const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
+  const fonts = resolveFontPaths();
+  const status =
+    STATUS_LABELS[content.status] ??
+    ({ label: content.status, color: "" } as const);
+  const mediaConfig =
+    MEDIA_FORM_CONFIG[content.mediaType] ?? MEDIA_FORM_CONFIG.video;
   const isVideo = content.mediaType === "video";
+  const platforms = content.platforms ?? [];
+  const location = content.location ?? [];
+  const team = content.team ?? [];
+  const script = content.script ?? [];
+  const productsNeeded = content.productsNeeded ?? [];
+  const filmingEquipment = content.filmingEquipment ?? [];
+  const attachments = content.attachments ?? [];
+  const tags = content.tags ?? [];
 
   const scheduleLabel = content.scheduledDate
     ? `${formatThaiDate(content.scheduledDate)}${
@@ -134,10 +158,13 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
     : "";
 
   return new Promise((resolve, reject) => {
+    // Pass custom font in constructor so pdfkit never loads Helvetica.afm
+    // (missing .afm files are a common failure on Vercel serverless).
     const doc = new PDFDocument({
       margin: MARGIN,
       size: "A4",
       bufferPages: true,
+      font: fonts.regular,
     });
     const chunks: Buffer[] = [];
 
@@ -145,150 +172,166 @@ export function generateContentPdf(content: ContentItem): Promise<Buffer> {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.registerFont(FONT_REGULAR, fonts.regular);
-    doc.registerFont(FONT_BOLD, fonts.bold);
+    try {
+      doc.registerFont(FONT_REGULAR, fonts.regular);
+      doc.registerFont(FONT_BOLD, fonts.bold);
 
-    doc.font(FONT_BOLD).fontSize(11).fillColor("#0066cc").text("iDea Content");
-    doc
-      .font(FONT_REGULAR)
-      .fontSize(9)
-      .fillColor("#7a7a7a")
-      .text("รายละเอียด Content");
-    doc.moveDown(0.8);
-
-    doc
-      .font(FONT_BOLD)
-      .fontSize(22)
-      .fillColor("#1d1d1f")
-      .text(content.name, { width: CONTENT_WIDTH });
-    doc.moveDown(0.35);
-    doc
-      .font(FONT_REGULAR)
-      .fontSize(11)
-      .fillColor("#7a7a7a")
-      .text(`#${content.contentId}  ·  ${status.label}  ·  ${mediaConfig.label}`);
-
-    if (content.channel) {
-      doc.moveDown(0.15);
-      doc.text(`ช่องที่ลง: ${content.channel}`);
-    }
-    if (content.platforms.length > 0) {
-      doc.text(`แพลตฟอร์ม: ${formatPlatforms(content.platforms)}`);
-    }
-
-    sectionTitle(doc, "ข้อมูลหลัก");
-    if (scheduleLabel) fieldRow(doc, "วันเวลา", scheduleLabel);
-    if (content.location.length > 0) {
-      fieldRow(doc, "สถานที่", formatLocations(content.location));
-    }
-    if (content.category) fieldRow(doc, "หมวดหมู่", content.category);
-    if (!isVideo && content.imageMeta?.objective) {
-      fieldRow(doc, "วัตถุประสงค์", content.imageMeta.objective);
-    }
-    if (content.approver) fieldRow(doc, "อนุมัติโดย", content.approver);
-
-    if (content.details) {
-      sectionTitle(doc, "รายละเอียด");
-      paragraph(doc, content.details);
-    }
-
-    if (!isVideo && content.imageMeta) {
-      const meta = content.imageMeta;
-      const hasImageBrief =
-        meta.headline ||
-        meta.subHead ||
-        meta.callToAction ||
-        meta.requiredElements.length > 0 ||
-        meta.workSizes.length > 0;
-
-      if (hasImageBrief) {
-        sectionTitle(doc, "ข้อความบนภาพ & องค์ประกอบ");
-        if (meta.headline) fieldRow(doc, "Headline", meta.headline);
-        if (meta.subHead) fieldRow(doc, "Sub Head", meta.subHead);
-        if (meta.callToAction) fieldRow(doc, "Call to Action", meta.callToAction);
-        if (meta.requiredElements.length > 0) {
-          fieldRow(doc, "องค์ประกอบที่ต้องมี", meta.requiredElements.join(", "));
-        }
-        if (meta.workSizes.length > 0) {
-          fieldRow(doc, "ขนาดงาน", meta.workSizes.join(", "));
-        }
-      }
-    }
-
-    if (content.ideaCreator || content.photographer || content.editor) {
-      sectionTitle(doc, "ผู้สร้าง content");
-      if (content.ideaCreator) {
-        fieldRow(doc, "ผู้คิด Content", content.ideaCreator);
-      }
-      if (content.photographer) {
-        fieldRow(doc, mediaConfig.photographerLabel, content.photographer);
-      }
-      if (content.editor) fieldRow(doc, "ตัดต่อ", content.editor);
-    }
-
-    if (content.team.length > 0) {
-      sectionTitle(doc, "ผู้ร่วมงาน");
-      bulletRows(
-        doc,
-        content.team.map((r) => `${r.participant} — ${r.responsibility}`)
-      );
-    }
-
-    if (isVideo && content.script.length > 0) {
-      sectionTitle(doc, "สคริป");
-      scriptTable(doc, content);
-    }
-
-    if (
-      isVideo &&
-      (content.productsNeeded.length > 0 ||
-        content.itemsToPrepare ||
-        (content.filmingEquipment?.length ?? 0) > 0)
-    ) {
-      sectionTitle(doc, "สิ่งที่ต้องเตรียม");
-      if (content.productsNeeded.length > 0) {
-        fieldRow(doc, "สินค้าที่ต้องเตรียม", content.productsNeeded.join(", "));
-      }
-      if (content.itemsToPrepare) {
-        fieldRow(doc, "อุปกรณ์ประกอบฉากที่ต้องเตรียม", content.itemsToPrepare);
-      }
-      if ((content.filmingEquipment?.length ?? 0) > 0) {
-        fieldRow(
-          doc,
-          "อุปกรณ์ถ่ายที่ต้องเตรียม",
-          content.filmingEquipment?.join(", ") ?? ""
-        );
-      }
-    }
-
-    if (content.attachments.length > 0) {
-      sectionTitle(doc, isVideo ? "ไฟล์แนบ / ลิงก์" : "แนบตัวอย่าง");
-      bulletRows(doc, content.attachments);
-    }
-
-    if (content.tags.length > 0) {
-      sectionTitle(doc, "แท็ก");
-      paragraph(doc, content.tags.join(", "));
-    }
-
-    const exportedAt = new Date().toLocaleString("th-TH", {
-      timeZone: "Asia/Bangkok",
-    });
-    const pages = doc.bufferedPageRange();
-    for (let i = 0; i < pages.count; i++) {
-      doc.switchToPage(i);
+      doc.font(FONT_BOLD).fontSize(11).fillColor("#0066cc").text("iDea Content");
       doc
         .font(FONT_REGULAR)
-        .fontSize(8)
+        .fontSize(9)
+        .fillColor("#7a7a7a")
+        .text("รายละเอียด Content");
+      doc.moveDown(0.8);
+
+      doc
+        .font(FONT_BOLD)
+        .fontSize(22)
+        .fillColor("#1d1d1f")
+        .text(content.name || "(ไม่มีชื่อ)", { width: CONTENT_WIDTH });
+      doc.moveDown(0.35);
+      doc
+        .font(FONT_REGULAR)
+        .fontSize(11)
         .fillColor("#7a7a7a")
         .text(
-          `ส่งออกเมื่อ ${exportedAt}  ·  หน้า ${i + 1} / ${pages.count}`,
-          MARGIN,
-          doc.page.height - 35,
-          { width: CONTENT_WIDTH, align: "center", lineBreak: false }
+          `#${content.contentId}  ·  ${status.label}  ·  ${mediaConfig.label}`
         );
-    }
 
-    doc.end();
+      if (content.channel) {
+        doc.moveDown(0.15);
+        doc.text(`ช่องที่ลง: ${content.channel}`);
+      }
+      if (platforms.length > 0) {
+        doc.text(`แพลตฟอร์ม: ${formatPlatforms(platforms)}`);
+      }
+
+      sectionTitle(doc, "ข้อมูลหลัก");
+      if (scheduleLabel) fieldRow(doc, "วันเวลา", scheduleLabel);
+      if (location.length > 0) {
+        fieldRow(doc, "สถานที่", formatLocations(location));
+      }
+      if (content.category) fieldRow(doc, "หมวดหมู่", content.category);
+      if (!isVideo && content.imageMeta?.objective) {
+        fieldRow(doc, "วัตถุประสงค์", content.imageMeta.objective);
+      }
+      if (content.approver) fieldRow(doc, "อนุมัติโดย", content.approver);
+
+      if (content.details) {
+        sectionTitle(doc, "รายละเอียด");
+        paragraph(doc, content.details);
+      }
+
+      if (!isVideo && content.imageMeta) {
+        const meta = content.imageMeta;
+        const hasImageBrief =
+          meta.headline ||
+          meta.subHead ||
+          meta.callToAction ||
+          (meta.requiredElements?.length ?? 0) > 0 ||
+          (meta.workSizes?.length ?? 0) > 0;
+
+        if (hasImageBrief) {
+          sectionTitle(doc, "ข้อความบนภาพ & องค์ประกอบ");
+          if (meta.headline) fieldRow(doc, "Headline", meta.headline);
+          if (meta.subHead) fieldRow(doc, "Sub Head", meta.subHead);
+          if (meta.callToAction) {
+            fieldRow(doc, "Call to Action", meta.callToAction);
+          }
+          if ((meta.requiredElements?.length ?? 0) > 0) {
+            fieldRow(
+              doc,
+              "องค์ประกอบที่ต้องมี",
+              meta.requiredElements.join(", ")
+            );
+          }
+          if ((meta.workSizes?.length ?? 0) > 0) {
+            fieldRow(doc, "ขนาดงาน", meta.workSizes.join(", "));
+          }
+        }
+      }
+
+      if (content.ideaCreator || content.photographer || content.editor) {
+        sectionTitle(doc, "ผู้สร้าง content");
+        if (content.ideaCreator) {
+          fieldRow(doc, "ผู้คิด Content", content.ideaCreator);
+        }
+        if (content.photographer) {
+          fieldRow(doc, mediaConfig.photographerLabel, content.photographer);
+        }
+        if (content.editor) fieldRow(doc, "ตัดต่อ", content.editor);
+      }
+
+      if (team.length > 0) {
+        sectionTitle(doc, "ผู้ร่วมงาน");
+        bulletRows(
+          doc,
+          team.map((r) => `${r.participant} — ${r.responsibility}`)
+        );
+      }
+
+      if (isVideo && script.length > 0) {
+        sectionTitle(doc, "สคริป");
+        scriptTable(doc, { ...content, script });
+      }
+
+      if (
+        isVideo &&
+        (productsNeeded.length > 0 ||
+          content.itemsToPrepare ||
+          filmingEquipment.length > 0)
+      ) {
+        sectionTitle(doc, "สิ่งที่ต้องเตรียม");
+        if (productsNeeded.length > 0) {
+          fieldRow(doc, "สินค้าที่ต้องเตรียม", productsNeeded.join(", "));
+        }
+        if (content.itemsToPrepare) {
+          fieldRow(
+            doc,
+            "อุปกรณ์ประกอบฉากที่ต้องเตรียม",
+            content.itemsToPrepare
+          );
+        }
+        if (filmingEquipment.length > 0) {
+          fieldRow(
+            doc,
+            "อุปกรณ์ถ่ายที่ต้องเตรียม",
+            filmingEquipment.join(", ")
+          );
+        }
+      }
+
+      if (attachments.length > 0) {
+        sectionTitle(doc, isVideo ? "ไฟล์แนบ / ลิงก์" : "แนบตัวอย่าง");
+        bulletRows(doc, attachments);
+      }
+
+      if (tags.length > 0) {
+        sectionTitle(doc, "แท็ก");
+        paragraph(doc, tags.join(", "));
+      }
+
+      const exportedAt = new Date().toLocaleString("th-TH", {
+        timeZone: "Asia/Bangkok",
+      });
+      const pages = doc.bufferedPageRange();
+      for (let i = 0; i < pages.count; i++) {
+        doc.switchToPage(i);
+        doc
+          .font(FONT_REGULAR)
+          .fontSize(8)
+          .fillColor("#7a7a7a")
+          .text(
+            `ส่งออกเมื่อ ${exportedAt}  ·  หน้า ${i + 1} / ${pages.count}`,
+            MARGIN,
+            doc.page.height - 35,
+            { width: CONTENT_WIDTH, align: "center", lineBreak: false }
+          );
+      }
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
   });
 }

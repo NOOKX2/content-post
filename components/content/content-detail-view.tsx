@@ -119,8 +119,12 @@ export function ContentDetailView({
     setExporting(true);
     try {
       await downloadContentPdf(content.id, contentPdfFilename(content));
-    } catch {
-      alert("ส่งออก PDF ไม่สำเร็จ กรุณาลองใหม่");
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "ส่งออก PDF ไม่สำเร็จ กรุณาลองใหม่"
+      );
     } finally {
       setExporting(false);
     }
