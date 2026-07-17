@@ -12,6 +12,24 @@ export async function fetchCollaborationChannels(): Promise<
   return data.channels;
 }
 
+export async function openDirectMessage(
+  userId: string
+): Promise<CollaborationChannelItem> {
+  const res = await fetch("/api/collaboration/channels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId }),
+  });
+  const data = (await res.json()) as {
+    channel?: CollaborationChannelItem;
+    error?: string;
+  };
+  if (!res.ok || !data.channel) {
+    throw new Error(data.error || "เปิดแชทส่วนตัวไม่สำเร็จ");
+  }
+  return data.channel;
+}
+
 export async function fetchChannelMessages(
   channelId: string
 ): Promise<CollaborationMessageItem[]> {

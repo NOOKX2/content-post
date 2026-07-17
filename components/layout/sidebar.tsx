@@ -11,29 +11,30 @@ import {
   Leaf,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isAdminRole } from "@/lib/auth/roles";
 import { usePendingCount } from "@/lib/content/contents-provider";
 import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
 import type { Session } from "next-auth";
 
 const CREATOR_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/collaboration", label: "Team", icon: MessageSquare },
   { href: "/create", label: "สร้าง Content", icon: PenSquare },
+  { href: "/collaboration", label: "Team", icon: MessageSquare },
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
 ] as const;
 
 const ADMIN_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/collaboration", label: "Team", icon: MessageSquare },
   { href: "/admin", label: "Admin อนุมัติ", icon: ShieldCheck },
   { href: "/admin/channels", label: "ตั้งค่าช่อง", icon: Settings },
+  { href: "/collaboration", label: "Team", icon: MessageSquare },
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
 ] as const;
 
 export function Sidebar({ session }: { session: Session | null }) {
   const { activePath, navigate } = useDashboardNav();
   const pendingCount = usePendingCount();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = isAdminRole(session?.user?.role);
   const navItems = isAdmin ? ADMIN_NAV : CREATOR_NAV;
 
   return (

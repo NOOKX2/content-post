@@ -18,7 +18,7 @@ case "$1" in
     echo "==> Clearing stale Next.js cache..."
     rm -rf /app/.next
     echo "==> Starting Next.js dev server (hot reload)..."
-    echo "==> Open in browser: http://localhost:3001"
+    echo "==> Open in browser: http://localhost:3000"
     echo "==> n8n workflow automation: http://localhost:5678"
     exec bun run dev:docker
     ;;

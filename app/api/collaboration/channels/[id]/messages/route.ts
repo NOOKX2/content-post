@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/content/api-auth";
 import {
+  assertCanAccessChannel,
   getChannelMessages,
   postTextMessage,
 } from "@/lib/collaboration/service";
@@ -28,6 +29,14 @@ export async function GET(
   if ("error" in authResult) return authResult.error;
 
   const { id } = await params;
+  const allowed = await assertCanAccessChannel(
+    id,
+    authResult.session.user.id
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const messages = await getChannelMessages(id);
   return NextResponse.json({
     messages: messages.map(toMessageItem),
@@ -42,6 +51,14 @@ export async function POST(
   if ("error" in authResult) return authResult.error;
 
   const { id } = await params;
+  const allowed = await assertCanAccessChannel(
+    id,
+    authResult.session.user.id
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const body = (await request.json()) as { body?: string };
   const text = body.body?.trim();
   if (!text) {

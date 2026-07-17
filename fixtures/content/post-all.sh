@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-http://localhost:3001}"
+BASE_URL="${BASE_URL:-http://localhost:3000}"
 API_KEY="${N8N_API_KEY:-dev-n8n-api-key-change-in-production}"
 USER_EMAIL="${CREATOR_EMAIL:-creator@idea.local}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

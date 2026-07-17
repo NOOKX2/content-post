@@ -396,6 +396,31 @@ export function ContentForm({
         )}
       </Card>
 
+      {!isVideo && (
+        <Card className="border-pink-100">
+          <ImageAttachmentLinks
+            links={form.attachments}
+            onChange={(links) => update("attachments", links)}
+          />
+        </Card>
+      )}
+
+      {isVideo && (
+        <Card className="border-amber-100">
+          <CardHeader>
+            <CardTitle>ตัวอย่าง</CardTitle>
+            <CardDescription>
+              วางลิงก์ reference หรืออัปโหลดรูป / PDF / วิดีโอ (สูงสุด 10 MB)
+            </CardDescription>
+          </CardHeader>
+          <AttachmentLinks
+            links={form.attachments}
+            onChange={(links) => update("attachments", links)}
+            hideHeader
+          />
+        </Card>
+      )}
+
       <Card className={isVideo ? "border-amber-100" : "border-pink-100"}>
         <CardHeader>
           <CardTitle>Pre Post</CardTitle>
@@ -491,13 +516,6 @@ export function ContentForm({
               />
             </div>
           </Card>
-
-          <Card className="border-pink-100">
-            <ImageAttachmentLinks
-              links={form.attachments}
-              onChange={(links) => update("attachments", links)}
-            />
-          </Card>
         </>
       )}
 
@@ -573,20 +591,6 @@ export function ContentForm({
                 addPlaceholder="อื่นๆ..."
               />
             </div>
-          </Card>
-
-          <Card className="border-amber-100">
-            <CardHeader>
-              <CardTitle>ตัวอย่าง</CardTitle>
-              <CardDescription>
-                วางลิงก์ reference หรืออัปโหลดรูป / PDF / วิดีโอ (สูงสุด 10 MB)
-              </CardDescription>
-            </CardHeader>
-            <AttachmentLinks
-              links={form.attachments}
-              onChange={(links) => update("attachments", links)}
-              hideHeader
-            />
           </Card>
 
           <Card className="border-amber-100">

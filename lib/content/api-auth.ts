@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { auth } from "@/auth";
+import { isAdminRole, isCreatorRole } from "@/lib/auth/roles";
 
 type ApiAuthUser = {
   id: string;
@@ -35,7 +36,7 @@ export async function requireSession(): Promise<SessionAuthResult> {
 export async function requireAdmin() {
   const result = await requireSession();
   if ("error" in result) return result;
-  if (result.session.user.role !== "ADMIN") {
+  if (!isAdminRole(result.session.user.role)) {
     console.warn("[admin-auth] Forbidden — ADMIN role required", {
       userId: result.session.user.id,
       name: result.session.user.name,
@@ -96,7 +97,7 @@ export async function requireCreator(
         ),
       };
     }
-    if (user.role !== "USER") {
+    if (!isCreatorRole(user.role)) {
       return {
         error: NextResponse.json(
           { error: "Admin ไม่สามารถสร้าง Content ได้" },
@@ -109,7 +110,7 @@ export async function requireCreator(
 
   const result = await requireSession();
   if ("error" in result) return { error: result.error };
-  if (result.session.user.role === "ADMIN") {
+  if (isAdminRole(result.session.user.role)) {
     return {
       error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
     };

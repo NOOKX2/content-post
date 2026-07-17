@@ -15,7 +15,7 @@ N8N_API_KEY=your-n8n-key
 BUFFER_API_KEY=your-buffer-key
 BUFFER_IG_CHANNEL_ID=6a473ba65ab6d2f1069bd878
 BUFFER_TIKTOK_CHANNEL_ID=6a473d135ab6d2f1069bdc4a
-APP_PUBLIC_URL=http://localhost:3001
+APP_PUBLIC_URL=http://localhost:3000
 ```
 
 Restart n8n after changing env:
@@ -53,7 +53,7 @@ Schedule Trigger
 | URL | `http://app:3000/api/content/scheduled` |
 | Header | `x-api-key` = `{{ $env.N8N_API_KEY }}` |
 
-> Use `http://app:3000` from inside Docker. From host machine use `http://localhost:3001`.
+> Use `http://app:3000` from inside Docker. From host machine use `http://localhost:3000`.
 
 ---
 

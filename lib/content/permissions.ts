@@ -1,5 +1,6 @@
 import type { Session } from "next-auth";
 import type { ContentStatus } from "@/lib/types";
+import { isAdminRole } from "@/lib/auth/roles";
 
 type ContentAccess = {
   status: ContentStatus;
@@ -18,7 +19,7 @@ export function canEditContent(
 ): boolean {
   if (!session?.user) return false;
   if (content.status === "posted" || content.status === "posting") return false;
-  if (session.user.role === "ADMIN") return true;
+  if (isAdminRole(session.user.role)) return true;
   return isOwner(session, content);
 }
 
@@ -27,7 +28,7 @@ export function canDeleteContent(
   content: ContentAccess
 ): boolean {
   if (!session?.user) return false;
-  if (session.user.role === "ADMIN") return true;
+  if (isAdminRole(session.user.role)) return true;
   if (content.status === "posted" || content.status === "posting") return false;
   return isOwner(session, content);
 }

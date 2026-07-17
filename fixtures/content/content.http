@@ -4,7 +4,7 @@
 # แก้ @channel ให้ตรงกับ slug ใน /admin/channels
 # แก้ JSON ในไฟล์ .json หรือใน ### Template ด้านล่าง แล้วกด Send
 
-@baseUrl = http://localhost:3001
+@baseUrl = http://localhost:3000
 @apiKey = dev-n8n-api-key-change-in-production
 @creatorEmail = creator@idea.local
 

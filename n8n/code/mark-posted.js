@@ -32,7 +32,7 @@ for (const item of $input.all()) {
   const { contentId, contentCode, platform, bufferPostId } = item.json;
 
   const apiKey = $env.N8N_API_KEY;
-  const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3001").replace(
+  const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3000").replace(
     /\/$/,
     ""
   );

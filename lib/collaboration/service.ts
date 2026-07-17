@@ -1,8 +1,38 @@
-import type { Content } from "@prisma/client";
+import type { Content, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ApprovalCardMetadata } from "@/lib/collaboration/types";
 
 const TEAM_CHANNEL_SLUG = "team-content";
+
+function isTeamChannel(slug: string) {
+  return slug === TEAM_CHANNEL_SLUG;
+}
+
+function isDmChannel(slug: string) {
+  return slug.startsWith("dm-");
+}
+
+function dmSlug(userIdA: string, userIdB: string) {
+  const [a, b] = [userIdA, userIdB].sort();
+  return `dm-${a}-${b}`;
+}
+
+/** Parse peer user id from slug `dm-{idA}-{idB}` (ids sorted lexicographically). */
+function peerIdFromDmSlug(slug: string, userId: string): string | null {
+  if (!isDmChannel(slug)) return null;
+  const rest = slug.slice(3); // remove "dm-"
+  if (rest.startsWith(`${userId}-`)) {
+    return rest.slice(userId.length + 1);
+  }
+  if (rest.endsWith(`-${userId}`)) {
+    return rest.slice(0, -(userId.length + 1));
+  }
+  return null;
+}
+
+function userIsDmParticipant(slug: string, userId: string) {
+  return peerIdFromDmSlug(slug, userId) !== null;
+}
 
 export async function ensureTeamChannel() {
   return prisma.collaborationChannel.upsert({
@@ -11,61 +41,114 @@ export async function ensureTeamChannel() {
       slug: TEAM_CHANNEL_SLUG,
       name: "ทีม Content",
     },
-    update: {},
+    update: {
+      name: "ทีม Content",
+    },
   });
 }
 
-export async function ensureContentChannel(content: Pick<Content, "id" | "contentId" | "name">) {
-  const slug = `content-${content.contentId.toLowerCase()}`;
+export async function ensureDmChannel(params: {
+  currentUser: Pick<User, "id" | "name">;
+  otherUser: Pick<User, "id" | "name">;
+}) {
+  if (params.currentUser.id === params.otherUser.id) {
+    throw new Error("ไม่สามารถแชทกับตัวเองได้");
+  }
+
+  const slug = dmSlug(params.currentUser.id, params.otherUser.id);
+
   return prisma.collaborationChannel.upsert({
     where: { slug },
     create: {
       slug,
-      name: content.name,
-      contentId: content.id,
+      name: params.otherUser.name,
     },
     update: {
-      name: content.name,
+      name: params.otherUser.name,
     },
   });
 }
 
-export async function listChannels() {
+export async function listChannels(userId: string) {
   await ensureTeamChannel();
 
   const channels = await prisma.collaborationChannel.findMany({
+    where: {
+      contentId: null,
+      OR: [
+        { slug: TEAM_CHANNEL_SLUG },
+        { slug: { startsWith: "dm-" } },
+      ],
+    },
     orderBy: { updatedAt: "desc" },
     include: {
-      content: { select: { contentId: true } },
       messages: {
         orderBy: { createdAt: "desc" },
         take: 1,
-        select: { body: true, messageType: true, createdAt: true, metadata: true },
+        select: {
+          body: true,
+          messageType: true,
+          createdAt: true,
+          metadata: true,
+        },
       },
     },
   });
 
-  return channels.map((channel) => {
-    const last = channel.messages[0];
-    let preview = last?.body ?? null;
-    if (last?.messageType === "approval_request") {
-      preview = "คำขออนุมัติ Content";
-    } else if (last?.messageType === "meeting") {
-      preview = "นัดประชุม";
-    } else if (last?.messageType === "system") {
-      preview = last.body;
-    }
+  const visible = channels.filter(
+    (channel) =>
+      isTeamChannel(channel.slug) ||
+      (isDmChannel(channel.slug) && userIsDmParticipant(channel.slug, userId))
+  );
 
-    return {
-      id: channel.id,
-      slug: channel.slug,
-      name: channel.name,
-      contentId: channel.contentId,
-      contentCode: channel.content?.contentId,
-      lastMessageAt: last?.createdAt.toISOString() ?? null,
-      lastMessagePreview: preview,
-    };
-  });
+  const dmPartnerIds = visible
+    .map((channel) => peerIdFromDmSlug(channel.slug, userId))
+    .filter((id): id is string => Boolean(id));
+
+  const partners = dmPartnerIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: [...new Set(dmPartnerIds)] } },
+        select: { id: true, name: true, email: true },
+      })
+    : [];
+  const partnerById = new Map(
+    partners.map((user) => [user.id, user] as const)
+  );
+
+  return visible
+    .map((channel) => {
+      const last = channel.messages[0];
+      let preview = last?.body ?? null;
+      if (last?.messageType === "approval_request") {
+        preview = "คำขออนุมัติ Content";
+      } else if (last?.messageType === "meeting") {
+        preview = "นัดประชุม";
+      } else if (last?.messageType === "system") {
+        preview = last.body;
+      }
+
+      const kind = isDmChannel(channel.slug) ? ("dm" as const) : ("team" as const);
+      const partnerId = peerIdFromDmSlug(channel.slug, userId);
+      const partner = partnerId ? partnerById.get(partnerId) : undefined;
+
+      return {
+        id: channel.id,
+        slug: channel.slug,
+        name: kind === "dm" && partner ? partner.name : channel.name,
+        kind,
+        contentId: null,
+        contentCode: undefined,
+        peerUserId: partnerId,
+        peerEmail: partner?.email ?? null,
+        lastMessageAt: last?.createdAt.toISOString() ?? null,
+        lastMessagePreview: preview,
+      };
+    })
+    .sort((a, b) => {
+      if (a.kind === "team" && b.kind !== "team") return -1;
+      if (b.kind === "team" && a.kind !== "team") return 1;
+      return (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? "");
+    });
 }
 
 export async function getChannelMessages(channelId: string, limit = 80) {
@@ -74,6 +157,21 @@ export async function getChannelMessages(channelId: string, limit = 80) {
     orderBy: { createdAt: "asc" },
     take: limit,
   });
+}
+
+export async function assertCanAccessChannel(
+  channelId: string,
+  userId: string
+): Promise<boolean> {
+  const channel = await prisma.collaborationChannel.findUnique({
+    where: { id: channelId },
+  });
+  if (!channel) return false;
+  if (isTeamChannel(channel.slug)) return true;
+  if (isDmChannel(channel.slug)) {
+    return userIsDmParticipant(channel.slug, userId);
+  }
+  return false;
 }
 
 export async function postTextMessage(params: {
@@ -119,7 +217,6 @@ export async function postApprovalRequest(
   requesterName: string
 ) {
   const teamChannel = await ensureTeamChannel();
-  const contentChannel = await ensureContentChannel(content);
 
   const metadata: ApprovalCardMetadata = {
     contentId: content.id,
@@ -131,23 +228,20 @@ export async function postApprovalRequest(
     status: "pending",
   };
 
-  const cardData = {
-    channelId: "",
-    authorName: "Approval Bot",
-    body: `คำขออนุมัติ: ${content.contentId} — ${content.name}`,
-    messageType: "approval_request" as const,
-    metadata,
-  };
+  await prisma.collaborationMessage.create({
+    data: {
+      channelId: teamChannel.id,
+      authorName: "Approval Bot",
+      body: `คำขออนุมัติ: ${content.contentId} — ${content.name}`,
+      messageType: "approval_request",
+      metadata,
+    },
+  });
 
-  for (const channelId of [teamChannel.id, contentChannel.id]) {
-    await prisma.collaborationMessage.create({
-      data: { ...cardData, channelId, metadata },
-    });
-    await prisma.collaborationChannel.update({
-      where: { id: channelId },
-      data: { updatedAt: new Date() },
-    });
-  }
+  await prisma.collaborationChannel.update({
+    where: { id: teamChannel.id },
+    data: { updatedAt: new Date() },
+  });
 
   await postSystemMessage({
     channelId: teamChannel.id,
@@ -222,7 +316,6 @@ export async function syncContentWorkflowToCollaboration(params: {
   note?: string;
 }) {
   const { content, actorName, action, note } = params;
-  const contentChannel = await ensureContentChannel(content);
   const teamChannel = await ensureTeamChannel();
 
   const messages: Record<typeof action, string> = {
@@ -232,7 +325,13 @@ export async function syncContentWorkflowToCollaboration(params: {
     updated: `${actorName} อัปเดตรายละเอียด ${content.contentId}`,
   };
 
-  for (const channelId of [contentChannel.id, teamChannel.id]) {
-    await postSystemMessage({ channelId, body: messages[action] });
+  // submitted already posts via postApprovalRequest — skip duplicate system line
+  if (action === "submitted") {
+    return;
   }
+
+  await postSystemMessage({
+    channelId: teamChannel.id,
+    body: messages[action],
+  });
 }

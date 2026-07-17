@@ -24,6 +24,8 @@ import {
   notifyApprovalRejected,
   notifyContentDetailChanged,
 } from "@/lib/notifications/events";
+import { writeContentUpdateAudit } from "@/lib/content/audit";
+import { isAdminRole } from "@/lib/auth/roles";
 import {
   resolveNextContentIdForChannel,
 } from "@/lib/content/content-id";
@@ -74,7 +76,7 @@ export async function createContent(
     return { success: false, error: "Unauthorized" };
   }
 
-  if (session.user.role === "ADMIN") {
+  if (isAdminRole(session.user.role)) {
     return { success: false, error: "Forbidden" };
   }
 
@@ -159,6 +161,13 @@ export async function updateContent(
     const changedFields = detectContentChanges(existing, data);
     if (changedFields.length > 0) {
       await notifyContentDetailChanged(record, changedFields, session.user.id);
+      await writeContentUpdateAudit({
+        before: existing,
+        afterForm: data,
+        changedFields,
+        actorId: session.user.id,
+        actorName: session.user.name ?? "ผู้ใช้",
+      });
       await syncContentWorkflowToCollaboration({
         content: record,
         actorName: session.user.name ?? "ผู้ใช้",

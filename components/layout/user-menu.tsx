@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import { ChevronDown, List, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getRoleLabel } from "@/lib/auth/roles";
 import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
 import type { Session } from "next-auth";
 
@@ -24,7 +25,7 @@ export function UserMenu({ session }: { session: Session | null }) {
 
   if (!session?.user) return null;
 
-  const roleLabel = session.user.role === "ADMIN" ? "Admin" : "Creator";
+  const roleLabel = getRoleLabel(session.user.role);
   const initial = session.user.name?.charAt(0).toUpperCase() ?? "U";
 
   return (

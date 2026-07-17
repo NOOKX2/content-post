@@ -38,6 +38,9 @@ function NotificationIcon({ type }: { type: string }) {
     case "team_comment":
     case "team_tag":
       return <MessageSquare className={cn(className, "text-blue-600")} />;
+    case "task_assigned":
+    case "task_updated":
+      return <CheckCircle2 className={cn(className, "text-teal-600")} />;
     case "monthly_summary":
       return <Calendar className={cn(className, "text-purple-600")} />;
     default:

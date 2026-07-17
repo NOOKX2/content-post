@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/content/api-auth";
-import { postMeetingMessage } from "@/lib/collaboration/service";
+import {
+  assertCanAccessChannel,
+  postMeetingMessage,
+} from "@/lib/collaboration/service";
 
 export async function POST(
   request: Request,
@@ -10,6 +13,14 @@ export async function POST(
   if ("error" in authResult) return authResult.error;
 
   const { id } = await params;
+  const allowed = await assertCanAccessChannel(
+    id,
+    authResult.session.user.id
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const payload = (await request.json()) as {
     title?: string;
     meetUrl?: string;

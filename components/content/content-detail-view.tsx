@@ -4,6 +4,8 @@ import { useState } from "react";
 import { FileDown, Pencil, Trash2 } from "lucide-react";
 import { ContentDetail } from "@/components/content/content-detail";
 import { ContentComments } from "@/components/content/content-comments";
+import { ContentHistoryPanel } from "@/components/content/content-history-panel";
+import { TeamTasksPanel } from "@/components/collaboration/team-tasks-panel";
 import { ContentForm } from "@/components/content/content-form";
 import { UserMenu } from "@/components/layout/user-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -190,8 +192,17 @@ export function ContentDetailView({
       ) : (
         <div className="mx-auto max-w-4xl space-y-0 px-4 py-6 md:px-8">
           <ContentDetail content={content} />
+          <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+            <h3 className="mb-3 text-sm font-semibold text-stone-800">
+              มอบหมายงาน
+            </h3>
+            <TeamTasksPanel contentId={content.id} compact />
+          </div>
           <div className="mt-6">
             <ContentComments contentId={content.id} />
+          </div>
+          <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+            <ContentHistoryPanel contentId={content.id} />
           </div>
         </div>
       )}

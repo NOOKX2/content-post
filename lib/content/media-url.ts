@@ -41,6 +41,6 @@ export function getAppPublicUrl(): string {
   return (
     process.env.APP_PUBLIC_URL ||
     process.env.AUTH_URL ||
-    "http://localhost:3001"
+    "http://localhost:3000"
   ).replace(/\/$/, "");
 }

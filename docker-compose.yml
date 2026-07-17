@@ -24,15 +24,15 @@ services:
       dockerfile: Dockerfile.dev
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3000:3000"
     volumes:
       - .:/app
       - app_node_modules:/app/node_modules
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/content_post?schema=public
       AUTH_SECRET: ${AUTH_SECRET:-dev-secret-change-in-production-min-32-chars}
-      AUTH_URL: http://localhost:3001
-      APP_PUBLIC_URL: http://localhost:3001
+      AUTH_URL: http://localhost:3000
+      APP_PUBLIC_URL: http://localhost:3000
       R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
       R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
@@ -99,7 +99,7 @@ services:
       BUFFER_TIKTOK_CHANNEL_ID: ${BUFFER_TIKTOK_CHANNEL_ID:-}
       BUFFER_FB_CHANNEL_ID: ${BUFFER_FB_CHANNEL_ID:-}
       BUFFER_YOUTUBE_CHANNEL_ID: ${BUFFER_YOUTUBE_CHANNEL_ID:-}
-      APP_PUBLIC_URL: ${AUTH_URL:-http://localhost:3001}
+      APP_PUBLIC_URL: ${AUTH_URL:-http://localhost:3000}
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:

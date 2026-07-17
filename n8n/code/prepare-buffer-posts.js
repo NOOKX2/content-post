@@ -13,7 +13,7 @@ const legacyBufferChannels = {
   youtube: $env.BUFFER_YOUTUBE_CHANNEL_ID,
 };
 
-const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3001").replace(/\/$/, "");
+const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3000").replace(/\/$/, "");
 
 function toPublicUrl(url) {
   if (!url) return null;

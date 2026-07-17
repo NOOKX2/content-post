@@ -32,8 +32,11 @@ export type CollaborationChannelItem = {
   id: string;
   slug: string;
   name: string;
+  kind: "team" | "dm";
   contentId: string | null;
   contentCode?: string;
+  peerUserId?: string | null;
+  peerEmail?: string | null;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
 };

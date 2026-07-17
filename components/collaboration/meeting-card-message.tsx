@@ -39,7 +39,7 @@ export function MeetingCardMessage({
         : "จบแล้ว";
 
   return (
-    <div className="max-w-md overflow-hidden rounded-xl border border-blue-200 bg-white shadow-sm">
+    <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-blue-200 bg-white shadow-sm">
       <div className="flex items-center gap-2 border-b border-blue-100 bg-blue-50 px-3 py-2">
         <Video className="h-4 w-4 text-blue-600" />
         <span className="text-sm font-semibold text-blue-900">นัดประชุม</span>

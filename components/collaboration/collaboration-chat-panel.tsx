@@ -103,7 +103,6 @@ export function CollaborationChatPanel({
             key={message.id}
             message={message}
             isSelf={message.authorId === session?.user?.id}
-            onResolved={() => mutate()}
           />
         ))}
         <div ref={bottomRef} />
@@ -187,19 +186,15 @@ export function CollaborationChatPanel({
 function MessageBubble({
   message,
   isSelf,
-  onResolved,
 }: {
   message: CollaborationMessageItem;
   isSelf: boolean;
-  onResolved: () => void;
 }) {
   if (message.messageType === "approval_request") {
     return (
-      <div className="flex justify-center">
+      <div className="flex w-full justify-center">
         <ApprovalCardMessage
-          messageId={message.id}
           metadata={message.metadata as unknown as ApprovalCardMetadata}
-          onResolved={onResolved}
         />
       </div>
     );
@@ -207,7 +202,7 @@ function MessageBubble({
 
   if (message.messageType === "meeting") {
     return (
-      <div className={cn("flex", isSelf ? "justify-end" : "justify-start")}>
+      <div className="flex w-full justify-center">
         <MeetingCardMessage
           metadata={message.metadata as unknown as MeetingCardMetadata}
         />
@@ -218,7 +213,7 @@ function MessageBubble({
   if (message.messageType === "system") {
     return (
       <div className="flex justify-center">
-        <p className="rounded-full bg-stone-200/80 px-3 py-1 text-[11px] text-stone-600">
+        <p className="max-w-2xl rounded-full bg-stone-200/80 px-4 py-1.5 text-center text-xs text-stone-600">
           {message.body}
         </p>
       </div>
@@ -229,7 +224,7 @@ function MessageBubble({
     <div className={cn("flex", isSelf ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[75%] rounded-2xl px-3 py-2",
+          "max-w-[85%] rounded-2xl px-3.5 py-2.5 sm:max-w-[70%]",
           isSelf
             ? "rounded-br-md bg-blue-600 text-white"
             : "rounded-bl-md bg-white text-stone-800 shadow-sm"

@@ -32,7 +32,7 @@ const contentId = item.id;
 const contentCode = item.contentId;
 
 const apiKey = $env.N8N_API_KEY;
-const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3001").replace(
+const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3000").replace(
   /\/$/,
   ""
 );

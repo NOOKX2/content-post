@@ -1,5 +1,6 @@
 import type { Role } from "@prisma/client";
+import { isAdminRole } from "@/lib/auth/roles";
 
 export function getDefaultPathForRole(role: Role | string | undefined) {
-  return role === "ADMIN" ? "/admin" : "/create";
+  return isAdminRole(role) ? "/admin" : "/create";
 }
