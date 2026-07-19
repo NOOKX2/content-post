@@ -63,6 +63,7 @@ for (const item of $input.all()) {
     log("2/5 Prepare Buffer Posts", "ERROR no media URL", {
       contentId: content.contentId,
       attachments: content.attachments,
+      mediaType: content.mediaType,
     });
     throw new Error(
       `Content ${content.id} (${content.contentId}) has no media URL`
@@ -70,7 +71,21 @@ for (const item of $input.all()) {
   }
 
   const videoExt = /\.(mp4|mov|webm|m4v)$/i;
-  const assetKey = videoExt.test(mediaUrl.split("?")[0]) ? "video" : "image";
+  const urlLooksLikeVideo = videoExt.test(mediaUrl.split("?")[0]);
+  const wantsVideo = content.mediaType === "video" || urlLooksLikeVideo;
+
+  if (content.mediaType === "video" && !urlLooksLikeVideo) {
+    log("2/5 Prepare Buffer Posts", "ERROR video content without video URL", {
+      contentId: content.contentId,
+      mediaUrl,
+      mediaType: content.mediaType,
+    });
+    throw new Error(
+      `Content ${content.contentId} is video but media URL is not a video file: ${mediaUrl}`
+    );
+  }
+
+  const assetKey = wantsVideo ? "video" : "image";
 
   function platformMetadata(platform) {
     if (platform === "instagram") {

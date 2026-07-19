@@ -1,6 +1,14 @@
 const VIDEO_EXT = /\.(mp4|mov|webm|m4v)$/i;
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
 
+export function isVideoMediaUrl(url: string): boolean {
+  return VIDEO_EXT.test(url.split("?")[0]);
+}
+
+export function isImageMediaUrl(url: string): boolean {
+  return IMAGE_EXT.test(url.split("?")[0]);
+}
+
 export function toAbsolutePublicUrl(
   url: string,
   baseUrl: string
@@ -30,11 +38,12 @@ export function resolvePublicMediaUrl(
 
   const matcher = mediaType === "video" ? VIDEO_EXT : IMAGE_EXT;
   const matched = absoluteUrls.find((url) => matcher.test(url.split("?")[0]));
-  if (matched) {
-    return matched;
+  // For video content, never fall back to a non-video attachment — Buffer would post as image.
+  if (mediaType === "video") {
+    return matched ?? null;
   }
 
-  return absoluteUrls[0];
+  return matched ?? absoluteUrls[0];
 }
 
 export function getAppPublicUrl(): string {

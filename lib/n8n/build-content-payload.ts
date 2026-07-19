@@ -15,13 +15,21 @@ export async function buildN8nContentPayload(record: Content) {
     item.platforms as Platform[]
   );
 
+  const mediaUrl = resolvePublicMediaUrl(
+    item.attachments,
+    item.mediaType,
+    appPublicUrl
+  );
+
+  if (item.mediaType === "video" && !mediaUrl) {
+    throw new Error(
+      `Content ${item.contentId} เป็นวิดีโอแต่ไม่มีไฟล์ .mp4/.mov/.webm ใน attachments`
+    );
+  }
+
   return {
     ...item,
-    mediaUrl: resolvePublicMediaUrl(
-      item.attachments,
-      item.mediaType,
-      appPublicUrl
-    ),
+    mediaUrl,
     bufferTargets,
   };
 }

@@ -52,6 +52,14 @@ export function TeamTasksPanel({ contentId, compact = false }: TeamTasksPanelPro
   const [assigneeId, setAssigneeId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  const resetForm = () => {
+    setTitle("");
+    setAssigneeId("");
+    setDueDate("");
+    setShowForm(false);
+  };
 
   const create = async () => {
     if (!title.trim() || submitting) return;
@@ -72,9 +80,7 @@ export function TeamTasksPanel({ contentId, compact = false }: TeamTasksPanelPro
         alert(data.error || "สร้างงานไม่สำเร็จ");
         return;
       }
-      setTitle("");
-      setAssigneeId("");
-      setDueDate("");
+      resetForm();
       await mutate();
     } finally {
       setSubmitting(false);
@@ -129,37 +135,61 @@ export function TeamTasksPanel({ contentId, compact = false }: TeamTasksPanelPro
       )}
 
       <div className={cn(compact ? "" : "min-h-0 flex-1 overflow-y-auto p-4")}>
-        <div className="mb-4 space-y-3 rounded-xl border border-stone-200 bg-stone-50/70 p-3">
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="ชื่องาน เช่น ตัดต่อคลิป, ออกแบบภาพ"
-          />
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Select
-              options={members.map((m) => ({ value: m.id, label: m.name }))}
-              placeholder="มอบหมายให้..."
-              value={assigneeId}
-              onChange={(e) => setAssigneeId(e.target.value)}
-            />
+        {showForm ? (
+          <div className="mb-4 space-y-3 rounded-xl border border-stone-200 bg-stone-50/70 p-3">
             <Input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="ชื่องาน เช่น ตัดต่อคลิป, ออกแบบภาพ"
+              autoFocus
             />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Select
+                options={members.map((m) => ({ value: m.id, label: m.name }))}
+                placeholder="มอบหมายให้..."
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+              />
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={resetForm}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="min-w-28"
+                onClick={() => void create()}
+                disabled={submitting || !title.trim()}
+              >
+                <Plus className="h-4 w-4" />
+                มอบหมายงาน
+              </Button>
+            </div>
           </div>
-          <div className="flex justify-end">
+        ) : (
+          <div className="mb-4 flex justify-center sm:justify-start">
             <Button
               type="button"
+              variant="outline"
               size="sm"
-              onClick={() => void create()}
-              disabled={submitting || !title.trim()}
+              onClick={() => setShowForm(true)}
             >
               <Plus className="h-4 w-4" />
               มอบหมายงาน
             </Button>
           </div>
-        </div>
+        )}
 
         {isLoading ? (
           <p className="text-sm text-stone-400">กำลังโหลด...</p>

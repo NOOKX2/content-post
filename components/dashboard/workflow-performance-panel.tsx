@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock3,
+  RotateCcw,
 } from "lucide-react";
 import { DashboardChartCard } from "@/components/dashboard/dashboard-chart-card";
 import { DashboardFiltersBar } from "@/components/dashboard/dashboard-filters";
@@ -38,7 +39,7 @@ export function WorkflowPerformancePanel() {
     <div className="flex h-full min-h-0 flex-col gap-2">
       <DashboardFiltersBar filters={filters} onChange={setFilters} />
 
-      <div className="grid shrink-0 grid-cols-2 gap-2 xl:grid-cols-4">
+      <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           label="งานทั้งหมด"
           value={analytics.summary.total}
@@ -58,6 +59,13 @@ export function WorkflowPerformancePanel() {
           value={analytics.summary.published}
           icon={CheckCircle2}
           accent="green"
+          compact
+        />
+        <KpiCard
+          label="รอแก้ไข"
+          value={analytics.summary.rejected}
+          icon={RotateCcw}
+          accent="purple"
           compact
         />
         <KpiCard

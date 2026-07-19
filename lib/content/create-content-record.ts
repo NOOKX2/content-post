@@ -22,6 +22,7 @@ import {
   getPostingChannelPrefix,
   isValidPostingChannel,
 } from "@/lib/content/posting-channels";
+import { isVideoMediaUrl } from "@/lib/content/media-url";
 import type { ContentFormData, ContentItem } from "@/lib/types";
 
 export async function validateContentFormData(
@@ -47,6 +48,16 @@ export async function validateContentFormData(
   const invalid = data.platforms.filter((p) => !available.includes(p));
   if (invalid.length > 0) {
     return `แพลตฟอร์มไม่รองรับสำหรับช่องนี้: ${invalid.join(", ")}`;
+  }
+
+  if (data.mediaType === "video") {
+    const attachments = (data.attachments ?? []).filter((url) => url.trim());
+    if (attachments.length === 0) {
+      return "กรุณาอัปโหลดหรือแนบลิงก์วิดีโออย่างน้อย 1 ไฟล์";
+    }
+    if (!attachments.some((url) => isVideoMediaUrl(url))) {
+      return "Content ประเภทวิดีโอต้องมีไฟล์ .mp4 / .mov / .webm";
+    }
   }
 
   return null;
