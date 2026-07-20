@@ -10,9 +10,14 @@ import { generateId } from "@/lib/utils";
 interface TeamTableProps {
   rows: TeamRow[];
   onChange: (rows: TeamRow[]) => void;
+  hideAddButton?: boolean;
 }
 
-export function TeamTable({ rows, onChange }: TeamTableProps) {
+export function TeamTable({
+  rows,
+  onChange,
+  hideAddButton = false,
+}: TeamTableProps) {
   const addRow = () => {
     onChange([
       ...rows,
@@ -30,12 +35,14 @@ export function TeamTable({ rows, onChange }: TeamTableProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button type="button" variant="ghost" size="sm" onClick={addRow}>
-          <Plus className="h-4 w-4" />
-          เพิ่มแถว
-        </Button>
-      </div>
+      {!hideAddButton && (
+        <div className="flex justify-end">
+          <Button type="button" variant="ghost" size="sm" onClick={addRow}>
+            <Plus className="h-4 w-4" />
+            เพิ่มแถว
+          </Button>
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <p className="rounded-lg border border-dashed border-stone-200 py-6 text-center text-sm text-stone-400">

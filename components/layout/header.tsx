@@ -1,9 +1,11 @@
 "use client";
 
 import { FileDown } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { UserMenu } from "./user-menu";
+import { useAppSession } from "@/lib/auth/app-session";
 import { cn } from "@/lib/utils";
 import type { Session } from "next-auth";
 
@@ -24,16 +26,20 @@ export function Header({
   showExport,
   onExport,
   actions,
-  session = null,
+  session: sessionProp = null,
 }: HeaderProps) {
+  const appSession = useAppSession();
+  const { data: clientSession } = useSession();
+  const session = sessionProp ?? clientSession ?? appSession;
+
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 flex shrink-0 items-center justify-between border-b border-stone-200/80 bg-white/95 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80",
+        "sticky top-0 z-40 flex shrink-0 items-center justify-between gap-4 border-b border-stone-200/80 bg-white/95 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80",
         compact ? "px-5 py-2.5" : "px-8 py-4"
       )}
     >
-      <div>
+      <div className="min-w-0">
         <h1
           className={cn(
             "font-bold text-stone-900",
@@ -53,7 +59,7 @@ export function Header({
           </p>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3">
         {showExport && (
           <Button variant="outline" size="sm" onClick={onExport}>
             <FileDown className="h-4 w-4" />

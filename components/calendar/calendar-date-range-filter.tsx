@@ -80,8 +80,8 @@ export function CalendarDateRangeFilter({
   }, [open]);
 
   return (
-    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
-      <div ref={containerRef} className="relative min-w-[240px] flex-1 sm:max-w-sm">
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-row sm:items-center">
+      <div ref={containerRef} className="relative min-w-[200px] flex-1 sm:max-w-xs">
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}

@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { Users } from "lucide-react";
 import { Select } from "@/components/ui/select";
+import { PersonAvatar } from "@/components/collaboration/person-avatar";
 import { ROLE_LABELS, TEAM_ROLES, isAdminRole } from "@/lib/auth/roles";
 import type { TeamMemberItem } from "@/lib/collaboration/team-types";
 import type { Role } from "@prisma/client";
@@ -70,8 +71,13 @@ export function TeamMembersPanel() {
               <tbody>
                 {members.map((member) => (
                   <tr key={member.id} className="border-t border-stone-100">
-                    <td className="px-4 py-3 font-medium text-stone-900">
-                      {member.name}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <PersonAvatar name={member.name} size="md" />
+                        <span className="font-medium text-stone-900">
+                          {member.name}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-stone-600">{member.email}</td>
                     <td className="px-4 py-3">

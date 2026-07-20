@@ -90,7 +90,13 @@ export async function listChannels(userId: string) {
           messageType: true,
           createdAt: true,
           metadata: true,
+          deletedAt: true,
         },
+      },
+      reads: {
+        where: { userId },
+        take: 1,
+        select: { lastReadAt: true },
       },
     },
   });
@@ -115,11 +121,30 @@ export async function listChannels(userId: string) {
     partners.map((user) => [user.id, user] as const)
   );
 
+  const unreadCounts = await Promise.all(
+    visible.map(async (channel) => {
+      const lastReadAt = channel.reads[0]?.lastReadAt;
+      const count = await prisma.collaborationMessage.count({
+        where: {
+          channelId: channel.id,
+          ...(lastReadAt
+            ? { createdAt: { gt: lastReadAt } }
+            : {}),
+          OR: [{ authorId: null }, { authorId: { not: userId } }],
+        },
+      });
+      return [channel.id, count] as const;
+    })
+  );
+  const unreadByChannelId = new Map(unreadCounts);
+
   return visible
     .map((channel) => {
       const last = channel.messages[0];
       let preview = last?.body ?? null;
-      if (last?.messageType === "approval_request") {
+      if (last?.deletedAt) {
+        preview = "ข้อความถูกยกเลิก";
+      } else if (last?.messageType === "approval_request") {
         preview = "คำขออนุมัติ Content";
       } else if (last?.messageType === "meeting") {
         preview = "นัดประชุม";
@@ -142,13 +167,34 @@ export async function listChannels(userId: string) {
         peerEmail: partner?.email ?? null,
         lastMessageAt: last?.createdAt.toISOString() ?? null,
         lastMessagePreview: preview,
+        unreadCount: unreadByChannelId.get(channel.id) ?? 0,
       };
     })
     .sort((a, b) => {
-      if (a.kind === "team" && b.kind !== "team") return -1;
-      if (b.kind === "team" && a.kind !== "team") return 1;
-      return (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? "");
+      const aTime = a.lastMessageAt ?? "";
+      const bTime = b.lastMessageAt ?? "";
+      if (aTime && bTime) return bTime.localeCompare(aTime);
+      if (aTime) return -1;
+      if (bTime) return 1;
+      return a.name.localeCompare(b.name, "th");
     });
+}
+
+export async function markChannelAsRead(channelId: string, userId: string) {
+  const now = new Date();
+  await prisma.collaborationChannelRead.upsert({
+    where: {
+      channelId_userId: { channelId, userId },
+    },
+    create: {
+      channelId,
+      userId,
+      lastReadAt: now,
+    },
+    update: {
+      lastReadAt: now,
+    },
+  });
 }
 
 export async function getChannelMessages(channelId: string, limit = 80) {
@@ -198,11 +244,89 @@ export async function postTextMessage(params: {
   return message;
 }
 
+export async function updateTextMessage(params: {
+  messageId: string;
+  userId: string;
+  body: string;
+}) {
+  const message = await prisma.collaborationMessage.findUnique({
+    where: { id: params.messageId },
+  });
+  if (!message) {
+    throw new Error("ไม่พบข้อความ");
+  }
+  if (message.messageType !== "text") {
+    throw new Error("แก้ไขได้เฉพาะข้อความแชทเท่านั้น");
+  }
+  if (message.deletedAt) {
+    throw new Error("ไม่สามารถแก้ไขข้อความที่ถูกยกเลิกแล้ว");
+  }
+  if (message.authorId !== params.userId) {
+    throw new Error("แก้ไขได้เฉพาะข้อความของตนเอง");
+  }
+
+  const text = params.body.trim();
+  if (!text) {
+    throw new Error("กรุณากรอกข้อความ");
+  }
+
+  const updated = await prisma.collaborationMessage.update({
+    where: { id: params.messageId },
+    data: {
+      body: text,
+      editedAt: new Date(),
+    },
+  });
+
+  await prisma.collaborationChannel.update({
+    where: { id: updated.channelId },
+    data: { updatedAt: new Date() },
+  });
+
+  return updated;
+}
+
+export async function deleteTextMessage(params: {
+  messageId: string;
+  userId: string;
+}) {
+  const message = await prisma.collaborationMessage.findUnique({
+    where: { id: params.messageId },
+  });
+  if (!message) {
+    throw new Error("ไม่พบข้อความ");
+  }
+  if (message.messageType !== "text") {
+    throw new Error("ยกเลิกได้เฉพาะข้อความแชทเท่านั้น");
+  }
+  if (message.deletedAt) {
+    throw new Error("ข้อความนี้ถูกยกเลิกแล้ว");
+  }
+  if (message.authorId !== params.userId) {
+    throw new Error("ยกเลิกได้เฉพาะข้อความของตนเอง");
+  }
+
+  const deleted = await prisma.collaborationMessage.update({
+    where: { id: params.messageId },
+    data: {
+      deletedAt: new Date(),
+      body: "",
+    },
+  });
+
+  await prisma.collaborationChannel.update({
+    where: { id: deleted.channelId },
+    data: { updatedAt: new Date() },
+  });
+
+  return deleted;
+}
+
 export async function postSystemMessage(params: {
   channelId: string;
   body: string;
 }) {
-  return prisma.collaborationMessage.create({
+  const message = await prisma.collaborationMessage.create({
     data: {
       channelId: params.channelId,
       authorName: "ระบบ",
@@ -210,6 +334,13 @@ export async function postSystemMessage(params: {
       messageType: "system",
     },
   });
+
+  await prisma.collaborationChannel.update({
+    where: { id: params.channelId },
+    data: { updatedAt: new Date() },
+  });
+
+  return message;
 }
 
 export async function postApprovalRequest(

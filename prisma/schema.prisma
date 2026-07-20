@@ -75,6 +75,7 @@ model User {
   notifications   Notification[]
   comments        ContentComment[]
   collabMessages  CollaborationMessage[]
+  channelReads    CollaborationChannelRead[]
   assignedTasks   Task[]                  @relation("TaskAssignee")
   createdTasks    Task[]                  @relation("TaskCreator")
   auditLogs       ContentAuditLog[]
@@ -83,14 +84,29 @@ model User {
 }
 
 model CollaborationChannel {
-  id        String                 @id @default(cuid())
-  slug      String                 @unique
+  id        String                     @id @default(cuid())
+  slug      String                     @unique
   name      String
-  contentId String?                @unique
-  content   Content?               @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  contentId String?                    @unique
+  content   Content?                   @relation(fields: [contentId], references: [id], onDelete: SetNull)
   messages  CollaborationMessage[]
-  createdAt DateTime               @default(now())
-  updatedAt DateTime               @updatedAt
+  reads     CollaborationChannelRead[]
+  createdAt DateTime                   @default(now())
+  updatedAt DateTime                   @updatedAt
+}
+
+model CollaborationChannelRead {
+  id         String               @id @default(cuid())
+  channelId  String
+  channel    CollaborationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt DateTime             @default(now())
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@unique([channelId, userId])
+  @@index([userId])
 }
 
 model CollaborationMessage {
@@ -103,6 +119,8 @@ model CollaborationMessage {
   body        String                   @default("")
   messageType CollaborationMessageType @default(text)
   metadata    Json                     @default("{}")
+  editedAt    DateTime?
+  deletedAt   DateTime?
   createdAt   DateTime                 @default(now())
 
   @@index([channelId, createdAt])

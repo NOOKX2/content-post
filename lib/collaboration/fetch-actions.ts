@@ -72,6 +72,41 @@ export async function postChannelMeeting(
   return data.message;
 }
 
+export async function editChannelMessage(
+  messageId: string,
+  body: string
+): Promise<CollaborationMessageItem> {
+  const res = await fetch(`/api/collaboration/messages/${messageId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ body }),
+  });
+  const data = (await res.json()) as {
+    message?: CollaborationMessageItem;
+    error?: string;
+  };
+  if (!res.ok || !data.message) {
+    throw new Error(data.error || "แก้ไขข้อความไม่สำเร็จ");
+  }
+  return data.message;
+}
+
+export async function deleteChannelMessage(
+  messageId: string
+): Promise<CollaborationMessageItem> {
+  const res = await fetch(`/api/collaboration/messages/${messageId}`, {
+    method: "DELETE",
+  });
+  const data = (await res.json()) as {
+    message?: CollaborationMessageItem;
+    error?: string;
+  };
+  if (!res.ok || !data.message) {
+    throw new Error(data.error || "ยกเลิกข้อความไม่สำเร็จ");
+  }
+  return data.message;
+}
+
 export async function resolveApproval(
   messageId: string,
   action: "approve" | "reject",

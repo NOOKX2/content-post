@@ -28,13 +28,13 @@ export function MediaTypeToggle({ value, onChange }: MediaTypeToggleProps) {
             type="button"
             onClick={() => onChange(type)}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-4 text-sm font-semibold transition-all",
+              "flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all",
               isActive
                 ? cn(config.accentBorder, config.accentBg, config.accentText)
                 : "border-stone-200 bg-white text-stone-500 hover:border-stone-300"
             )}
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-4 w-4" />
             {config.label}
           </button>
         );

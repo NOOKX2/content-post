@@ -54,6 +54,7 @@ export async function POST(request: Request) {
         peerEmail: otherUser.email,
         lastMessageAt: null,
         lastMessagePreview: null,
+        unreadCount: 0,
       },
     });
   } catch (error) {

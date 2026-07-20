@@ -1,12 +1,17 @@
 "use client";
 
 import {
-  ArrowLeft,
   Calendar,
+  Clapperboard,
+  FileText,
   ImageIcon,
-  MapPin,
+  ListChecks,
+  Package,
+  Paperclip,
   Tag,
+  Type,
   User,
+  Users,
   Video,
 } from "lucide-react";
 import type { ContentItem } from "@/lib/types";
@@ -15,9 +20,7 @@ import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
 import { isImageAttachment } from "@/lib/content/attachments";
 import { isVideoMediaUrl } from "@/lib/content/media-url";
 import { formatScriptDuration } from "@/lib/content/script";
-import { ContentStatusBadge } from "@/components/content/content-status-badge";
-import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
-import { cn, formatLocations, formatThaiDate } from "@/lib/utils";
+import { cn, formatThaiDate } from "@/lib/utils";
 
 interface ContentDetailProps {
   content: ContentItem;
@@ -25,10 +28,12 @@ interface ContentDetailProps {
 
 function SectionCard({
   title,
+  icon: Icon,
   children,
   className,
 }: {
   title?: string;
+  icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -40,30 +45,19 @@ function SectionCard({
       )}
     >
       {title && (
-        <h3 className="mb-3 text-base font-semibold text-stone-900">{title}</h3>
+        <div className="mb-4 flex items-center gap-2.5">
+          {Icon && (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+              <Icon className="h-5 w-5" strokeWidth={2.25} />
+            </span>
+          )}
+          <h3 className="text-xl font-bold tracking-tight text-slate-900">
+            {title}
+          </h3>
+        </div>
       )}
       {children}
     </section>
-  );
-}
-
-function InfoChip({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: React.ReactNode;
-  icon?: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <div className="rounded-xl border border-stone-200 bg-stone-50/80 px-3 py-3">
-      <p className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-stone-500">
-        {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
-        {label}
-      </p>
-      <p className="text-sm font-semibold text-stone-900">{value}</p>
-    </div>
   );
 }
 
@@ -89,27 +83,22 @@ function MetaListRow({
   );
 }
 
-function HeroMedia({
-  content,
-  onBack,
-}: {
-  content: ContentItem;
-  onBack: () => void;
-}) {
+function HeroMedia({ content }: { content: ContentItem }) {
   const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
   const isVideo = content.mediaType === "video";
   const heroUrl = content.attachments.find((url) => url.trim()) ?? "";
   const heroIsVideo = heroUrl ? isVideoMediaUrl(heroUrl) : false;
   const heroIsImage = heroUrl ? isImageAttachment(heroUrl) : false;
+  const filename = heroUrl.split("?")[0].split("/").pop() ?? "preview";
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-stone-200">
-      <div className="aspect-16/10 w-full sm:aspect-2/1">
+    <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-200 shadow-sm">
+      <div className="aspect-video w-full">
         {heroIsVideo ? (
           <video
             src={heroUrl}
             controls
-            className="h-full w-full object-cover bg-black"
+            className="h-full w-full bg-black object-contain"
             preload="metadata"
           />
         ) : heroIsImage ? (
@@ -135,21 +124,90 @@ function HeroMedia({
           </div>
         )}
       </div>
+      {(heroIsVideo || heroIsImage) && (
+        <div className="border-t border-stone-200 bg-white px-4 py-2">
+          <p className="truncate text-xs text-stone-500">
+            Preview: {filename}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
-      <button
-        type="button"
-        onClick={onBack}
-        className="absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-stone-800 shadow-md backdrop-blur transition hover:bg-white"
-        aria-label="กลับ"
-      >
-        <ArrowLeft className="h-5 w-5" />
-      </button>
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "เมื่อสักครู่";
+  if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ชม.ที่แล้ว`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} วันที่แล้ว`;
+  return formatThaiDate(iso.slice(0, 10));
+}
+
+const DETAIL_STATUS_STYLES: Record<
+  ContentItem["status"],
+  { label: string; className: string }
+> = {
+  draft: { label: "DRAFT", className: "bg-stone-100 text-stone-700" },
+  pending: { label: "PENDING", className: "bg-amber-100 text-amber-800" },
+  approved: { label: "APPROVED", className: "bg-sky-100 text-sky-800" },
+  scheduled: { label: "SCHEDULED", className: "bg-sky-100 text-sky-800" },
+  posting: { label: "POSTING", className: "bg-amber-100 text-amber-800" },
+  posted: { label: "PUBLISHED", className: "bg-sky-100 text-sky-800" },
+  rejected: { label: "REJECTED", className: "bg-red-100 text-red-800" },
+};
+
+function DetailStatusBadge({ status }: { status: ContentItem["status"] }) {
+  const config = DETAIL_STATUS_STYLES[status];
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-lg px-3 py-1.5 text-xs font-bold tracking-wide uppercase",
+        config.className
+      )}
+    >
+      {config.label}
+    </span>
+  );
+}
+
+function ApproverDisplay({ name }: { name: string }) {
+  const initial = name.charAt(0).toUpperCase();
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-bold text-white">
+        {initial}
+      </span>
+      <span>{name}</span>
+    </span>
+  );
+}
+
+function MetaCell({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon?: React.ComponentType<{ className?: string }>;
+}) {
+  if (!value) return null;
+  return (
+    <div className="min-w-0">
+      <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+        {Icon && <Icon className="h-3 w-3" />}
+        {label}
+      </p>
+      <p className="mt-1.5 text-sm font-semibold text-stone-900">{value}</p>
     </div>
   );
 }
 
 export function ContentDetail({ content }: ContentDetailProps) {
-  const { navigate } = useDashboardNav();
   const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
   const isVideo = content.mediaType === "video";
 
@@ -171,145 +229,71 @@ export function ContentDetail({ content }: ContentDetailProps) {
       imageMeta.workSizes.length > 0);
 
   const objective = isVideo ? content.category : imageMeta?.objective;
-  const locationLabel =
-    content.location.length > 0 ? formatLocations(content.location) : null;
-
-  const infoItems: Array<{
-    label: string;
-    value: React.ReactNode;
-    icon: React.ComponentType<{ className?: string }>;
-  }> = [];
-
-  if (scheduleLabel) {
-    infoItems.push({
-      label: "วันเวลาโพสต์",
-      value: scheduleLabel,
-      icon: Calendar,
-    });
-  }
-  if (content.ideaFinishedDate) {
-    infoItems.push({
-      label: "คิดเสร็จ",
-      value: formatThaiDate(content.ideaFinishedDate),
-      icon: Calendar,
-    });
-  }
-  if (content.shootDate) {
-    infoItems.push({
-      label: "นัดถ่าย",
-      value: formatThaiDate(content.shootDate),
-      icon: Calendar,
-    });
-  }
-  if (content.editFinishedDate) {
-    infoItems.push({
-      label: "ตัดเสร็จ",
-      value: formatThaiDate(content.editFinishedDate),
-      icon: Calendar,
-    });
-  }
-  if (locationLabel) {
-    infoItems.push({
-      label: "สถานที่",
-      value: locationLabel,
-      icon: MapPin,
-    });
-  }
-  if (objective) {
-    infoItems.push({
-      label: "วัตถุประสงค์",
-      value: objective,
-      icon: Tag,
-    });
-  }
-  if (content.approver) {
-    infoItems.push({
-      label: "อนุมัติโดย",
-      value: content.approver,
-      icon: User,
-    });
-  }
 
   const otherAttachments = content.attachments.slice(1);
 
   return (
-    <div className="space-y-5">
-      <HeroMedia content={content} onBack={() => navigate("/calendar")} />
+    <div className="space-y-4">
+      <HeroMedia content={content} />
 
       <SectionCard>
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold tracking-tight text-stone-900 md:text-3xl">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
               {content.name}
             </h1>
-            {content.channel && (
-              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-stone-500">
-                <MapPin className="h-3.5 w-3.5 shrink-0" />
-                {content.channel}
-              </p>
-            )}
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="text-[11px] font-medium text-stone-400">สถานะ</p>
-            <div className="mt-1 flex flex-col items-end gap-1.5">
-              <ContentStatusBadge
-                status={content.status}
-                className="rounded-full"
-              />
-              <span className="font-mono text-xs text-stone-500">
+            <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+              <span className="font-mono text-sm text-stone-400">
                 #{content.contentId}
               </span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+                  mediaConfig.accentBg,
+                  mediaConfig.accentText
+                )}
+                title={mediaConfig.label}
+              >
+                {isVideo ? (
+                  <Video className="h-3.5 w-3.5" />
+                ) : (
+                  <ImageIcon className="h-3.5 w-3.5" />
+                )}
+              </span>
+              {content.platforms.length > 0 && (
+                <PlatformBadgeGroup platforms={content.platforms} size="sm" />
+              )}
             </div>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <DetailStatusBadge status={content.status} />
+            <p className="text-[10px] font-medium uppercase tracking-wide text-stone-400">
+              อัปเดต: {formatRelativeTime(content.createdAt)}
+            </p>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
-              mediaConfig.accentBg,
-              mediaConfig.accentText
-            )}
-          >
-            {isVideo ? (
-              <Video className="h-3.5 w-3.5" />
-            ) : (
-              <ImageIcon className="h-3.5 w-3.5" />
-            )}
-            {mediaConfig.label}
-          </span>
-          {locationLabel && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-              <MapPin className="h-3 w-3" />
-              {locationLabel}
-            </span>
-          )}
-          {content.platforms.length > 0 && (
-            <PlatformBadgeGroup platforms={content.platforms} size="sm" />
-          )}
+        <div className="mt-5 grid grid-cols-1 gap-4 border-t border-stone-100 pt-5 sm:grid-cols-3">
+          <MetaCell
+            label="Post Date"
+            value={scheduleLabel}
+            icon={Calendar}
+          />
+          <MetaCell
+            label="Approved By"
+            value={
+              content.approver ? (
+                <ApproverDisplay name={content.approver} />
+              ) : null
+            }
+            icon={User}
+          />
+          <MetaCell label="Category" value={objective} icon={Tag} />
         </div>
       </SectionCard>
 
-      {infoItems.length > 0 && (
-        <div>
-          <p className="mb-2 text-sm font-semibold text-stone-800">
-            ข้อมูลสำคัญ
-          </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-            {infoItems.map((item) => (
-              <InfoChip
-                key={item.label}
-                label={item.label}
-                value={item.value}
-                icon={item.icon}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {content.details && (
-        <SectionCard title="รายละเอียด">
+        <SectionCard title="รายละเอียด" icon={FileText}>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-stone-700">
             {content.details}
           </p>
@@ -317,7 +301,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
       )}
 
       {hasImageBrief && imageMeta && (
-        <SectionCard title="ข้อความบนภาพ & องค์ประกอบ">
+        <SectionCard title="ข้อความบนภาพ & องค์ประกอบ" icon={Type}>
           <dl>
             {imageMeta.headline && (
               <MetaListRow label="Headline" value={imageMeta.headline} />
@@ -366,7 +350,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
       )}
 
       {(content.ideaCreator || content.photographer || content.editor) && (
-        <SectionCard title="ผู้สร้าง content">
+        <SectionCard title="ผู้สร้าง content" icon={User}>
           <dl>
             {content.ideaCreator && (
               <MetaListRow
@@ -389,7 +373,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
       )}
 
       {content.team.length > 0 && (
-        <SectionCard title="ผู้ร่วมงาน">
+        <SectionCard title="ผู้ร่วมงาน" icon={Users}>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -416,7 +400,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
       )}
 
       {isVideo && content.script.length > 0 && (
-        <SectionCard title="สคริป">
+        <SectionCard title="สคริป" icon={Clapperboard}>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -463,7 +447,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
         (content.productsNeeded.length > 0 ||
           content.itemsToPrepare ||
           (content.filmingEquipment?.length ?? 0) > 0) && (
-          <SectionCard title="สิ่งที่ต้องเตรียม">
+          <SectionCard title="สิ่งที่ต้องเตรียม" icon={Package}>
             {content.productsNeeded.length > 0 && (
               <div className="mb-4">
                 <p className="mb-2 text-xs text-stone-500">สินค้าที่ต้องเตรียม</p>
@@ -510,7 +494,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
         )}
 
       {otherAttachments.length > 0 && (
-        <SectionCard title="ไฟล์เพิ่มเติม">
+        <SectionCard title="ไฟล์เพิ่มเติม" icon={Paperclip}>
           <div className="space-y-3">
             {otherAttachments.map((link, i) =>
               isImageAttachment(link) ? (
@@ -553,7 +537,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
       )}
 
       {content.tags.length > 0 && (
-        <SectionCard title="แท็ก">
+        <SectionCard title="แท็ก" icon={Tag}>
           <div className="flex flex-wrap gap-2">
             {content.tags.map((tag) => (
               <span

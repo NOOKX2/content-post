@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/content/api-auth";
 import {
   assertCanAccessChannel,
   getChannelMessages,
+  markChannelAsRead,
   postTextMessage,
 } from "@/lib/collaboration/service";
 
@@ -18,6 +19,8 @@ function toMessageItem(
     messageType: message.messageType,
     metadata: (message.metadata as Record<string, unknown>) ?? {},
     createdAt: message.createdAt.toISOString(),
+    editedAt: message.editedAt?.toISOString() ?? null,
+    deletedAt: message.deletedAt?.toISOString() ?? null,
   };
 }
 
@@ -38,6 +41,7 @@ export async function GET(
   }
 
   const messages = await getChannelMessages(id);
+  await markChannelAsRead(id, authResult.session.user.id);
   return NextResponse.json({
     messages: messages.map(toMessageItem),
   });
@@ -71,6 +75,8 @@ export async function POST(
     authorName: authResult.session.user.name ?? "ผู้ใช้",
     body: text,
   });
+
+  await markChannelAsRead(id, authResult.session.user.id);
 
   return NextResponse.json({ message: toMessageItem(message) });
 }

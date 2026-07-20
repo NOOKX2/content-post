@@ -67,6 +67,7 @@ export type DashboardRoute =
   | { view: "admin-channels" }
   | { view: "create" }
   | { view: "posts" }
+  | { view: "my-tasks" }
   | { view: "content-detail"; id: string }
   | null;
 
@@ -91,6 +92,9 @@ export function parseDashboardRoute(path: string): DashboardRoute {
   }
   if (path === "/posts") {
     return { view: "posts" };
+  }
+  if (path === "/my-tasks") {
+    return { view: "my-tasks" };
   }
 
   const match = path.match(/^\/content\/([^/]+)$/);

@@ -44,7 +44,7 @@ export function CollaborationView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <Header session={session} title="Team Collaboration" compact />
+      <Header session={session} title="Team Collaboration" />
       <div className="border-b border-stone-200 bg-white px-4 py-2">
         <Tabs
           tabs={[...TEAM_TABS]}

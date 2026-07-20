@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { DashboardRouter } from "./dashboard-router";
 import { DashboardNavProvider } from "@/lib/navigation/dashboard-nav";
+import { AppSessionProvider } from "@/lib/auth/app-session";
 import { cn } from "@/lib/utils";
 import type { Session } from "next-auth";
 
@@ -27,21 +28,23 @@ export function AppShell({
   }
 
   return (
-    <DashboardNavProvider>
-      <div className="flex h-screen bg-stone-50">
-        <Sidebar session={session} />
-        <main
-          className={cn(
-            "flex min-h-0 flex-1 flex-col",
-            isFullHeightView ? "overflow-hidden" : "overflow-y-auto"
-          )}
-        >
-          <DashboardRouter />
-        </main>
-      </div>
-      <div className="hidden" aria-hidden>
-        {children}
-      </div>
-    </DashboardNavProvider>
+    <AppSessionProvider session={session}>
+      <DashboardNavProvider>
+        <div className="flex h-screen bg-stone-50">
+          <Sidebar session={session} />
+          <main
+            className={cn(
+              "flex min-h-0 flex-1 flex-col",
+              isFullHeightView ? "overflow-hidden" : "overflow-y-auto"
+            )}
+          >
+            <DashboardRouter />
+          </main>
+        </div>
+        <div className="hidden" aria-hidden>
+          {children}
+        </div>
+      </DashboardNavProvider>
+    </AppSessionProvider>
   );
 }

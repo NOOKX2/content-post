@@ -61,6 +61,8 @@ export async function POST(
       messageType: message.messageType,
       metadata: message.metadata as Record<string, unknown>,
       createdAt: message.createdAt.toISOString(),
+      editedAt: message.editedAt?.toISOString() ?? null,
+      deletedAt: message.deletedAt?.toISOString() ?? null,
     },
   });
 }

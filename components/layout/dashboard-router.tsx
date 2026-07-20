@@ -7,6 +7,7 @@ import { CreateView } from "@/components/views/create-view";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { CollaborationView } from "@/components/views/collaboration-view";
 import { PostsView } from "@/components/views/posts-view";
+import { MyTasksView } from "@/components/views/my-tasks-view";
 import { ContentDetailViewPage } from "@/components/views/content-detail-view-page";
 import {
   parseDashboardRoute,
@@ -53,6 +54,9 @@ export function DashboardRouter() {
       </Panel>
       <Panel active={route?.view === "posts"}>
         <PostsView />
+      </Panel>
+      <Panel active={route?.view === "my-tasks"}>
+        <MyTasksView />
       </Panel>
       {route?.view === "content-detail" && (
         <ContentDetailViewPage key={route.id} id={route.id} />

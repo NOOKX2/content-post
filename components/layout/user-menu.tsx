@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
-import { ChevronDown, List, LogOut } from "lucide-react";
+import { ChevronDown, ClipboardList, List, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/auth/roles";
 import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
@@ -84,6 +84,24 @@ export function UserMenu({ session }: { session: Session | null }) {
             >
               <List className="h-4 w-4" />
               รายการ post ทั้งหมด
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                if (activePath !== "/my-tasks") {
+                  navigate("/my-tasks");
+                }
+              }}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                activePath === "/my-tasks"
+                  ? "bg-blue-50 text-blue-700"
+                  : "text-stone-700 hover:bg-stone-50"
+              )}
+            >
+              <ClipboardList className="h-4 w-4" />
+              งานที่ได้รับมอบหมาย
             </button>
             <button
               type="button"

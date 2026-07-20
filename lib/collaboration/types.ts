@@ -26,6 +26,8 @@ export type CollaborationMessageItem = {
   messageType: string;
   metadata: Record<string, unknown>;
   createdAt: string;
+  editedAt: string | null;
+  deletedAt: string | null;
 };
 
 export type CollaborationChannelItem = {
@@ -39,4 +41,5 @@ export type CollaborationChannelItem = {
   peerEmail?: string | null;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
+  unreadCount: number;
 };
