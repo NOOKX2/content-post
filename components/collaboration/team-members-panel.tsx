@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
-import { Users } from "lucide-react";
+import { CalendarDays, Users } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { PersonAvatar } from "@/components/collaboration/person-avatar";
+import { MemberCalendarView } from "@/components/collaboration/member-calendar-view";
 import { ROLE_LABELS, TEAM_ROLES, isAdminRole } from "@/lib/auth/roles";
 import type { TeamMemberItem } from "@/lib/collaboration/team-types";
 import type { Role } from "@prisma/client";
@@ -23,6 +25,9 @@ export function TeamMembersPanel() {
     fetchMembers
   );
   const canEditRoles = isAdminRole(session?.user?.role);
+  const [calendarMember, setCalendarMember] = useState<TeamMemberItem | null>(
+    null
+  );
 
   const updateRole = async (userId: string, role: Role) => {
     const res = await fetch("/api/team/members", {
@@ -37,6 +42,18 @@ export function TeamMembersPanel() {
     }
     await mutate();
   };
+
+  if (calendarMember) {
+    return (
+      <div className="flex h-full min-h-0 flex-1 flex-col">
+        <MemberCalendarView
+          userId={calendarMember.id}
+          memberName={calendarMember.name}
+          onBack={() => setCalendarMember(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -66,18 +83,24 @@ export function TeamMembersPanel() {
                   <th className="px-4 py-3 font-medium">ชื่อ</th>
                   <th className="px-4 py-3 font-medium">อีเมล</th>
                   <th className="px-4 py-3 font-medium">บทบาท</th>
+                  <th className="px-4 py-3 font-medium">ปฏิทิน</th>
                 </tr>
               </thead>
               <tbody>
                 {members.map((member) => (
                   <tr key={member.id} className="border-t border-stone-100">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCalendarMember(member)}
+                        className="flex items-center gap-3 text-left transition-colors hover:text-blue-700"
+                        title={`ดูปฏิทินของ ${member.name}`}
+                      >
                         <PersonAvatar name={member.name} size="md" />
                         <span className="font-medium text-stone-900">
                           {member.name}
                         </span>
-                      </div>
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-stone-600">{member.email}</td>
                     <td className="px-4 py-3">
@@ -98,6 +121,16 @@ export function TeamMembersPanel() {
                           {ROLE_LABELS[member.role]}
                         </span>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => setCalendarMember(member)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:bg-stone-50 hover:text-blue-700"
+                      >
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        ดูปฏิทิน
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { MeetingCardMetadata } from "@/lib/collaboration/types";
-import { Video } from "lucide-react";
+import { CalendarCheck, Users, Video } from "lucide-react";
 import { formatThaiDate } from "@/lib/utils";
 
 function formatCountdown(ms: number) {
@@ -51,15 +51,39 @@ export function MeetingCardMessage({
           {metadata.startsAt.slice(11, 16)} – {metadata.endsAt.slice(11, 16)}
         </p>
         <p className="text-xs font-medium text-blue-700">{countdown}</p>
-        <a
-          href={metadata.meetUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-        >
-          <Video className="h-3.5 w-3.5" />
-          เข้า Google Meet
-        </a>
+        {typeof metadata.attendeeCount === "number" &&
+          metadata.attendeeCount > 0 && (
+            <p className="flex items-center gap-1.5 text-xs text-stone-500">
+              <CalendarCheck className="h-3.5 w-3.5 text-emerald-600" />
+              เพิ่มลงปฏิทินของผู้เข้าร่วม {metadata.attendeeCount} คนแล้ว
+            </p>
+          )}
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          {metadata.meetUrl ? (
+            <a
+              href={metadata.meetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+            >
+              <Video className="h-3.5 w-3.5" />
+              เข้า Google Meet
+            </a>
+          ) : (
+            <p className="text-xs text-stone-400">ยังไม่มีลิงก์ประชุม</p>
+          )}
+          {metadata.calendarLink && (
+            <a
+              href={metadata.calendarLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50"
+            >
+              <Users className="h-3.5 w-3.5" />
+              ดูในปฏิทิน
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

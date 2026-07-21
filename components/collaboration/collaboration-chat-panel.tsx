@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useSWR, { useSWRConfig } from "swr";
 import { useSession } from "next-auth/react";
-import { Check, Pencil, Send, Trash2, Video, X } from "lucide-react";
+import { Check, CalendarDays, Pencil, Send, Trash2, X } from "lucide-react";
 import type {
   CollaborationChannelItem,
   CollaborationMessageItem,
@@ -16,17 +16,18 @@ import {
   deleteChannelMessage,
   editChannelMessage,
   fetchChannelMessages,
-  postChannelMeeting,
   postChannelMessage,
 } from "@/lib/collaboration/fetch-actions";
 import { ApprovalCardMessage } from "@/components/collaboration/approval-card-message";
+import { ChannelCalendarView } from "@/components/collaboration/channel-calendar-view";
+import { GroupMembersDialog } from "@/components/collaboration/group-members-dialog";
+import { MemberCalendarView } from "@/components/collaboration/member-calendar-view";
 import { MeetingCardMessage } from "@/components/collaboration/meeting-card-message";
 import {
   AvatarStack,
   PersonAvatar,
 } from "@/components/collaboration/person-avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 function formatTime(iso: string) {
@@ -48,17 +49,16 @@ async function fetchMembers() {
 
 export function CollaborationChatPanel({
   channel,
+  onLeave,
 }: {
   channel: CollaborationChannelItem;
+  onLeave?: () => void;
 }) {
   const { data: session } = useSession();
   const { mutate: mutateGlobal } = useSWRConfig();
   const [text, setText] = useState("");
-  const [showMeetingForm, setShowMeetingForm] = useState(false);
-  const [meetingTitle, setMeetingTitle] = useState("");
-  const [meetUrl, setMeetUrl] = useState("");
-  const [startsAt, setStartsAt] = useState("");
-  const [endsAt, setEndsAt] = useState("");
+  const [showMembers, setShowMembers] = useState(false);
+  const [showChannelCalendar, setShowChannelCalendar] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -72,13 +72,23 @@ export function CollaborationChatPanel({
   const headerPeople =
     channel.kind === "dm"
       ? [channel.name]
-      : members.map((member) => member.name);
+      : channel.kind === "group" && channel.memberNames?.length
+        ? channel.memberNames
+        : members.map((member) => member.name);
   const memberCount =
-    channel.kind === "dm" ? 2 : Math.max(members.length, headerPeople.length);
+    channel.kind === "dm"
+      ? 2
+      : channel.kind === "group"
+        ? (channel.memberCount ?? headerPeople.length)
+        : Math.max(members.length, headerPeople.length);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    setShowChannelCalendar(false);
+  }, [channel.id]);
 
   useEffect(() => {
     void mutateGlobal("collab-channels");
@@ -98,28 +108,40 @@ export function CollaborationChatPanel({
     }
   };
 
-  const handleScheduleMeeting = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      await postChannelMeeting(channel.id, {
-        title: meetingTitle.trim(),
-        meetUrl: meetUrl.trim(),
-        startsAt: new Date(startsAt).toISOString(),
-        endsAt: new Date(endsAt).toISOString(),
-      });
-      setShowMeetingForm(false);
-      setMeetingTitle("");
-      setMeetUrl("");
-      setStartsAt("");
-      setEndsAt("");
-      await mutate();
-      void mutateGlobal("collab-channels");
-    } finally {
-      setSubmitting(false);
+  const scheduleHint =
+    channel.kind === "dm"
+      ? "นัดประชุม 1:1"
+      : channel.kind === "team"
+        ? "นัดประชุมทีม"
+        : "นัดประชุมกลุ่ม";
+
+  if (showChannelCalendar) {
+    if (channel.kind === "dm" && channel.peerUserId) {
+      return (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <MemberCalendarView
+            userId={channel.peerUserId}
+            memberName={channel.name}
+            channelId={channel.id}
+            subtitle="ดูช่วงที่มีนัดร่วมกัน เพื่อเลือกเวลาที่ว่าง"
+            onBack={() => setShowChannelCalendar(false)}
+          />
+        </div>
+      );
     }
-  };
+    if (channel.kind === "team" || channel.kind === "group") {
+      return (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <ChannelCalendarView
+            channelId={channel.id}
+            channelName={channel.name}
+            channelKind={channel.kind}
+            onBack={() => setShowChannelCalendar(false)}
+          />
+        </div>
+      );
+    }
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-stone-50">
@@ -134,6 +156,15 @@ export function CollaborationChatPanel({
                 {memberCount} Members
               </span>
             )}
+            {channel.kind === "group" && (
+              <button
+                type="button"
+                onClick={() => setShowMembers(true)}
+                className="rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-semibold text-violet-700 transition-colors hover:bg-violet-100"
+              >
+                {memberCount} สมาชิก
+              </button>
+            )}
           </div>
           {channel.contentCode && (
             <p className="text-xs text-stone-500">#{channel.contentCode}</p>
@@ -142,14 +173,60 @@ export function CollaborationChatPanel({
             <p className="truncate text-xs text-stone-500">{channel.peerEmail}</p>
           )}
         </div>
-        <div className="flex shrink-0 items-center">
+        <div className="flex shrink-0 items-center gap-2">
+          {(channel.kind === "dm" && channel.peerUserId) ||
+          channel.kind === "team" ||
+          channel.kind === "group" ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setShowChannelCalendar(true)}
+              title={
+                channel.kind === "dm"
+                  ? `ดูปฏิทินและนัดประชุมกับ ${channel.name}`
+                  : `ดูปฏิทินและนัด${scheduleHint}ในห้องนี้`
+              }
+            >
+              <CalendarDays className="h-4 w-4" />
+              นัดประชุม
+            </Button>
+          ) : null}
           {channel.kind === "dm" ? (
             <PersonAvatar name={channel.name} size="md" />
+          ) : channel.kind === "group" ? (
+            <button
+              type="button"
+              onClick={() => setShowMembers(true)}
+              className="rounded-full transition hover:opacity-80"
+              title="ดูสมาชิกในกลุ่ม"
+            >
+              <AvatarStack names={headerPeople} max={4} size="sm" />
+            </button>
           ) : (
             <AvatarStack names={headerPeople} max={4} size="sm" />
           )}
         </div>
       </div>
+
+      {channel.kind === "group" && (
+        <GroupMembersDialog
+          open={showMembers}
+          channelId={channel.id}
+          groupName={channel.name}
+          teamMembers={members}
+          currentUserId={session?.user?.id}
+          onClose={() => setShowMembers(false)}
+          onMembersChanged={() => {
+            void mutate();
+            void mutateGlobal("collab-channels");
+          }}
+          onLeft={() => {
+            setShowMembers(false);
+            void mutateGlobal("collab-channels");
+            onLeave?.();
+          }}
+        />
+      )}
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.map((message) => (
@@ -167,64 +244,22 @@ export function CollaborationChatPanel({
       </div>
 
       <div className="border-t border-stone-200 bg-white p-3">
-        {showMeetingForm ? (
-          <form onSubmit={handleScheduleMeeting} className="mb-3 space-y-2">
-            <p className="text-xs font-medium text-stone-700">นัด Google Meet</p>
-            <Input
-              value={meetingTitle}
-              onChange={(e) => setMeetingTitle(e.target.value)}
-              placeholder="หัวข้อประชุม"
-              className="h-9 text-sm"
-              required
-            />
-            <Input
-              value={meetUrl}
-              onChange={(e) => setMeetUrl(e.target.value)}
-              placeholder="ลิงก์ Google Meet"
-              className="h-9 text-sm"
-              required
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="datetime-local"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-                className="h-9 text-sm"
-                required
-              />
-              <Input
-                type="datetime-local"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-                className="h-9 text-sm"
-                required
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setShowMeetingForm(false)}
-              >
-                ยกเลิก
-              </Button>
-              <Button type="submit" size="sm" disabled={submitting}>
-                สร้างนัดประชุม
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowMeetingForm(true)}
-            className="mb-2 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700"
-          >
-            <Video className="h-3.5 w-3.5" />
-            นัด Google Meet
-          </button>
-        )}
-
+        {(channel.kind === "dm" && channel.peerUserId) ||
+        channel.kind === "team" ||
+        channel.kind === "group" ? (
+          <p className="mb-2 flex flex-wrap items-center gap-1 text-xs text-stone-500">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+            <span>{scheduleHint} → กดปุ่ม</span>
+            <button
+              type="button"
+              onClick={() => setShowChannelCalendar(true)}
+              className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              นัดประชุม
+            </button>
+            <span>ด้านบนขวา เพื่อดูปฏิทินและเลือกเวลา</span>
+          </p>
+        ) : null}
         <form onSubmit={handleSend} className="flex gap-2">
           <input
             value={text}

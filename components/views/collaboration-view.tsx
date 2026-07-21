@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { Tabs } from "@/components/ui/tabs";
 import { CollaborationChannelSidebar } from "@/components/collaboration/collaboration-channel-sidebar";
 import { CollaborationChatPanel } from "@/components/collaboration/collaboration-chat-panel";
+import { MeetingsCalendarPanel } from "@/components/collaboration/meetings-calendar-panel";
 import { TeamMembersPanel } from "@/components/collaboration/team-members-panel";
 import { TeamTasksPanel } from "@/components/collaboration/team-tasks-panel";
 import { fetchCollaborationChannels } from "@/lib/collaboration/fetch-actions";
@@ -15,6 +16,7 @@ import type { CollaborationChannelItem } from "@/lib/collaboration/types";
 const TEAM_TABS = [
   { id: "chat", label: "แชท" },
   { id: "members", label: "สมาชิก" },
+  { id: "meetings", label: "ประชุม" },
   { id: "tasks", label: "มอบหมายงาน" },
 ] as const;
 
@@ -74,6 +76,12 @@ export function CollaborationView() {
       {tab === "members" && (
         <div className="min-h-0 flex-1 overflow-hidden bg-[#f5f5f7]">
           <TeamMembersPanel />
+        </div>
+      )}
+
+      {tab === "meetings" && (
+        <div className="min-h-0 flex-1 overflow-hidden bg-[#f5f5f7]">
+          <MeetingsCalendarPanel />
         </div>
       )}
 

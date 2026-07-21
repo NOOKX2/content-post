@@ -15,6 +15,9 @@ export type MeetingCardMetadata = {
   meetUrl: string;
   startsAt: string;
   endsAt: string;
+  eventId?: string;
+  calendarLink?: string;
+  attendeeCount?: number;
 };
 
 export type CollaborationMessageItem = {
@@ -30,15 +33,39 @@ export type CollaborationMessageItem = {
   deletedAt: string | null;
 };
 
+export type MeetingItem = {
+  id: string;
+  channelId: string;
+  channelName: string;
+  channelKind: "team" | "dm" | "group";
+  title: string;
+  meetUrl: string;
+  startsAt: string;
+  endsAt: string;
+  calendarLink: string;
+  attendeeCount: number;
+  authorName: string;
+};
+
+export type GroupMemberItem = {
+  id: string;
+  name: string;
+  email: string;
+  isCreator: boolean;
+  joinedAt: string;
+};
+
 export type CollaborationChannelItem = {
   id: string;
   slug: string;
   name: string;
-  kind: "team" | "dm";
+  kind: "team" | "dm" | "group";
   contentId: string | null;
   contentCode?: string;
   peerUserId?: string | null;
   peerEmail?: string | null;
+  memberNames?: string[];
+  memberCount?: number;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
   unreadCount: number;

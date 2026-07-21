@@ -1,7 +1,49 @@
 import type {
   CollaborationChannelItem,
   CollaborationMessageItem,
+  GroupMemberItem,
+  MeetingItem,
 } from "@/lib/collaboration/types";
+
+export async function fetchMeetings(): Promise<MeetingItem[]> {
+  const res = await fetch("/api/collaboration/meetings");
+  const data = (await res.json().catch(() => ({}))) as {
+    meetings?: MeetingItem[];
+    error?: string;
+  };
+  if (!res.ok || !data.meetings) {
+    throw new Error(data.error || "โหลดรายการประชุมไม่สำเร็จ");
+  }
+  return data.meetings;
+}
+
+export async function fetchMemberMeetings(
+  userId: string
+): Promise<MeetingItem[]> {
+  const res = await fetch(`/api/collaboration/members/${userId}/meetings`);
+  const data = (await res.json().catch(() => ({}))) as {
+    meetings?: MeetingItem[];
+    error?: string;
+  };
+  if (!res.ok || !data.meetings) {
+    throw new Error(data.error || "โหลดปฏิทินสมาชิกไม่สำเร็จ");
+  }
+  return data.meetings;
+}
+
+export async function fetchChannelMeetings(
+  channelId: string
+): Promise<MeetingItem[]> {
+  const res = await fetch(`/api/collaboration/channels/${channelId}/meetings`);
+  const data = (await res.json().catch(() => ({}))) as {
+    meetings?: MeetingItem[];
+    error?: string;
+  };
+  if (!res.ok || !data.meetings) {
+    throw new Error(data.error || "โหลดปฏิทินห้องไม่สำเร็จ");
+  }
+  return data.meetings;
+}
 
 export async function fetchCollaborationChannels(): Promise<
   CollaborationChannelItem[]
@@ -28,6 +70,68 @@ export async function openDirectMessage(
     throw new Error(data.error || "เปิดแชทส่วนตัวไม่สำเร็จ");
   }
   return data.channel;
+}
+
+export async function createCollaborationGroup(params: {
+  name: string;
+  memberIds: string[];
+}): Promise<CollaborationChannelItem> {
+  const res = await fetch("/api/collaboration/channels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  const data = (await res.json()) as {
+    channel?: CollaborationChannelItem;
+    error?: string;
+  };
+  if (!res.ok || !data.channel) {
+    throw new Error(data.error || "สร้างกลุ่มไม่สำเร็จ");
+  }
+  return data.channel;
+}
+
+export async function fetchGroupMembers(
+  channelId: string
+): Promise<GroupMemberItem[]> {
+  const res = await fetch(`/api/collaboration/channels/${channelId}/members`);
+  const data = (await res.json()) as {
+    members?: GroupMemberItem[];
+    error?: string;
+  };
+  if (!res.ok || !data.members) {
+    throw new Error(data.error || "โหลดสมาชิกไม่สำเร็จ");
+  }
+  return data.members;
+}
+
+export async function inviteGroupMembers(
+  channelId: string,
+  memberIds: string[]
+): Promise<GroupMemberItem[]> {
+  const res = await fetch(`/api/collaboration/channels/${channelId}/members`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ memberIds }),
+  });
+  const data = (await res.json()) as {
+    members?: GroupMemberItem[];
+    error?: string;
+  };
+  if (!res.ok || !data.members) {
+    throw new Error(data.error || "เชิญสมาชิกไม่สำเร็จ");
+  }
+  return data.members;
+}
+
+export async function leaveGroupChannel(channelId: string): Promise<void> {
+  const res = await fetch(`/api/collaboration/channels/${channelId}/members`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error || "ออกจากกลุ่มไม่สำเร็จ");
+  }
 }
 
 export async function fetchChannelMessages(
@@ -67,8 +171,13 @@ export async function postChannelMeeting(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Failed to schedule meeting");
-  const data = await res.json();
+  const data = (await res.json().catch(() => ({}))) as {
+    message?: CollaborationMessageItem;
+    error?: string;
+  };
+  if (!res.ok || !data.message) {
+    throw new Error(data.error || "นัดประชุมไม่สำเร็จ");
+  }
   return data.message;
 }
 

@@ -3,14 +3,17 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
-import { MessageSquare, Search, Users, X } from "lucide-react";
+import { MessageSquare, Plus, Search, Users, X } from "lucide-react";
 import type { CollaborationChannelItem } from "@/lib/collaboration/types";
 import type { TeamMemberItem } from "@/lib/collaboration/team-types";
 import {
+  createCollaborationGroup,
   fetchCollaborationChannels,
   openDirectMessage,
 } from "@/lib/collaboration/fetch-actions";
+import { CreateGroupDialog } from "@/components/collaboration/create-group-dialog";
 import { PersonAvatar } from "@/components/collaboration/person-avatar";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 async function fetchMembers() {
@@ -36,6 +39,8 @@ export function CollaborationChannelSidebar({
 }) {
   const { data: session } = useSession();
   const [search, setSearch] = useState("");
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [creatingGroup, setCreatingGroup] = useState(false);
   const query = search.trim().toLowerCase();
 
   const { data: channels = [], mutate } = useSWR(
@@ -79,12 +84,51 @@ export function CollaborationChannelSidebar({
     }
   };
 
+  const handleCreateGroup = async (payload: {
+    name: string;
+    memberIds: string[];
+  }) => {
+    setCreatingGroup(true);
+    try {
+      const channel = await createCollaborationGroup(payload);
+      await mutate();
+      onSelect(channel);
+      setShowCreateGroup(false);
+      setSearch("");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "สร้างกลุ่มไม่สำเร็จ");
+    } finally {
+      setCreatingGroup(false);
+    }
+  };
+
   return (
     <aside className="flex w-72 shrink-0 flex-col border-r border-stone-200 bg-white">
+      <CreateGroupDialog
+        open={showCreateGroup}
+        members={members}
+        currentUserId={session?.user?.id}
+        submitting={creatingGroup}
+        onClose={() => setShowCreateGroup(false)}
+        onCreate={(payload) => void handleCreateGroup(payload)}
+      />
       <div className="border-b border-stone-200 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 text-blue-600" />
-          <h2 className="text-sm font-semibold text-stone-900">Messenger</h2>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-blue-600" />
+            <h2 className="text-sm font-semibold text-stone-900">Messenger</h2>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-stone-600"
+            onClick={() => setShowCreateGroup(true)}
+            title="สร้างกลุ่ม"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">สร้างกลุ่ม</span>
+          </Button>
         </div>
         <div className="relative mt-3">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
@@ -219,6 +263,11 @@ export function CollaborationChannelSidebar({
                 {channel.kind === "dm" && channel.peerEmail && (
                   <p className="truncate text-[11px] text-stone-500">
                     {channel.peerEmail}
+                  </p>
+                )}
+                {channel.kind === "group" && channel.memberCount && (
+                  <p className="truncate text-[11px] text-stone-500">
+                    {channel.memberCount} สมาชิก
                   </p>
                 )}
                 {channel.lastMessagePreview && (

@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type { Content, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ApprovalCardMetadata } from "@/lib/collaboration/types";
@@ -10,6 +11,10 @@ function isTeamChannel(slug: string) {
 
 function isDmChannel(slug: string) {
   return slug.startsWith("dm-");
+}
+
+function isGroupChannel(slug: string) {
+  return slug.startsWith("group-");
 }
 
 function dmSlug(userIdA: string, userIdB: string) {
@@ -69,6 +74,188 @@ export async function ensureDmChannel(params: {
   });
 }
 
+export async function createGroupChannel(params: {
+  name: string;
+  memberIds: string[];
+  creator: Pick<User, "id" | "name">;
+}) {
+  const name = params.name.trim();
+  if (!name) {
+    throw new Error("กรุณาตั้งชื่อกลุ่ม");
+  }
+
+  const memberIds = [
+    ...new Set(
+      [params.creator.id, ...params.memberIds].filter(
+        (id): id is string => Boolean(id)
+      )
+    ),
+  ];
+
+  if (memberIds.length < 2) {
+    throw new Error("กรุณาเลือกสมาชิกอย่างน้อย 1 คน");
+  }
+
+  const existingUsers = await prisma.user.findMany({
+    where: { id: { in: memberIds } },
+    select: { id: true },
+  });
+  if (existingUsers.length !== memberIds.length) {
+    throw new Error("มีสมาชิกบางคนไม่พบในระบบ");
+  }
+
+  const channel = await prisma.collaborationChannel.create({
+    data: {
+      slug: `group-${randomUUID()}`,
+      name,
+      createdById: params.creator.id,
+      members: {
+        create: memberIds.map((userId) => ({ userId })),
+      },
+    },
+    include: {
+      members: {
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+  });
+
+  await postSystemMessage({
+    channelId: channel.id,
+    body: `${params.creator.name} สร้างกลุ่ม "${name}"`,
+  });
+
+  return channel;
+}
+
+export async function listGroupMembers(channelId: string) {
+  const channel = await prisma.collaborationChannel.findUnique({
+    where: { id: channelId },
+    select: { slug: true, createdById: true },
+  });
+  if (!channel || !isGroupChannel(channel.slug)) {
+    throw new Error("ไม่พบกลุ่ม");
+  }
+
+  const members = await prisma.collaborationChannelMember.findMany({
+    where: { channelId },
+    orderBy: { createdAt: "asc" },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  return members.map((member) => ({
+    id: member.user.id,
+    name: member.user.name,
+    email: member.user.email,
+    isCreator: member.user.id === channel.createdById,
+    joinedAt: member.createdAt.toISOString(),
+  }));
+}
+
+export async function addGroupMembers(params: {
+  channelId: string;
+  memberIds: string[];
+  actor: Pick<User, "id" | "name">;
+}) {
+  const channel = await prisma.collaborationChannel.findUnique({
+    where: { id: params.channelId },
+    select: { slug: true },
+  });
+  if (!channel || !isGroupChannel(channel.slug)) {
+    throw new Error("ไม่พบกลุ่ม");
+  }
+
+  const requestedIds = [...new Set(params.memberIds.filter(Boolean))];
+  if (requestedIds.length === 0) {
+    throw new Error("กรุณาเลือกสมาชิกที่ต้องการเชิญ");
+  }
+
+  const existingMembers = await prisma.collaborationChannelMember.findMany({
+    where: { channelId: params.channelId, userId: { in: requestedIds } },
+    select: { userId: true },
+  });
+  const alreadyMemberIds = new Set(existingMembers.map((m) => m.userId));
+  const newIds = requestedIds.filter((id) => !alreadyMemberIds.has(id));
+
+  if (newIds.length === 0) {
+    throw new Error("สมาชิกที่เลือกอยู่ในกลุ่มแล้ว");
+  }
+
+  const newUsers = await prisma.user.findMany({
+    where: { id: { in: newIds } },
+    select: { id: true, name: true },
+  });
+  if (newUsers.length !== newIds.length) {
+    throw new Error("มีสมาชิกบางคนไม่พบในระบบ");
+  }
+
+  await prisma.collaborationChannelMember.createMany({
+    data: newIds.map((userId) => ({ channelId: params.channelId, userId })),
+    skipDuplicates: true,
+  });
+
+  await postSystemMessage({
+    channelId: params.channelId,
+    body: `${params.actor.name} เพิ่ม ${newUsers
+      .map((user) => user.name)
+      .join(", ")} เข้ากลุ่ม`,
+  });
+
+  return newUsers;
+}
+
+export async function leaveGroupChannel(params: {
+  channelId: string;
+  user: Pick<User, "id" | "name">;
+}) {
+  const channel = await prisma.collaborationChannel.findUnique({
+    where: { id: params.channelId },
+    select: { slug: true },
+  });
+  if (!channel || !isGroupChannel(channel.slug)) {
+    throw new Error("ไม่พบกลุ่ม");
+  }
+
+  const membership = await prisma.collaborationChannelMember.findUnique({
+    where: {
+      channelId_userId: { channelId: params.channelId, userId: params.user.id },
+    },
+  });
+  if (!membership) {
+    throw new Error("คุณไม่ได้อยู่ในกลุ่มนี้");
+  }
+
+  await prisma.collaborationChannelMember.delete({
+    where: {
+      channelId_userId: { channelId: params.channelId, userId: params.user.id },
+    },
+  });
+
+  await prisma.collaborationChannelRead.deleteMany({
+    where: { channelId: params.channelId, userId: params.user.id },
+  });
+
+  const remaining = await prisma.collaborationChannelMember.count({
+    where: { channelId: params.channelId },
+  });
+
+  if (remaining === 0) {
+    await prisma.collaborationChannel.delete({
+      where: { id: params.channelId },
+    });
+    return;
+  }
+
+  await postSystemMessage({
+    channelId: params.channelId,
+    body: `${params.user.name} ออกจากกลุ่ม`,
+  });
+}
+
 export async function listChannels(userId: string) {
   await ensureTeamChannel();
 
@@ -78,6 +265,10 @@ export async function listChannels(userId: string) {
       OR: [
         { slug: TEAM_CHANNEL_SLUG },
         { slug: { startsWith: "dm-" } },
+        {
+          slug: { startsWith: "group-" },
+          members: { some: { userId } },
+        },
       ],
     },
     orderBy: { updatedAt: "desc" },
@@ -98,12 +289,18 @@ export async function listChannels(userId: string) {
         take: 1,
         select: { lastReadAt: true },
       },
+      members: {
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+      },
     },
   });
 
   const visible = channels.filter(
     (channel) =>
       isTeamChannel(channel.slug) ||
+      isGroupChannel(channel.slug) ||
       (isDmChannel(channel.slug) && userIsDmParticipant(channel.slug, userId))
   );
 
@@ -152,9 +349,14 @@ export async function listChannels(userId: string) {
         preview = last.body;
       }
 
-      const kind = isDmChannel(channel.slug) ? ("dm" as const) : ("team" as const);
+      const kind = isDmChannel(channel.slug)
+        ? ("dm" as const)
+        : isGroupChannel(channel.slug)
+          ? ("group" as const)
+          : ("team" as const);
       const partnerId = peerIdFromDmSlug(channel.slug, userId);
       const partner = partnerId ? partnerById.get(partnerId) : undefined;
+      const memberNames = channel.members.map((member) => member.user.name);
 
       return {
         id: channel.id,
@@ -165,6 +367,8 @@ export async function listChannels(userId: string) {
         contentCode: undefined,
         peerUserId: partnerId,
         peerEmail: partner?.email ?? null,
+        memberNames: kind === "group" ? memberNames : undefined,
+        memberCount: kind === "group" ? memberNames.length : undefined,
         lastMessageAt: last?.createdAt.toISOString() ?? null,
         lastMessagePreview: preview,
         unreadCount: unreadByChannelId.get(channel.id) ?? 0,
@@ -178,6 +382,188 @@ export async function listChannels(userId: string) {
       if (bTime) return 1;
       return a.name.localeCompare(b.name, "th");
     });
+}
+
+export async function listUserMeetings(userId: string) {
+  const channels = await prisma.collaborationChannel.findMany({
+    where: {
+      contentId: null,
+      OR: [
+        { slug: TEAM_CHANNEL_SLUG },
+        { slug: { startsWith: "dm-" } },
+        {
+          slug: { startsWith: "group-" },
+          members: { some: { userId } },
+        },
+      ],
+    },
+    select: { id: true, slug: true, name: true },
+  });
+
+  const visible = channels.filter(
+    (channel) =>
+      isTeamChannel(channel.slug) ||
+      isGroupChannel(channel.slug) ||
+      (isDmChannel(channel.slug) && userIsDmParticipant(channel.slug, userId))
+  );
+  const channelById = new Map(visible.map((channel) => [channel.id, channel]));
+
+  const messages = await prisma.collaborationMessage.findMany({
+    where: {
+      channelId: { in: visible.map((channel) => channel.id) },
+      messageType: "meeting",
+      deletedAt: null,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return messages.map((message) => {
+    const metadata = (message.metadata ?? {}) as Record<string, unknown>;
+    const channel = channelById.get(message.channelId);
+    const kind = channel
+      ? isDmChannel(channel.slug)
+        ? "dm"
+        : isGroupChannel(channel.slug)
+          ? "group"
+          : "team"
+      : "team";
+
+    return {
+      id: message.id,
+      channelId: message.channelId,
+      channelName: channel?.name ?? "",
+      channelKind: kind as "team" | "dm" | "group",
+      title: String(metadata.title ?? message.body),
+      meetUrl: String(metadata.meetUrl ?? ""),
+      startsAt: String(metadata.startsAt ?? message.createdAt.toISOString()),
+      endsAt: String(metadata.endsAt ?? message.createdAt.toISOString()),
+      calendarLink: String(metadata.calendarLink ?? ""),
+      attendeeCount: Number(metadata.attendeeCount ?? 0),
+      authorName: message.authorName,
+    };
+  });
+}
+
+export async function listSharedMeetings(
+  viewerId: string,
+  targetUserId: string
+) {
+  const channels = await prisma.collaborationChannel.findMany({
+    where: {
+      contentId: null,
+      OR: [
+        { slug: TEAM_CHANNEL_SLUG },
+        { slug: { startsWith: "dm-" } },
+        {
+          slug: { startsWith: "group-" },
+          members: { some: { userId: viewerId } },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      members: { select: { userId: true } },
+    },
+  });
+
+  const participates = (
+    channel: { slug: string; members: { userId: string }[] },
+    userId: string
+  ) =>
+    isTeamChannel(channel.slug) ||
+    (isGroupChannel(channel.slug) &&
+      channel.members.some((member) => member.userId === userId)) ||
+    (isDmChannel(channel.slug) && userIsDmParticipant(channel.slug, userId));
+
+  const shared = channels.filter(
+    (channel) =>
+      participates(channel, viewerId) && participates(channel, targetUserId)
+  );
+  const channelById = new Map(shared.map((channel) => [channel.id, channel]));
+
+  const messages = await prisma.collaborationMessage.findMany({
+    where: {
+      channelId: { in: shared.map((channel) => channel.id) },
+      messageType: "meeting",
+      deletedAt: null,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return messages.map((message) => {
+    const metadata = (message.metadata ?? {}) as Record<string, unknown>;
+    const channel = channelById.get(message.channelId);
+    const kind = channel
+      ? isDmChannel(channel.slug)
+        ? "dm"
+        : isGroupChannel(channel.slug)
+          ? "group"
+          : "team"
+      : "team";
+
+    return {
+      id: message.id,
+      channelId: message.channelId,
+      channelName: channel?.name ?? "",
+      channelKind: kind as "team" | "dm" | "group",
+      title: String(metadata.title ?? message.body),
+      meetUrl: String(metadata.meetUrl ?? ""),
+      startsAt: String(metadata.startsAt ?? message.createdAt.toISOString()),
+      endsAt: String(metadata.endsAt ?? message.createdAt.toISOString()),
+      calendarLink: String(metadata.calendarLink ?? ""),
+      attendeeCount: Number(metadata.attendeeCount ?? 0),
+      authorName: message.authorName,
+    };
+  });
+}
+
+export async function listChannelMeetings(channelId: string, userId: string) {
+  const allowed = await assertCanAccessChannel(channelId, userId);
+  if (!allowed) {
+    throw new Error("ไม่มีสิทธิ์เข้าถึงห้องนี้");
+  }
+
+  const channel = await prisma.collaborationChannel.findUnique({
+    where: { id: channelId },
+    select: { id: true, slug: true, name: true },
+  });
+  if (!channel) {
+    throw new Error("ไม่พบห้อง");
+  }
+
+  const kind = isDmChannel(channel.slug)
+    ? ("dm" as const)
+    : isGroupChannel(channel.slug)
+      ? ("group" as const)
+      : ("team" as const);
+
+  const messages = await prisma.collaborationMessage.findMany({
+    where: {
+      channelId,
+      messageType: "meeting",
+      deletedAt: null,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return messages.map((message) => {
+    const metadata = (message.metadata ?? {}) as Record<string, unknown>;
+    return {
+      id: message.id,
+      channelId: message.channelId,
+      channelName: channel.name,
+      channelKind: kind,
+      title: String(metadata.title ?? message.body),
+      meetUrl: String(metadata.meetUrl ?? ""),
+      startsAt: String(metadata.startsAt ?? message.createdAt.toISOString()),
+      endsAt: String(metadata.endsAt ?? message.createdAt.toISOString()),
+      calendarLink: String(metadata.calendarLink ?? ""),
+      attendeeCount: Number(metadata.attendeeCount ?? 0),
+      authorName: message.authorName,
+    };
+  });
 }
 
 export async function markChannelAsRead(channelId: string, userId: string) {
@@ -214,6 +600,14 @@ export async function assertCanAccessChannel(
   });
   if (!channel) return false;
   if (isTeamChannel(channel.slug)) return true;
+  if (isGroupChannel(channel.slug)) {
+    const membership = await prisma.collaborationChannelMember.findUnique({
+      where: {
+        channelId_userId: { channelId, userId },
+      },
+    });
+    return Boolean(membership);
+  }
   if (isDmChannel(channel.slug)) {
     return userIsDmParticipant(channel.slug, userId);
   }
@@ -380,6 +774,39 @@ export async function postApprovalRequest(
   });
 }
 
+export async function getChannelAttendees(channelId: string) {
+  const channel = await prisma.collaborationChannel.findUnique({
+    where: { id: channelId },
+    select: { slug: true },
+  });
+  if (!channel) return [];
+
+  if (isGroupChannel(channel.slug)) {
+    const members = await prisma.collaborationChannelMember.findMany({
+      where: { channelId },
+      include: { user: { select: { name: true, email: true } } },
+    });
+    return members.map((member) => ({
+      email: member.user.email,
+      name: member.user.name,
+    }));
+  }
+
+  if (isDmChannel(channel.slug)) {
+    const [idA, idB] = channel.slug.slice(3).split("-");
+    const users = await prisma.user.findMany({
+      where: { id: { in: [idA, idB].filter(Boolean) } },
+      select: { name: true, email: true },
+    });
+    return users.map((user) => ({ email: user.email, name: user.name }));
+  }
+
+  const users = await prisma.user.findMany({
+    select: { name: true, email: true },
+  });
+  return users.map((user) => ({ email: user.email, name: user.name }));
+}
+
 export async function postMeetingMessage(params: {
   channelId: string;
   authorId: string;
@@ -388,6 +815,9 @@ export async function postMeetingMessage(params: {
   meetUrl: string;
   startsAt: string;
   endsAt: string;
+  eventId?: string;
+  calendarLink?: string;
+  attendeeCount?: number;
 }) {
   const message = await prisma.collaborationMessage.create({
     data: {
@@ -401,6 +831,9 @@ export async function postMeetingMessage(params: {
         meetUrl: params.meetUrl,
         startsAt: params.startsAt,
         endsAt: params.endsAt,
+        eventId: params.eventId ?? "",
+        calendarLink: params.calendarLink ?? "",
+        attendeeCount: params.attendeeCount ?? 0,
       },
     },
   });

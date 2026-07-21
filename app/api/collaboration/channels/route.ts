@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/content/api-auth";
 import {
+  createGroupChannel,
   ensureDmChannel,
   listChannels,
 } from "@/lib/collaboration/service";
+import type { CollaborationChannelItem } from "@/lib/collaboration/types";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -19,7 +21,56 @@ export async function POST(request: Request) {
   if ("error" in authResult) return authResult.error;
 
   try {
-    const body = (await request.json()) as { userId?: string };
+    const body = (await request.json()) as {
+      userId?: string;
+      name?: string;
+      memberIds?: string[];
+    };
+
+    if (body.name !== undefined || body.memberIds !== undefined) {
+      if (!body.name?.trim()) {
+        return NextResponse.json(
+          { error: "กรุณาตั้งชื่อกลุ่ม" },
+          { status: 400 }
+        );
+      }
+      if (!Array.isArray(body.memberIds)) {
+        return NextResponse.json(
+          { error: "กรุณาเลือกสมาชิก" },
+          { status: 400 }
+        );
+      }
+
+      const channel = await createGroupChannel({
+        name: body.name,
+        memberIds: body.memberIds,
+        creator: {
+          id: authResult.session.user.id,
+          name: authResult.session.user.name ?? "ผู้ใช้",
+        },
+      });
+
+      const channels = await listChannels(authResult.session.user.id);
+      const item = channels.find((c) => c.id === channel.id);
+
+      return NextResponse.json({
+        channel:
+          item ??
+          ({
+            id: channel.id,
+            slug: channel.slug,
+            name: channel.name,
+            kind: "group" as const,
+            contentId: null,
+            memberNames: channel.members.map((member) => member.user.name),
+            memberCount: channel.members.length,
+            lastMessageAt: null,
+            lastMessagePreview: null,
+            unreadCount: 0,
+          } as CollaborationChannelItem),
+      });
+    }
+
     if (!body.userId) {
       return NextResponse.json({ error: "กรุณาเลือกสมาชิก" }, { status: 400 });
     }

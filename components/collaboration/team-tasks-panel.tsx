@@ -108,7 +108,6 @@ export function TeamTasksPanel({
   const [assigneeId, setAssigneeId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showForm, setShowForm] = useState(!compact);
 
   const activeTasks = useMemo(
     () => tasks.filter((task) => task.status !== "done"),
@@ -132,11 +131,10 @@ export function TeamTasksPanel({
     setTitle("");
     setAssigneeId("");
     setDueDate("");
-    if (compact) setShowForm(false);
   };
 
-  const create = async () => {
-    if (!title.trim() || submitting) return;
+  const create = async (): Promise<boolean> => {
+    if (!title.trim() || submitting) return false;
     setSubmitting(true);
     try {
       const res = await fetch("/api/team/tasks", {
@@ -152,10 +150,11 @@ export function TeamTasksPanel({
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         alert(data.error || "สร้างงานไม่สำเร็จ");
-        return;
+        return false;
       }
       resetForm();
       await mutate();
+      return true;
     } finally {
       setSubmitting(false);
     }
@@ -195,8 +194,6 @@ export function TeamTasksPanel({
         tasks={tasks}
         members={members}
         isLoading={isLoading}
-        showForm={showForm}
-        setShowForm={setShowForm}
         title={title}
         setTitle={setTitle}
         assigneeId={assigneeId}
@@ -204,7 +201,7 @@ export function TeamTasksPanel({
         dueDate={dueDate}
         setDueDate={setDueDate}
         submitting={submitting}
-        onCreate={() => void create()}
+        onCreate={create}
         onReset={resetForm}
         onPatch={patchTask}
         onRemove={remove}
@@ -446,8 +443,6 @@ function CompactTasksView({
   tasks,
   members,
   isLoading,
-  showForm,
-  setShowForm,
   title,
   setTitle,
   assigneeId,
@@ -465,8 +460,6 @@ function CompactTasksView({
   tasks: TaskItem[];
   members: TeamMemberItem[];
   isLoading: boolean;
-  showForm: boolean;
-  setShowForm: (v: boolean) => void;
   title: string;
   setTitle: (v: string) => void;
   assigneeId: string;
@@ -474,7 +467,7 @@ function CompactTasksView({
   dueDate: string;
   setDueDate: (v: string) => void;
   submitting: boolean;
-  onCreate: () => void;
+  onCreate: () => Promise<boolean>;
   onReset: () => void;
   onPatch: (
     id: string,
@@ -484,47 +477,81 @@ function CompactTasksView({
   contentId?: string;
   navigate: (href: string) => void;
 }) {
+  const [showForm, setShowForm] = useState(false);
+
+  const handleCreate = async () => {
+    const ok = await onCreate();
+    if (ok) setShowForm(false);
+  };
+
+  const handleCancel = () => {
+    onReset();
+    setShowForm(false);
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {showForm ? (
-        <div className="mb-4 space-y-3 rounded-xl border border-stone-200 bg-stone-50/70 p-3">
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="ชื่องาน เช่น ตัดต่อคลิป, ออกแบบภาพ"
-            autoFocus
-          />
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Select
-              options={members.map((m) => ({ value: m.id, label: m.name }))}
-              placeholder="มอบหมายให้..."
-              value={assigneeId}
-              onChange={(e) => setAssigneeId(e.target.value)}
-            />
-            <Input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onReset}>
-              ยกเลิก
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              className="min-w-28"
-              onClick={onCreate}
-              disabled={submitting || !title.trim()}
-            >
-              <Plus className="h-4 w-4" />
-              มอบหมายงาน
-            </Button>
+        <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-4">
+          <p className="mb-3 text-xs font-semibold tracking-wide text-stone-500 uppercase">
+            มอบหมายด่วน
+          </p>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+            <div className="min-w-0 flex-1">
+              <label className="mb-1 block text-xs font-medium text-stone-600">
+                ชื่องาน
+              </label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="เช่น ถ่ายรูปสินค้าใหม่"
+                autoFocus
+              />
+            </div>
+            <div className="w-full shrink-0 lg:w-44">
+              <label className="mb-1 block text-xs font-medium text-stone-600">
+                ผู้รับผิดชอบ
+              </label>
+              <Select
+                options={members.map((m) => ({
+                  value: m.id,
+                  label: m.name,
+                }))}
+                placeholder="เลือกสมาชิก..."
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+              />
+            </div>
+            <div className="w-full shrink-0 lg:w-40">
+              <label className="mb-1 block text-xs font-medium text-stone-600">
+                กำหนดส่ง
+              </label>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+            <div className="flex shrink-0 items-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleCreate()}
+                disabled={submitting || !title.trim()}
+              >
+                มอบหมาย
+              </Button>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="mb-4 flex justify-center sm:justify-start">
+        <div className="flex justify-end">
           <Button
             type="button"
             variant="outline"
