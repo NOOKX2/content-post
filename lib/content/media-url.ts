@@ -1,12 +1,29 @@
 const VIDEO_EXT = /\.(mp4|mov|webm|m4v)$/i;
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
 
+/** Direct video file URL (playable in HTML5 video or Buffer). */
 export function isVideoMediaUrl(url: string): boolean {
   return VIDEO_EXT.test(url.split("?")[0]);
 }
 
 export function isImageMediaUrl(url: string): boolean {
   return IMAGE_EXT.test(url.split("?")[0]);
+}
+
+/** Video attachment for form validation — file upload or external link. */
+export function isVideoAttachmentUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
+  const path = trimmed.split("?")[0];
+  if (IMAGE_EXT.test(path)) return false;
+  if (VIDEO_EXT.test(path)) return true;
+
+  return (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("/")
+  );
 }
 
 export function toAbsolutePublicUrl(
@@ -38,9 +55,10 @@ export function resolvePublicMediaUrl(
 
   const matcher = mediaType === "video" ? VIDEO_EXT : IMAGE_EXT;
   const matched = absoluteUrls.find((url) => matcher.test(url.split("?")[0]));
-  // For video content, never fall back to a non-video attachment — Buffer would post as image.
   if (mediaType === "video") {
-    return matched ?? null;
+    if (matched) return matched;
+    const link = absoluteUrls.find((url) => isVideoAttachmentUrl(url));
+    return link ?? null;
   }
 
   return matched ?? absoluteUrls[0];

@@ -23,7 +23,7 @@ export async function buildN8nContentPayload(record: Content) {
 
   if (item.mediaType === "video" && !mediaUrl) {
     throw new Error(
-      `Content ${item.contentId} เป็นวิดีโอแต่ไม่มีไฟล์ .mp4/.mov/.webm ใน attachments`
+      `Content ${item.contentId} เป็นวิดีโอแต่ไม่มีลิงก์หรือไฟล์วิดีโอใน attachments`
     );
   }
 

@@ -7,22 +7,19 @@ import { CalendarDays, Users } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { PersonAvatar } from "@/components/collaboration/person-avatar";
 import { MemberCalendarView } from "@/components/collaboration/member-calendar-view";
+import {
+  fetchTeamMembers,
+  updateTeamMemberRole,
+} from "@/lib/collaboration/team-actions";
 import { ROLE_LABELS, TEAM_ROLES, isAdminRole } from "@/lib/auth/roles";
 import type { TeamMemberItem } from "@/lib/collaboration/team-types";
 import type { Role } from "@prisma/client";
-
-async function fetchMembers() {
-  const res = await fetch("/api/team/members");
-  const data = (await res.json()) as { members?: TeamMemberItem[]; error?: string };
-  if (!res.ok) throw new Error(data.error || "โหลดสมาชิกไม่สำเร็จ");
-  return data.members ?? [];
-}
 
 export function TeamMembersPanel() {
   const { data: session } = useSession();
   const { data: members = [], mutate, isLoading } = useSWR(
     "team-members",
-    fetchMembers
+    fetchTeamMembers
   );
   const canEditRoles = isAdminRole(session?.user?.role);
   const [calendarMember, setCalendarMember] = useState<TeamMemberItem | null>(
@@ -30,17 +27,12 @@ export function TeamMembersPanel() {
   );
 
   const updateRole = async (userId: string, role: Role) => {
-    const res = await fetch("/api/team/members", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, role }),
-    });
-    const data = (await res.json()) as { error?: string };
-    if (!res.ok) {
-      alert(data.error || "อัปเดตบทบาทไม่สำเร็จ");
-      return;
+    try {
+      await updateTeamMemberRole(userId, role);
+      await mutate();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "อัปเดตบทบาทไม่สำเร็จ");
     }
-    await mutate();
   };
 
   if (calendarMember) {

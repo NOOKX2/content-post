@@ -18,6 +18,7 @@ import {
   fetchChannelMessages,
   postChannelMessage,
 } from "@/lib/collaboration/fetch-actions";
+import { fetchTeamMembers } from "@/lib/collaboration/team-actions";
 import { ApprovalCardMessage } from "@/components/collaboration/approval-card-message";
 import { ChannelCalendarView } from "@/components/collaboration/channel-calendar-view";
 import { GroupMembersDialog } from "@/components/collaboration/group-members-dialog";
@@ -35,16 +36,6 @@ function formatTime(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-async function fetchMembers() {
-  const res = await fetch("/api/team/members");
-  const data = (await res.json()) as {
-    members?: TeamMemberItem[];
-    error?: string;
-  };
-  if (!res.ok) throw new Error(data.error || "โหลดสมาชิกไม่สำเร็จ");
-  return data.members ?? [];
 }
 
 export function CollaborationChatPanel({
@@ -65,9 +56,13 @@ export function CollaborationChatPanel({
   const { data: messages = [], mutate } = useSWR<CollaborationMessageItem[]>(
     `collab-messages:${channel.id}`,
     () => fetchChannelMessages(channel.id),
-    { refreshInterval: 5000, revalidateOnFocus: true }
+    {
+      refreshInterval: 5000,
+      revalidateOnFocus: true,
+      refreshWhenHidden: false,
+    }
   );
-  const { data: members = [] } = useSWR("team-members", fetchMembers);
+  const { data: members = [] } = useSWR("team-members", fetchTeamMembers);
 
   const headerPeople =
     channel.kind === "dm"
@@ -317,7 +312,10 @@ function MessageBubble({
     return (
       <div className="flex w-full justify-center">
         <ApprovalCardMessage
+          messageId={message.id}
           metadata={message.metadata as unknown as ApprovalCardMetadata}
+          createdAt={message.createdAt}
+          onResolved={onChanged}
         />
       </div>
     );

@@ -8,6 +8,7 @@ export type ApprovalCardMetadata = {
   status: "pending" | "approved" | "rejected";
   rejectReason?: string;
   resolvedBy?: string;
+  resolvedAt?: string;
 };
 
 export type MeetingCardMetadata = {

@@ -14,53 +14,42 @@ import {
   useDashboardNav,
 } from "@/lib/navigation/dashboard-nav";
 
-function Panel({
-  active,
-  children,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return <div className={active ? "contents" : "hidden"}>{children}</div>;
-}
-
 export function DashboardRouter() {
   const { activePath } = useDashboardNav();
   const route = parseDashboardRoute(activePath);
 
-  return (
-    <>
-      <Panel active={route?.view === "dashboard"}>
+  if (!route) {
+    return null;
+  }
+
+  switch (route.view) {
+    case "dashboard":
+      return (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <DashboardView />
         </div>
-      </Panel>
-      <Panel active={route?.view === "collaboration"}>
+      );
+    case "collaboration":
+      return (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <CollaborationView />
         </div>
-      </Panel>
-      <Panel active={route?.view === "calendar"}>
-        <CalendarPageClient />
-      </Panel>
-      <Panel active={route?.view === "admin"}>
-        <AdminView />
-      </Panel>
-      <Panel active={route?.view === "admin-channels"}>
-        <AdminChannelsView />
-      </Panel>
-      <Panel active={route?.view === "create"}>
-        <CreateView />
-      </Panel>
-      <Panel active={route?.view === "posts"}>
-        <PostsView />
-      </Panel>
-      <Panel active={route?.view === "my-tasks"}>
-        <MyTasksView />
-      </Panel>
-      {route?.view === "content-detail" && (
-        <ContentDetailViewPage key={route.id} id={route.id} />
-      )}
-    </>
-  );
+      );
+    case "calendar":
+      return <CalendarPageClient />;
+    case "admin":
+      return <AdminView />;
+    case "admin-channels":
+      return <AdminChannelsView />;
+    case "create":
+      return <CreateView />;
+    case "posts":
+      return <PostsView />;
+    case "my-tasks":
+      return <MyTasksView />;
+    case "content-detail":
+      return <ContentDetailViewPage key={route.id} id={route.id} />;
+    default:
+      return null;
+  }
 }

@@ -4,25 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
 import { Send } from "lucide-react";
 import { MediaTypeToggle } from "./media-type-toggle";
-import { TeamTable } from "./team-table";
-import { ScriptTable } from "./script-table";
-import { PlatformSelect } from "./platform-select";
-import { LocationSelect } from "./location-select";
-import { AttachmentLinks } from "./attachment-links";
+import { VideoContentFormFields } from "./video-content-form-fields";
 import { ImageContentFormFields } from "./image-content-form-fields";
 import { SubmitSuccess } from "./submit-success";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/select";
-import { CreatableMultiSelect } from "@/components/ui/creatable-multi-select";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  TEAM_MEMBERS,
-  PRODUCTS,
-  FILMING_EQUIPMENT,
-  CONTENT_OBJECTIVES,
-} from "@/lib/constants";
+import { Card } from "@/components/ui/card";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
 import type {
   ContentFormData,
@@ -306,14 +292,27 @@ export function ContentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Card className={isVideo ? "border-amber-100" : "border-pink-100"}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <Card
+        padding="none"
+        className={isVideo ? "border-amber-100" : "border-pink-100"}
+      >
+        <div className="border-b border-stone-200 px-6 py-4">
+          <h3 className="text-xl font-bold tracking-tight text-stone-900">
             {isVideo ? "Video Content" : "Picture Content"}
-          </CardTitle>
-        </CardHeader>
-        <MediaTypeToggle value={form.mediaType} onChange={handleMediaTypeChange} />
+          </h3>
+          <p className="mt-1 text-sm text-stone-500">
+            {isVideo
+              ? "กรอก brief งานตัดต่อวีดีโอ"
+              : "กรอก brief งานออกแบบภาพ"}
+          </p>
+        </div>
+        <div className="p-6">
+          <MediaTypeToggle
+            value={form.mediaType}
+            onChange={handleMediaTypeChange}
+          />
+        </div>
       </Card>
 
       {!isVideo ? (
@@ -328,223 +327,16 @@ export function ContentForm({
           onChannelChange={handleChannelChange}
         />
       ) : (
-        <>
-      <Card>
-        <CardHeader>
-          <CardTitle>ข้อมูล Content</CardTitle>
-        </CardHeader>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="ชื่อ Content *"
-            value={form.name}
-            onChange={(e) => update("name", e.target.value)}
-            placeholder="เช่น Hero Serum Launch Video"
-            required
-          />
-          <Input
-            label="รหัส Content"
-            value={contentId}
-            readOnly
-            placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
-            className="bg-stone-50 font-mono"
-          />
-          <Select
-            label="ช่องที่ลง *"
-            options={channelOptions}
-            placeholder="เลือกช่อง..."
-            value={form.channel}
-            onChange={(e) => handleChannelChange(e.target.value)}
-            required={!isEdit}
-          />
-          <Select
-            label="วัตถุประสงค์"
-            options={CONTENT_OBJECTIVES}
-            placeholder="เลือกวัตถุประสงค์..."
-            value={form.category}
-            onChange={(e) => update("category", e.target.value)}
-          />
-        </div>
-        <div className="mt-4">
-          <PlatformSelect
-            selected={form.platforms}
-            availablePlatforms={availablePlatforms}
-            disabled={!form.channel}
-            onChange={(platforms: Platform[]) => update("platforms", platforms)}
-          />
-        </div>
-        <div className="mt-4">
-          <Textarea
-            label="รายละเอียด"
-            value={form.details}
-            onChange={(e) => update("details", e.target.value)}
-            placeholder="อธิบาย concept, mood, หรือ brief..."
-            rows={3}
-          />
-        </div>
-      </Card>
-
-      <Card className="border-amber-100">
-        <CardHeader>
-          <CardTitle>ตัวอย่าง</CardTitle>
-          <CardDescription>
-            อัปโหลดวิดีโอเท่านั้น (.mp4 / .mov / .webm)
-          </CardDescription>
-        </CardHeader>
-        <AttachmentLinks
-          links={form.attachments}
-          onChange={(links) => update("attachments", links)}
-          hideHeader
+        <VideoContentFormFields
+          form={form}
+          contentId={contentId}
+          isEdit={isEdit}
+          channelOptions={channelOptions}
+          availablePlatforms={availablePlatforms}
+          config={config}
+          update={update}
+          onChannelChange={handleChannelChange}
         />
-      </Card>
-
-      <Card className="border-amber-100">
-        <CardHeader>
-          <CardTitle>Pre Post</CardTitle>
-          <CardDescription>
-            วันที่คิดเสร็จ นัดถ่าย และตัดเสร็จ — ใช้ในปฏิทิน Pre Post
-          </CardDescription>
-        </CardHeader>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Input
-            label="คอนเทนต์คิดเสร็จ"
-            type="date"
-            value={form.ideaFinishedDate}
-            onChange={(e) => update("ideaFinishedDate", e.target.value)}
-          />
-          <Input
-            label="นัดวันถ่าย"
-            type="date"
-            value={form.shootDate}
-            onChange={(e) => update("shootDate", e.target.value)}
-          />
-          <Input
-            label="ตัดเสร็จ"
-            type="date"
-            value={form.editFinishedDate}
-            onChange={(e) => update("editFinishedDate", e.target.value)}
-          />
-        </div>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>วัน/เวลาโพสต์</CardTitle>
-        </CardHeader>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="วันที่โพสต์"
-            type="date"
-            value={form.scheduledDate}
-            onChange={(e) => update("scheduledDate", e.target.value)}
-          />
-          <Input
-            label="เวลาโพสต์"
-            type="time"
-            value={form.scheduledTime}
-            onChange={(e) => update("scheduledTime", e.target.value)}
-          />
-        </div>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>สถานที่ถ่าย</CardTitle>
-        </CardHeader>
-        <LocationSelect
-          selected={form.location}
-          onChange={(locations) => update("location", locations)}
-          optional={config.locationOptional}
-        />
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>ผู้เข้าร่วม &amp; หน้าที่รับผิดชอบ</CardTitle>
-        </CardHeader>
-        <TeamTable rows={form.team} onChange={(rows) => update("team", rows)} />
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>สิ่งที่ต้องเตรียม</CardTitle>
-        </CardHeader>
-        <div className="space-y-4">
-          <CreatableMultiSelect
-            label="สินค้า"
-            options={PRODUCTS}
-            value={form.productsNeeded}
-            onChange={(items) => update("productsNeeded", items)}
-            placeholder="เลือกสินค้า..."
-            addPlaceholder="อื่นๆ..."
-          />
-          <Input
-            label="อุปกรณ์ประกอบฉาก"
-            value={form.itemsToPrepare}
-            onChange={(e) => update("itemsToPrepare", e.target.value)}
-            placeholder="Backdrop, Props, Equipment..."
-          />
-          <CreatableMultiSelect
-            label="อุปกรณ์ถ่าย"
-            options={FILMING_EQUIPMENT}
-            value={form.filmingEquipment}
-            onChange={(items) => update("filmingEquipment", items)}
-            placeholder="เลือกอุปกรณ์..."
-            addPlaceholder="อื่นๆ..."
-          />
-        </div>
-      </Card>
-
-      <Card className="border-amber-100">
-        <CardHeader>
-          <CardTitle>สคริป</CardTitle>
-          <CardDescription>
-            เวลาเริ่มต้น, เวลาสิ้นสุด, Action, บทพูด, หมายเหตุ, เพิ่มรูปภาพ
-          </CardDescription>
-        </CardHeader>
-        <ScriptTable
-          rows={form.script}
-          onChange={(rows) => update("script", rows)}
-        />
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>ผู้สร้าง content</CardTitle>
-        </CardHeader>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Select
-            label="ผู้คิดไอเดีย"
-            options={TEAM_MEMBERS}
-            placeholder="เลือก..."
-            value={form.ideaCreator}
-            onChange={(e) => update("ideaCreator", e.target.value)}
-          />
-          <Select
-            label={config.photographerLabel}
-            options={TEAM_MEMBERS}
-            placeholder="เลือก..."
-            value={form.photographer}
-            onChange={(e) => update("photographer", e.target.value)}
-          />
-          {config.showEditor && (
-            <Select
-              label="ผู้ตัดต่อ"
-              options={TEAM_MEMBERS}
-              placeholder="เลือก..."
-              value={form.editor}
-              onChange={(e) => update("editor", e.target.value)}
-            />
-          )}
-          <Input
-            label="ผู้อนุมัติ"
-            value=""
-            readOnly
-            placeholder="— กำหนดเมื่อ Admin อนุมัติ —"
-            className="bg-stone-50"
-          />
-        </div>
-      </Card>
-        </>
       )}
 
       <div className="flex justify-end gap-3 pb-8">

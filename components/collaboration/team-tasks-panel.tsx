@@ -14,6 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { PersonAvatar } from "@/components/collaboration/person-avatar";
 import {
+  createTeamTask,
+  deleteTeamTask,
+  fetchTeamMembers,
+  fetchTeamTasks,
+  updateTeamTask,
+} from "@/lib/collaboration/team-actions";
+import {
   TASK_STATUS_LABELS,
   type TaskItem,
   type TeamMemberItem,
@@ -21,23 +28,6 @@ import {
 import type { TaskStatus } from "@prisma/client";
 import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
 import { cn, formatThaiDate } from "@/lib/utils";
-
-async function fetchTasks(url: string) {
-  const res = await fetch(url);
-  const data = (await res.json()) as { tasks?: TaskItem[]; error?: string };
-  if (!res.ok) throw new Error(data.error || "โหลดงานไม่สำเร็จ");
-  return data.tasks ?? [];
-}
-
-async function fetchMembers() {
-  const res = await fetch("/api/team/members");
-  const data = (await res.json()) as {
-    members?: TeamMemberItem[];
-    error?: string;
-  };
-  if (!res.ok) throw new Error(data.error || "โหลดสมาชิกไม่สำเร็จ");
-  return data.members ?? [];
-}
 
 function todayIso() {
   const d = new Date();
@@ -93,16 +83,12 @@ export function TeamTasksPanel({
 }: TeamTasksPanelProps) {
   const { navigate } = useDashboardNav();
   const tasksKey = contentId
-    ? `team-tasks?contentId=${contentId}`
-    : "team-tasks";
+    ? `team-tasks:content:${contentId}`
+    : "team-tasks:all";
   const { data: tasks = [], mutate, isLoading } = useSWR(tasksKey, () =>
-    fetchTasks(
-      contentId
-        ? `/api/team/tasks?contentId=${encodeURIComponent(contentId)}`
-        : "/api/team/tasks"
-    )
+    fetchTeamTasks({ contentId })
   );
-  const { data: members = [] } = useSWR("team-members", fetchMembers);
+  const { data: members = [] } = useSWR("team-members", fetchTeamMembers);
 
   const [title, setTitle] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
@@ -137,24 +123,18 @@ export function TeamTasksPanel({
     if (!title.trim() || submitting) return false;
     setSubmitting(true);
     try {
-      const res = await fetch("/api/team/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          contentId: contentId || null,
-          assigneeId: assigneeId || null,
-          dueDate,
-        }),
+      await createTeamTask({
+        title,
+        contentId: contentId || null,
+        assigneeId: assigneeId || null,
+        dueDate,
       });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        alert(data.error || "สร้างงานไม่สำเร็จ");
-        return false;
-      }
       resetForm();
       await mutate();
       return true;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "สร้างงานไม่สำเร็จ");
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -164,28 +144,22 @@ export function TeamTasksPanel({
     id: string,
     payload: Partial<{ status: TaskStatus; assigneeId: string | null }>
   ) => {
-    const res = await fetch(`/api/team/tasks/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = (await res.json()) as { error?: string };
-    if (!res.ok) {
-      alert(data.error || "อัปเดตงานไม่สำเร็จ");
-      return;
+    try {
+      await updateTeamTask(id, payload);
+      await mutate();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "อัปเดตงานไม่สำเร็จ");
     }
-    await mutate();
   };
 
   const remove = async (id: string) => {
     if (!confirm("ลบงานนี้?")) return;
-    const res = await fetch(`/api/team/tasks/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      const data = (await res.json()) as { error?: string };
-      alert(data.error || "ลบงานไม่สำเร็จ");
-      return;
+    try {
+      await deleteTeamTask(id);
+      await mutate();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ลบงานไม่สำเร็จ");
     }
-    await mutate();
   };
 
   if (compact) {

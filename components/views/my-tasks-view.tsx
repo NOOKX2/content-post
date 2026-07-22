@@ -17,6 +17,7 @@ import {
   TASK_STATUS_LABELS,
   type TaskItem,
 } from "@/lib/collaboration/team-types";
+import { fetchTeamTasks, updateTeamTask } from "@/lib/collaboration/team-actions";
 import type { TaskStatus } from "@prisma/client";
 import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
 import { cn, formatThaiDate } from "@/lib/utils";
@@ -28,13 +29,6 @@ const FILTER_TABS: { id: TaskStatus | "all" | "active"; label: string }[] = [
   { id: "in_progress", label: "กำลังทำอยู่" },
   { id: "done", label: "เสร็จแล้ว" },
 ];
-
-async function fetchMyTasks() {
-  const res = await fetch("/api/team/tasks?mine=1");
-  const data = (await res.json()) as { tasks?: TaskItem[]; error?: string };
-  if (!res.ok) throw new Error(data.error || "โหลดงานไม่สำเร็จ");
-  return data.tasks ?? [];
-}
 
 function todayIso() {
   const d = new Date();
@@ -67,8 +61,8 @@ export function MyTasksView() {
   const { navigate } = useDashboardNav();
   const { data: tasks = [], mutate, isLoading } = useSWR(
     "my-tasks",
-    fetchMyTasks,
-    { refreshInterval: 15000 }
+    () => fetchTeamTasks({ mine: true }),
+    { refreshInterval: 15000, refreshWhenHidden: false }
   );
   const [filter, setFilter] = useState<TaskStatus | "all" | "active">("active");
   const [query, setQuery] = useState("");
@@ -94,17 +88,12 @@ export function MyTasksView() {
   }, [tasks, filter, query]);
 
   const patchStatus = async (id: string, status: TaskStatus) => {
-    const res = await fetch(`/api/team/tasks/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    const data = (await res.json()) as { error?: string };
-    if (!res.ok) {
-      alert(data.error || "อัปเดตสถานะไม่สำเร็จ");
-      return;
+    try {
+      await updateTeamTask(id, { status });
+      await mutate();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "อัปเดตสถานะไม่สำเร็จ");
     }
-    await mutate();
   };
 
   return (

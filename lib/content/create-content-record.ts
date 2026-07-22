@@ -22,7 +22,7 @@ import {
   getPostingChannelPrefix,
   isValidPostingChannel,
 } from "@/lib/content/posting-channels";
-import { isVideoMediaUrl } from "@/lib/content/media-url";
+import { isVideoAttachmentUrl } from "@/lib/content/media-url";
 import type { ContentFormData, ContentItem } from "@/lib/types";
 
 export async function validateContentFormData(
@@ -55,8 +55,8 @@ export async function validateContentFormData(
     if (attachments.length === 0) {
       return "กรุณาอัปโหลดหรือแนบลิงก์วิดีโออย่างน้อย 1 ไฟล์";
     }
-    if (!attachments.some((url) => isVideoMediaUrl(url))) {
-      return "Content ประเภทวิดีโอต้องมีไฟล์ .mp4 / .mov / .webm";
+    if (!attachments.some((url) => isVideoAttachmentUrl(url))) {
+      return "กรุณาแนบลิงก์วิดีโอหรือไฟล์วิดีโออย่างน้อย 1 รายการ";
     }
   }
 

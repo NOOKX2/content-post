@@ -11,20 +11,11 @@ import {
   fetchCollaborationChannels,
   openDirectMessage,
 } from "@/lib/collaboration/fetch-actions";
+import { fetchTeamMembers } from "@/lib/collaboration/team-actions";
 import { CreateGroupDialog } from "@/components/collaboration/create-group-dialog";
 import { PersonAvatar } from "@/components/collaboration/person-avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-async function fetchMembers() {
-  const res = await fetch("/api/team/members");
-  const data = (await res.json()) as {
-    members?: TeamMemberItem[];
-    error?: string;
-  };
-  if (!res.ok) throw new Error(data.error || "โหลดสมาชิกไม่สำเร็จ");
-  return data.members ?? [];
-}
 
 function matchesQuery(text: string, query: string) {
   return text.toLowerCase().includes(query);
@@ -46,9 +37,9 @@ export function CollaborationChannelSidebar({
   const { data: channels = [], mutate } = useSWR(
     "collab-channels",
     fetchCollaborationChannels,
-    { refreshInterval: 10000 }
+    { refreshInterval: 10000, refreshWhenHidden: false }
   );
-  const { data: members = [] } = useSWR("team-members", fetchMembers);
+  const { data: members = [] } = useSWR("team-members", fetchTeamMembers);
 
   const otherMembers = useMemo(
     () => members.filter((member) => member.id !== session?.user?.id),

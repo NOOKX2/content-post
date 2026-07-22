@@ -25,6 +25,17 @@ export function formatThaiDate(dateStr: string): string {
   });
 }
 
+export function formatThaiDateTime(iso: string): string {
+  const date = new Date(iso);
+  return date.toLocaleString("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function formatTime(time: string): string {
   if (!time) return "";
   const [h, m] = time.split(":");

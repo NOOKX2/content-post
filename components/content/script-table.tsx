@@ -10,11 +10,16 @@ import { toTimeInputValue } from "@/lib/content/script";
 interface ScriptTableProps {
   rows: ScriptRow[];
   onChange: (rows: ScriptRow[]) => void;
+  hideAddButton?: boolean;
 }
 
 type ScriptField = "startTime" | "endTime" | "action" | "dialogue" | "notes";
 
-export function ScriptTable({ rows, onChange }: ScriptTableProps) {
+export function ScriptTable({
+  rows,
+  onChange,
+  hideAddButton = false,
+}: ScriptTableProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingRowId, setUploadingRowId] = useState<string | null>(null);
   const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
@@ -97,12 +102,14 @@ export function ScriptTable({ rows, onChange }: ScriptTableProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-end">
-        <Button type="button" variant="ghost" size="sm" onClick={addRow}>
-          <Plus className="h-4 w-4" />
-          เพิ่ม Scene
-        </Button>
-      </div>
+      {!hideAddButton && (
+        <div className="flex items-center justify-end">
+          <Button type="button" variant="ghost" size="sm" onClick={addRow}>
+            <Plus className="h-4 w-4" />
+            เพิ่ม Scene
+          </Button>
+        </div>
+      )}
 
       <input
         ref={fileInputRef}

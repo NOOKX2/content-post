@@ -2,6 +2,10 @@ import { randomUUID } from "crypto";
 import type { Content, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ApprovalCardMetadata } from "@/lib/collaboration/types";
+import {
+  createCalendarMeeting,
+  isGoogleCalendarConfigured,
+} from "@/lib/google/calendar";
 
 const TEAM_CHANNEL_SLUG = "team-content";
 
@@ -584,11 +588,118 @@ export async function markChannelAsRead(channelId: string, userId: string) {
 }
 
 export async function getChannelMessages(channelId: string, limit = 80) {
-  return prisma.collaborationMessage.findMany({
+  const messages = await prisma.collaborationMessage.findMany({
     where: { channelId },
     orderBy: { createdAt: "asc" },
     take: limit,
   });
+
+  return reconcilePendingApprovalCards(messages);
+}
+
+const APPROVED_CONTENT_STATUSES = new Set([
+  "approved",
+  "scheduled",
+  "posting",
+  "posted",
+]);
+
+async function reconcilePendingApprovalCards(
+  messages: Awaited<
+    ReturnType<typeof prisma.collaborationMessage.findMany>
+  >
+) {
+  const pendingApprovals = messages.filter((message) => {
+    if (message.messageType !== "approval_request") return false;
+    const metadata = message.metadata as ApprovalCardMetadata;
+    return metadata.status === "pending";
+  });
+  if (!pendingApprovals.length) return messages;
+
+  const contentIds = [
+    ...new Set(
+      pendingApprovals.map(
+        (message) => (message.metadata as ApprovalCardMetadata).contentId
+      )
+    ),
+  ];
+
+  const contents = await prisma.content.findMany({
+    where: { id: { in: contentIds } },
+    select: { id: true, status: true, approver: true, updatedAt: true },
+  });
+  const contentById = new Map(contents.map((content) => [content.id, content]));
+
+  return Promise.all(
+    messages.map(async (message) => {
+      if (message.messageType !== "approval_request") return message;
+
+      const metadata = message.metadata as ApprovalCardMetadata;
+      if (metadata.status !== "pending") return message;
+
+      const content = contentById.get(metadata.contentId);
+      if (!content) return message;
+
+      const isApproved = APPROVED_CONTENT_STATUSES.has(content.status);
+      const isRejected = content.status === "rejected";
+      if (!isApproved && !isRejected) return message;
+
+      const updatedMetadata: ApprovalCardMetadata = {
+        ...metadata,
+        status: isApproved ? "approved" : "rejected",
+        resolvedBy: content.approver ?? "Admin",
+        resolvedAt: content.updatedAt.toISOString(),
+      };
+
+      return prisma.collaborationMessage.update({
+        where: { id: message.id },
+        data: { metadata: updatedMetadata },
+      });
+    })
+  );
+}
+
+async function syncApprovalCardForContent(params: {
+  contentId: string;
+  status: "approved" | "rejected";
+  resolvedBy: string;
+  rejectReason?: string;
+  resolvedAt?: string;
+}) {
+  const teamChannel = await ensureTeamChannel();
+  const resolvedAt = params.resolvedAt ?? new Date().toISOString();
+
+  const messages = await prisma.collaborationMessage.findMany({
+    where: {
+      channelId: teamChannel.id,
+      messageType: "approval_request",
+    },
+  });
+
+  await Promise.all(
+    messages
+      .filter((message) => {
+        const metadata = message.metadata as ApprovalCardMetadata;
+        return (
+          metadata.contentId === params.contentId &&
+          metadata.status === "pending"
+        );
+      })
+      .map((message) => {
+        const metadata = message.metadata as ApprovalCardMetadata;
+        const updatedMetadata: ApprovalCardMetadata = {
+          ...metadata,
+          status: params.status,
+          resolvedBy: params.resolvedBy,
+          rejectReason: params.rejectReason,
+          resolvedAt,
+        };
+        return prisma.collaborationMessage.update({
+          where: { id: message.id },
+          data: { metadata: updatedMetadata },
+        });
+      })
+  );
 }
 
 export async function assertCanAccessChannel(
@@ -807,6 +918,66 @@ export async function getChannelAttendees(channelId: string) {
   return users.map((user) => ({ email: user.email, name: user.name }));
 }
 
+export async function scheduleChannelMeeting(params: {
+  channelId: string;
+  authorId: string;
+  authorName: string;
+  title: string;
+  meetUrl?: string;
+  startsAt: string;
+  endsAt: string;
+}) {
+  const allowed = await assertCanAccessChannel(params.channelId, params.authorId);
+  if (!allowed) {
+    throw new Error("ไม่มีสิทธิ์เข้าถึงห้องนี้");
+  }
+
+  const title = params.title.trim();
+  if (!title) {
+    throw new Error("กรุณากรอกหัวข้อประชุม");
+  }
+  if (!params.startsAt || !params.endsAt) {
+    throw new Error("กรุณาเลือกเวลาเริ่มและสิ้นสุด");
+  }
+
+  let meetUrl = params.meetUrl?.trim() ?? "";
+  let eventId = "";
+  let calendarLink = "";
+  let attendeeCount = 0;
+
+  if (isGoogleCalendarConfigured()) {
+    const attendees = await getChannelAttendees(params.channelId);
+    attendeeCount = attendees.length;
+    const created = await createCalendarMeeting({
+      title,
+      description: `นัดประชุมโดย ${params.authorName}`,
+      startsAt: params.startsAt,
+      endsAt: params.endsAt,
+      attendees: attendees.map((attendee) => ({
+        email: attendee.email,
+        displayName: attendee.name,
+      })),
+      manualMeetUrl: meetUrl || undefined,
+    });
+    meetUrl = created.meetUrl;
+    eventId = created.eventId;
+    calendarLink = created.htmlLink;
+  }
+
+  return postMeetingMessage({
+    channelId: params.channelId,
+    authorId: params.authorId,
+    authorName: params.authorName,
+    title,
+    meetUrl,
+    startsAt: params.startsAt,
+    endsAt: params.endsAt,
+    eventId,
+    calendarLink,
+    attendeeCount,
+  });
+}
+
 export async function postMeetingMessage(params: {
   channelId: string;
   authorId: string;
@@ -865,6 +1036,7 @@ export async function resolveApprovalMessage(params: {
     status: params.status,
     resolvedBy: params.resolvedBy,
     rejectReason: params.rejectReason,
+    resolvedAt: new Date().toISOString(),
   };
 
   return prisma.collaborationMessage.update({
@@ -892,6 +1064,15 @@ export async function syncContentWorkflowToCollaboration(params: {
   // submitted already posts via postApprovalRequest — skip duplicate system line
   if (action === "submitted") {
     return;
+  }
+
+  if (action === "approved" || action === "rejected") {
+    await syncApprovalCardForContent({
+      contentId: content.id,
+      status: action,
+      resolvedBy: actorName,
+      rejectReason: action === "rejected" ? note : undefined,
+    });
   }
 
   await postSystemMessage({

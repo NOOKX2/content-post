@@ -10,6 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ContentFormSection } from "@/components/content/content-form-section";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +21,12 @@ import {
 interface ImageAttachmentLinksProps {
   links: string[];
   onChange: (links: string[]) => void;
+  /** Hide inline section title when wrapped in a Card with its own title */
+  hideHeader?: boolean;
+  /** Hide top toolbar when rendered in a parent card header */
+  hideToolbar?: boolean;
+  /** Card layout with title, description, and toolbar in the header row */
+  layout?: "default" | "section";
 }
 
 function isImageAttachment(value: string) {
@@ -29,6 +36,9 @@ function isImageAttachment(value: string) {
 export function ImageAttachmentLinks({
   links,
   onChange,
+  hideHeader = false,
+  hideToolbar = false,
+  layout = "default",
 }: ImageAttachmentLinksProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -102,36 +112,37 @@ export function ImageAttachmentLinks({
     .map((link, index) => ({ link, index }))
     .filter(({ link }) => isUploadedAttachment(link));
 
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium text-stone-700">ตัวอย่าง</span>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={addLink}>
-            <Plus className="h-4 w-4" />
-            เพิ่มลิงก์
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileUp className="h-4 w-4" />
-            )}
-            อัปโหลดรูป
-          </Button>
-        </div>
-      </div>
+  const toolbar = (
+    <>
+      <Button type="button" variant="ghost" size="sm" onClick={addLink}>
+        <Plus className="h-4 w-4" />
+        เพิ่มลิงก์
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+      >
+        {uploading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <FileUp className="h-4 w-4" />
+        )}
+        อัปโหลดรูป
+      </Button>
+    </>
+  );
 
-      <p className="text-xs text-stone-500">
-        แนบได้มากกว่า 1 รายการ — วางลิงก์ reference หรืออัปโหลดรูปภาพ (สูงสุด 10
-        MB)
-      </p>
+  const body = (
+    <>
+      {layout === "default" && (
+        <p className="text-xs text-stone-500">
+          แนบได้มากกว่า 1 รายการ — วางลิงก์ reference หรืออัปโหลดรูปภาพ (สูงสุด
+          10 MB)
+        </p>
+      )}
 
       <input
         ref={fileInputRef}
@@ -226,6 +237,47 @@ export function ImageAttachmentLinks({
           ))}
         </div>
       )}
+    </>
+  );
+
+  if (layout === "section") {
+    return (
+      <ContentFormSection
+        title="ตัวอย่างรูปภาพ"
+        description="อัปโหลดรูป reference หรือแนบลิงก์ภาพตัวอย่าง"
+        icon={ImageIcon}
+        className="border-pink-100"
+        actions={toolbar}
+        bodyClassName="space-y-3"
+      >
+        <p className="text-xs text-stone-500">
+          แนบได้มากกว่า 1 รายการ — วางลิงก์ reference หรืออัปโหลดรูปภาพ (สูงสุด
+          10 MB)
+        </p>
+        {body}
+      </ContentFormSection>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {!hideToolbar && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {!hideHeader && (
+            <span className="text-sm font-medium text-stone-700">ตัวอย่าง</span>
+          )}
+          <div
+            className={cn(
+              "flex flex-wrap gap-2",
+              hideHeader && "ml-auto"
+            )}
+          >
+            {toolbar}
+          </div>
+        </div>
+      )}
+
+      {body}
     </div>
   );
 }

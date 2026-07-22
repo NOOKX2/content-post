@@ -8,14 +8,16 @@ import {
   Paperclip,
   Plus,
   Trash2,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ContentFormSection } from "@/components/content/content-form-section";
 import { cn } from "@/lib/utils";
 import {
   getAttachmentFilename,
   isUploadedAttachment,
 } from "@/lib/content/attachments";
+import { isVideoMediaUrl } from "@/lib/content/media-url";
 
 const VIDEO_ACCEPT = "video/mp4,video/quicktime,video/webm";
 const VIDEO_MIME = new Set([
@@ -31,16 +33,22 @@ interface AttachmentLinksProps {
   onChange: (links: string[]) => void;
   /** Hide inline section title when wrapped in a Card with its own title */
   hideHeader?: boolean;
+  /** Hide top toolbar when rendered in a parent card header */
+  hideToolbar?: boolean;
+  /** Card layout with title, description, and toolbar in the header row */
+  layout?: "default" | "section";
 }
 
 function isVideoAttachment(value: string) {
-  return VIDEO_EXT.test(value.split("?")[0]);
+  return isVideoMediaUrl(value);
 }
 
 export function AttachmentLinks({
   links,
   onChange,
   hideHeader = false,
+  hideToolbar = false,
+  layout = "default",
 }: AttachmentLinksProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -131,43 +139,37 @@ export function AttachmentLinks({
     .map((link, index) => ({ link, index }))
     .filter(({ link }) => isUploadedAttachment(link));
 
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {!hideHeader && (
-          <span className="text-sm font-medium text-stone-700">ตัวอย่าง</span>
+  const toolbar = (
+    <>
+      <Button type="button" variant="ghost" size="sm" onClick={addLink}>
+        <Plus className="h-4 w-4" />
+        เพิ่มลิงก์วิดีโอ
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+      >
+        {uploading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <FileUp className="h-4 w-4" />
         )}
-        <div
-          className={cn(
-            "flex flex-wrap gap-2",
-            hideHeader && "ml-auto"
-          )}
-        >
-          <Button type="button" variant="ghost" size="sm" onClick={addLink}>
-            <Plus className="h-4 w-4" />
-            เพิ่มลิงก์วิดีโอ
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileUp className="h-4 w-4" />
-            )}
-            อัปโหลดวิดีโอ
-          </Button>
-        </div>
-      </div>
+        อัปโหลดวิดีโอ
+      </Button>
+    </>
+  );
 
-      <p className="text-xs text-stone-500">
-        อัปโหลดไฟล์วิดีโอเท่านั้น (.mp4 / .mov / .webm) สูงสุด 200 MB
-        หรือวางลิงก์วิดีโอสาธารณะ
-      </p>
+  const body = (
+    <>
+      {layout === "default" && (
+        <p className="text-xs text-stone-500">
+          อัปโหลดไฟล์วิดีโอ (.mp4 / .mov / .webm) สูงสุด 200 MB
+          หรือวางลิงก์วิดีโอสาธารณะ (Google Drive, Dropbox ฯลฯ)
+        </p>
+      )}
 
       <input
         ref={fileInputRef}
@@ -196,9 +198,7 @@ export function AttachmentLinks({
         </div>
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       {fileRows.length > 0 && (
         <div className="space-y-2">
@@ -235,30 +235,78 @@ export function AttachmentLinks({
       )}
 
       {linkRows.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {linkRows.map(({ link, index }) => (
-            <div key={index} className="flex items-center gap-2">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-stone-100">
-                <Link2 className="h-4 w-4 text-stone-500" />
+            <div
+              key={index}
+              className="rounded-lg border border-stone-200 bg-white p-3"
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-stone-700">
+                  <Link2 className="h-4 w-4 text-stone-500" />
+                  ลิงก์วิดีโอ
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(index)}
+                  className="rounded p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-500"
+                  aria-label="ลบลิงก์"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-              <Input
+              <input
+                type="url"
                 value={link}
                 onChange={(e) => updateLink(index, e.target.value)}
-                placeholder="https://.../video.mp4"
-                className="flex-1"
+                placeholder="https://... วางลิงก์วิดีโอสาธารณะ"
+                className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-900 placeholder:text-stone-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
-              <button
-                type="button"
-                onClick={() => removeAttachment(index)}
-                className="rounded p-2 text-stone-400 hover:bg-red-50 hover:text-red-500"
-                aria-label="ลบลิงก์"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
             </div>
           ))}
         </div>
       )}
+    </>
+  );
+
+  if (layout === "section") {
+    return (
+      <ContentFormSection
+        title="ตัวอย่าง"
+        description="อัปโหลดไฟล์วิดีโอ หรือแนบลิงก์วิดีโอสาธารณะ"
+        icon={Video}
+        className="border-amber-100"
+        actions={toolbar}
+        bodyClassName="space-y-3"
+      >
+        <p className="text-xs text-stone-500">
+          อัปโหลดไฟล์วิดีโอ (.mp4 / .mov / .webm) สูงสุด 200 MB
+          หรือวางลิงก์วิดีโอสาธารณะ (Google Drive, Dropbox ฯลฯ)
+        </p>
+        {body}
+      </ContentFormSection>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {!hideToolbar && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {!hideHeader && (
+            <span className="text-sm font-medium text-stone-700">ตัวอย่าง</span>
+          )}
+          <div
+            className={cn(
+              "flex flex-wrap gap-2",
+              hideHeader && "ml-auto"
+            )}
+          >
+            {toolbar}
+          </div>
+        </div>
+      )}
+
+      {body}
     </div>
   );
 }

@@ -114,6 +114,12 @@ export function ImageContentFormFields({
           </div>
         </Card>
 
+        <ImageAttachmentLinks
+          links={form.attachments}
+          onChange={(links) => update("attachments", links)}
+          layout="section"
+        />
+
         <Card padding="none" className="border-pink-100">
           <div className="flex items-center gap-2.5 border-b border-stone-200 px-6 py-4">
             <ImageIcon
@@ -176,11 +182,6 @@ export function ImageContentFormFields({
               onChange={(items) => updateImageMeta("requiredElements", items)}
               placeholder="เลือกองค์ประกอบ..."
               addPlaceholder="พิมพ์องค์ประกอบเพิ่มเอง..."
-            />
-
-            <ImageAttachmentLinks
-              links={form.attachments}
-              onChange={(links) => update("attachments", links)}
             />
           </div>
         </Card>
