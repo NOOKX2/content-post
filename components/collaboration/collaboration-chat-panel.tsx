@@ -57,7 +57,7 @@ export function CollaborationChatPanel({
     `collab-messages:${channel.id}`,
     () => fetchChannelMessages(channel.id),
     {
-      refreshInterval: 5000,
+      refreshInterval: 1000,
       revalidateOnFocus: true,
       refreshWhenHidden: false,
     }
@@ -91,13 +91,42 @@ export function CollaborationChatPanel({
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim() || submitting) return;
+    if (!text.trim() || submitting || !session?.user?.id) return;
+
+    const body = text.trim();
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMessage: CollaborationMessageItem = {
+      id: optimisticId,
+      channelId: channel.id,
+      authorId: session.user.id,
+      authorName: session.user.name ?? "ผู้ใช้",
+      body,
+      messageType: "text",
+      metadata: {},
+      createdAt: new Date().toISOString(),
+      editedAt: null,
+      deletedAt: null,
+    };
+
+    setText("");
     setSubmitting(true);
+
     try {
-      await postChannelMessage(channel.id, text.trim());
-      setText("");
-      await mutate();
+      await mutate(
+        async (current = []) => {
+          const saved = await postChannelMessage(channel.id, body);
+          return [...current.filter((m) => m.id !== optimisticId), saved];
+        },
+        {
+          optimisticData: (current = []) => [...current, optimisticMessage],
+          rollbackOnError: true,
+          revalidate: false,
+          populateCache: true,
+        }
+      );
       void mutateGlobal("collab-channels");
+    } catch {
+      setText(body);
     } finally {
       setSubmitting(false);
     }

@@ -1,4 +1,4 @@
-import { Leaf } from "lucide-react";
+import { BrandIcon } from "@/components/ui/brand-icon";
 
 interface AuthBrandPanelProps {
   headline: React.ReactNode;
@@ -28,9 +28,7 @@ export function AuthBrandPanel({
       {/* Logo */}
       <div className="relative z-10">
         <div className="inline-flex items-center gap-2.5 rounded-xl bg-white/10 px-4 py-2.5 backdrop-blur-sm ring-1 ring-white/20">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-            <Leaf className="h-4 w-4 text-white" />
-          </div>
+          <BrandIcon size="sm" />
           <span className="text-sm font-semibold text-white tracking-wide">
             iDea Content
           </span>
@@ -78,9 +76,7 @@ export function AuthFormPanel({
       <div className="mx-auto w-full max-w-md">
         {/* Mobile logo */}
         <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
-            <Leaf className="h-4 w-4 text-white" />
-          </div>
+          <BrandIcon size="sm" />
           <span className="text-base font-bold text-slate-900">iDea Content</span>
         </div>
 

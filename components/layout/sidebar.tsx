@@ -8,8 +8,8 @@ import {
   PenSquare,
   ShieldCheck,
   Settings,
-  Leaf,
 } from "lucide-react";
+import { BrandIcon } from "@/components/ui/brand-icon";
 import { cn } from "@/lib/utils";
 import { isAdminRole } from "@/lib/auth/roles";
 import { usePendingCount } from "@/lib/content/contents-provider";
@@ -40,9 +40,7 @@ export function Sidebar({ session }: { session: Session | null }) {
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-stone-200/80 bg-white">
       <div className="flex items-center gap-3 border-b border-stone-200/80 px-6 py-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
-          <Leaf className="h-5 w-5" />
-        </div>
+        <BrandIcon size="md" />
         <div>
           <h1 className="text-base font-bold text-stone-900">iDea Content</h1>
           <p className="text-xs text-stone-500">Content Management</p>
