@@ -10,8 +10,11 @@ import { CollaborationChatPanel } from "@/components/collaboration/collaboration
 import { MeetingsCalendarPanel } from "@/components/collaboration/meetings-calendar-panel";
 import { TeamMembersPanel } from "@/components/collaboration/team-members-panel";
 import { TeamTasksPanel } from "@/components/collaboration/team-tasks-panel";
+import {
+  COLLAB_CHANNELS_KEY,
+  useCollaborationBootstrap,
+} from "@/lib/collaboration/collaboration-provider";
 import { fetchCollaborationChannels } from "@/lib/collaboration/fetch-actions";
-import type { CollaborationChannelItem } from "@/lib/collaboration/types";
 
 const TEAM_TABS = [
   { id: "chat", label: "แชท" },
@@ -24,25 +27,30 @@ type TeamTab = (typeof TEAM_TABS)[number]["id"];
 
 export function CollaborationView() {
   const { data: session } = useSession();
+  const bootstrap = useCollaborationBootstrap();
   const { data: channels = [] } = useSWR(
-    "collab-channels",
+    COLLAB_CHANNELS_KEY,
     fetchCollaborationChannels
   );
   const [tab, setTab] = useState<TeamTab>("chat");
-  const [activeChannel, setActiveChannel] =
-    useState<CollaborationChannelItem | null>(null);
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(
+    () => bootstrap?.defaultChannelId ?? null
+  );
 
   useEffect(() => {
-    if (activeChannel) {
-      const stillExists = channels.some(
-        (channel) => channel.id === activeChannel.id
-      );
-      if (stillExists) return;
+    if (
+      activeChannelId &&
+      channels.some((channel) => channel.id === activeChannelId)
+    ) {
+      return;
     }
 
     const teamChannel = channels.find((channel) => channel.kind === "team");
-    setActiveChannel(teamChannel ?? channels[0] ?? null);
-  }, [activeChannel, channels]);
+    setActiveChannelId(teamChannel?.id ?? channels[0]?.id ?? null);
+  }, [activeChannelId, channels]);
+
+  const activeChannel =
+    channels.find((channel) => channel.id === activeChannelId) ?? null;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -60,8 +68,8 @@ export function CollaborationView() {
       {tab === "chat" && (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <CollaborationChannelSidebar
-            activeChannelId={activeChannel?.id ?? null}
-            onSelect={setActiveChannel}
+            activeChannelId={activeChannelId}
+            onSelect={(channel) => setActiveChannelId(channel.id)}
           />
           {activeChannel ? (
             <CollaborationChatPanel channel={activeChannel} />

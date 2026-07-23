@@ -7,6 +7,10 @@ import { MessageSquare, Plus, Search, Users, X } from "lucide-react";
 import type { CollaborationChannelItem } from "@/lib/collaboration/types";
 import type { TeamMemberItem } from "@/lib/collaboration/team-types";
 import {
+  COLLAB_CHANNELS_KEY,
+  TEAM_MEMBERS_KEY,
+} from "@/lib/collaboration/collaboration-provider";
+import {
   createCollaborationGroup,
   fetchCollaborationChannels,
   openDirectMessage,
@@ -35,11 +39,11 @@ export function CollaborationChannelSidebar({
   const query = search.trim().toLowerCase();
 
   const { data: channels = [], mutate } = useSWR(
-    "collab-channels",
+    COLLAB_CHANNELS_KEY,
     fetchCollaborationChannels,
     { refreshInterval: 10000, refreshWhenHidden: false }
   );
-  const { data: members = [] } = useSWR("team-members", fetchTeamMembers);
+  const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers);
 
   const otherMembers = useMemo(
     () => members.filter((member) => member.id !== session?.user?.id),

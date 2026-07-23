@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { Providers } from "./providers";
 import { AppShell } from "@/components/layout/app-shell";
+import { getCollaborationBootstrap } from "@/lib/collaboration/queries";
 import { getAllContents } from "@/lib/content/queries";
 import "./globals.css";
 
@@ -27,7 +29,16 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
-  const initialContents = session?.user ? await getAllContents() : undefined;
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const shouldPrefetchCollaboration =
+    Boolean(session?.user?.id) && pathname.startsWith("/collaboration");
+
+  const [initialContents, initialCollaboration] = await Promise.all([
+    session?.user ? getAllContents() : Promise.resolve(undefined),
+    shouldPrefetchCollaboration && session?.user?.id
+      ? getCollaborationBootstrap(session.user.id)
+      : Promise.resolve(undefined),
+  ]);
 
   return (
     <html
@@ -35,7 +46,11 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
-        <Providers initialContents={initialContents} session={session}>
+        <Providers
+          initialContents={initialContents}
+          initialCollaboration={initialCollaboration}
+          session={session}
+        >
           <AppShell session={session}>{children}</AppShell>
         </Providers>
       </body>

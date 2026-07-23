@@ -13,6 +13,11 @@ import type {
 } from "@/lib/collaboration/types";
 import type { TeamMemberItem } from "@/lib/collaboration/team-types";
 import {
+  COLLAB_CHANNELS_KEY,
+  collabMessagesKey,
+  TEAM_MEMBERS_KEY,
+} from "@/lib/collaboration/collaboration-provider";
+import {
   deleteChannelMessage,
   editChannelMessage,
   fetchChannelMessages,
@@ -54,7 +59,7 @@ export function CollaborationChatPanel({
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [], mutate } = useSWR<CollaborationMessageItem[]>(
-    `collab-messages:${channel.id}`,
+    collabMessagesKey(channel.id),
     () => fetchChannelMessages(channel.id),
     {
       refreshInterval: 1000,
@@ -62,7 +67,7 @@ export function CollaborationChatPanel({
       refreshWhenHidden: false,
     }
   );
-  const { data: members = [] } = useSWR("team-members", fetchTeamMembers);
+  const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers);
 
   const headerPeople =
     channel.kind === "dm"
@@ -86,7 +91,7 @@ export function CollaborationChatPanel({
   }, [channel.id]);
 
   useEffect(() => {
-    void mutateGlobal("collab-channels");
+    void mutateGlobal(COLLAB_CHANNELS_KEY);
   }, [channel.id, messages.length, mutateGlobal]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -124,7 +129,7 @@ export function CollaborationChatPanel({
           populateCache: true,
         }
       );
-      void mutateGlobal("collab-channels");
+      void mutateGlobal(COLLAB_CHANNELS_KEY);
     } catch {
       setText(body);
     } finally {
@@ -242,11 +247,11 @@ export function CollaborationChatPanel({
           onClose={() => setShowMembers(false)}
           onMembersChanged={() => {
             void mutate();
-            void mutateGlobal("collab-channels");
+            void mutateGlobal(COLLAB_CHANNELS_KEY);
           }}
           onLeft={() => {
             setShowMembers(false);
-            void mutateGlobal("collab-channels");
+            void mutateGlobal(COLLAB_CHANNELS_KEY);
             onLeave?.();
           }}
         />
@@ -260,7 +265,7 @@ export function CollaborationChatPanel({
             isSelf={message.authorId === session?.user?.id}
             onChanged={() => {
               void mutate();
-              void mutateGlobal("collab-channels");
+              void mutateGlobal(COLLAB_CHANNELS_KEY);
             }}
           />
         ))}
