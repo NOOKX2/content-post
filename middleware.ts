@@ -1,19 +1,7 @@
 import NextAuth from "next-auth";
-import { NextResponse } from "next/server";
 import { authConfig } from "./auth.config";
 
-const { auth } = NextAuth(authConfig);
-
-export default auth((request) => {
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-pathname", request.nextUrl.pathname);
-
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
-});
+export default NextAuth(authConfig).auth;
 
 export const config = {
   matcher: [

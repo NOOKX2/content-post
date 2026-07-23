@@ -16,6 +16,7 @@ import {
   COLLAB_CHANNELS_KEY,
   collabMessagesKey,
   TEAM_MEMBERS_KEY,
+  useCollaborationBootstrap,
 } from "@/lib/collaboration/collaboration-provider";
 import {
   deleteChannelMessage,
@@ -51,6 +52,7 @@ export function CollaborationChatPanel({
   onLeave?: () => void;
 }) {
   const { data: session } = useSession();
+  const bootstrap = useCollaborationBootstrap();
   const { mutate: mutateGlobal } = useSWRConfig();
   const [text, setText] = useState("");
   const [showMembers, setShowMembers] = useState(false);
@@ -62,12 +64,17 @@ export function CollaborationChatPanel({
     collabMessagesKey(channel.id),
     () => fetchChannelMessages(channel.id),
     {
+      fallbackData: bootstrap?.initialMessagesByChannelId[channel.id],
+      revalidateOnMount: !bootstrap?.initialMessagesByChannelId[channel.id],
       refreshInterval: 1000,
       revalidateOnFocus: true,
       refreshWhenHidden: false,
     }
   );
-  const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers);
+  const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers, {
+    fallbackData: bootstrap?.members,
+    revalidateOnMount: !bootstrap,
+  });
 
   const headerPeople =
     channel.kind === "dm"

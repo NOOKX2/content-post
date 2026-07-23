@@ -30,7 +30,11 @@ export function CollaborationView() {
   const bootstrap = useCollaborationBootstrap();
   const { data: channels = [] } = useSWR(
     COLLAB_CHANNELS_KEY,
-    fetchCollaborationChannels
+    fetchCollaborationChannels,
+    {
+      fallbackData: bootstrap?.channels,
+      revalidateOnMount: !bootstrap,
+    }
   );
   const [tab, setTab] = useState<TeamTab>("chat");
   const [activeChannelId, setActiveChannelId] = useState<string | null>(

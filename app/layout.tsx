@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { Providers } from "./providers";
 import { AppShell } from "@/components/layout/app-shell";
@@ -29,13 +28,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
-  const pathname = (await headers()).get("x-pathname") ?? "";
-  const shouldPrefetchCollaboration =
-    Boolean(session?.user?.id) && pathname.startsWith("/collaboration");
 
   const [initialContents, initialCollaboration] = await Promise.all([
     session?.user ? getAllContents() : Promise.resolve(undefined),
-    shouldPrefetchCollaboration && session?.user?.id
+    session?.user?.id
       ? getCollaborationBootstrap(session.user.id)
       : Promise.resolve(undefined),
   ]);

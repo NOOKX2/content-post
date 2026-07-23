@@ -9,6 +9,7 @@ import type { TeamMemberItem } from "@/lib/collaboration/team-types";
 import {
   COLLAB_CHANNELS_KEY,
   TEAM_MEMBERS_KEY,
+  useCollaborationBootstrap,
 } from "@/lib/collaboration/collaboration-provider";
 import {
   createCollaborationGroup,
@@ -38,12 +39,21 @@ export function CollaborationChannelSidebar({
   const [creatingGroup, setCreatingGroup] = useState(false);
   const query = search.trim().toLowerCase();
 
+  const bootstrap = useCollaborationBootstrap();
   const { data: channels = [], mutate } = useSWR(
     COLLAB_CHANNELS_KEY,
     fetchCollaborationChannels,
-    { refreshInterval: 10000, refreshWhenHidden: false }
+    {
+      fallbackData: bootstrap?.channels,
+      revalidateOnMount: !bootstrap,
+      refreshInterval: 10000,
+      refreshWhenHidden: false,
+    }
   );
-  const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers);
+  const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers, {
+    fallbackData: bootstrap?.members,
+    revalidateOnMount: !bootstrap,
+  });
 
   const otherMembers = useMemo(
     () => members.filter((member) => member.id !== session?.user?.id),
