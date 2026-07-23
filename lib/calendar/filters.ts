@@ -19,6 +19,7 @@ export const CALENDAR_POST_STATUSES: ContentStatus[] = [
   "scheduled",
   "posting",
   "posted",
+  "post_failed",
   "rejected",
 ];
 
@@ -87,6 +88,7 @@ export function matchesPostStatusFilter(
 
 export function getPostStatusDotClass(status: ContentStatus): string {
   if (isPosted(status)) return "bg-emerald-500";
+  if (status === "post_failed") return "bg-red-500";
   if (isPosting(status)) return "bg-amber-500";
   if (isNeedsEdit(status)) return "bg-red-500";
   if (isWaitingToPost(status)) return "bg-orange-500";

@@ -63,6 +63,7 @@ export function toContentItem(record: PrismaContent): ContentItem {
     editor: record.editor,
     approver: record.approver ?? undefined,
     status: record.status as ContentStatus,
+    postError: record.postError || undefined,
     category: record.category,
     tags: record.tags,
     imageMeta: parseImageMeta(record.imageMeta),

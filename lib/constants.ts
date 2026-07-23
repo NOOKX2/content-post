@@ -126,5 +126,6 @@ export const STATUS_LABELS: Record<
   scheduled: { label: "กำหนดการแล้ว", color: "bg-blue-100 text-blue-700" },
   posting: { label: "กำลังโพสต์", color: "bg-amber-100 text-amber-700" },
   posted: { label: "โพสต์แล้ว", color: "bg-violet-100 text-violet-700" },
+  post_failed: { label: "โพสต์ไม่สำเร็จ", color: "bg-red-100 text-red-700" },
   rejected: { label: "ไม่อนุมัติ", color: "bg-red-100 text-red-700" },
 };

@@ -9,6 +9,7 @@ const LEGEND_STATUSES: ContentStatus[] = [
   "scheduled",
   "posting",
   "posted",
+  "post_failed",
   "rejected",
 ];
 

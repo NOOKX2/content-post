@@ -45,7 +45,7 @@ function ContentDetailSubNav({
 }) {
   return (
     <nav className="sticky top-0 z-20 border-b border-stone-200/80 bg-[#f5f5f7]/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-8">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
@@ -189,13 +189,15 @@ export function ContentDetailView({
       />
 
       {editing ? (
-        <div className="mx-auto max-w-3xl px-4 py-6 md:px-8">
-          <ContentForm
-            key={content.id}
-            initialContent={content}
-            onCancel={() => setEditing(false)}
-            onSaved={handleSaved}
-          />
+        <div className="px-4 py-6 sm:px-6 lg:px-6">
+          <div className="w-full max-w-none">
+            <ContentForm
+              key={content.id}
+              initialContent={content}
+              onCancel={() => setEditing(false)}
+              onSaved={handleSaved}
+            />
+          </div>
         </div>
       ) : (
         <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 pb-10 md:px-8 lg:grid-cols-[minmax(0,1fr)_300px]">

@@ -273,12 +273,14 @@ export function ImageContentFormFields({
               type="date"
               value={form.scheduledDate}
               onChange={(e) => update("scheduledDate", e.target.value)}
+              required
             />
             <Input
-              label="เวลาโพสต์"
+              label="เวลาโพสต์ *"
               type="time"
               value={form.scheduledTime}
               onChange={(e) => update("scheduledTime", e.target.value)}
+              required
             />
             <div className="flex gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-xs text-blue-800">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />

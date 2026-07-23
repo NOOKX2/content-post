@@ -157,6 +157,7 @@ const DETAIL_STATUS_STYLES: Record<
   scheduled: { label: "SCHEDULED", className: "bg-sky-100 text-sky-800" },
   posting: { label: "POSTING", className: "bg-amber-100 text-amber-800" },
   posted: { label: "PUBLISHED", className: "bg-sky-100 text-sky-800" },
+  post_failed: { label: "POST FAILED", className: "bg-red-100 text-red-800" },
   rejected: { label: "REJECTED", className: "bg-red-100 text-red-800" },
 };
 
@@ -291,6 +292,14 @@ export function ContentDetail({ content }: ContentDetailProps) {
           <MetaCell label="Category" value={objective} icon={Tag} />
         </div>
       </SectionCard>
+
+      {content.status === "post_failed" && content.postError && (
+        <SectionCard title="โพสต์ไม่สำเร็จ" className="border-red-200 bg-red-50/50">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-red-800">
+            {content.postError}
+          </p>
+        </SectionCard>
+      )}
 
       {content.details && (
         <SectionCard title="รายละเอียด" icon={FileText}>

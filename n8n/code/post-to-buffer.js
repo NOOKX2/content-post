@@ -36,6 +36,50 @@ function isAlreadyOnBufferError(message) {
   );
 }
 
+async function reportPostFailed(ctx, { contentId, contentCode, step, postError, details }) {
+  const apiKey = $env.N8N_API_KEY;
+  const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3000").replace(/\/$/, "");
+  const url = `${appUrl}/api/content/${contentId}`;
+  const requestBody = { status: "post_failed", postError: String(postError).slice(0, 4000) };
+
+  log("Mark Post Failed", "PATCH app before workflow error", {
+    contentCode,
+    contentId,
+    step,
+    url,
+    postError,
+    details: details ?? null,
+    hasApiKey: Boolean(apiKey),
+  });
+
+  if (!apiKey) {
+    log("Mark Post Failed", "WARN N8N_API_KEY missing", { contentCode, contentId, step });
+    return;
+  }
+
+  try {
+    const response = await ctx.helpers.httpRequest({
+      method: "PATCH",
+      url,
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: requestBody,
+    });
+    log("Mark Post Failed", "SUCCESS", {
+      contentCode,
+      contentId,
+      step,
+      response,
+    });
+  } catch (patchError) {
+    log("Mark Post Failed", "ERROR PATCH failed", {
+      contentCode,
+      contentId,
+      step,
+      ...extractHttpError(patchError),
+    });
+  }
+}
+
 const results = [];
 
 for (const item of $input.all()) {
@@ -70,9 +114,15 @@ for (const item of $input.all()) {
       hasBufferAuth: Boolean(bufferAuth),
       hasBufferBody: Boolean(bufferBody),
     });
-    throw new Error(
-      `Missing bufferAuth/bufferBody for content ${contentId}. Update Prepare Buffer Posts code.`
-    );
+    const errMsg = `Missing bufferAuth/bufferBody for content ${contentId}. Update Prepare Buffer Posts code.`;
+    await reportPostFailed(this, {
+      contentId,
+      contentCode,
+      step: "Post to Buffer",
+      postError: errMsg,
+      details: { platform },
+    });
+    throw new Error(errMsg);
   }
 
   const startedAt = Date.now();
@@ -97,9 +147,15 @@ for (const item of $input.all()) {
       ...detail,
       graphqlQuery: graphqlQuery ?? JSON.parse(bufferBody).query,
     });
-    throw new Error(
-      `Buffer HTTP ${detail.status} (${platform}): ${detail.message}`
-    );
+    const errMsg = `Buffer HTTP ${detail.status} (${platform}): ${detail.message}`;
+    await reportPostFailed(this, {
+      contentId,
+      contentCode,
+      step: "Post to Buffer",
+      postError: errMsg,
+      details: detail,
+    });
+    throw new Error(errMsg);
   }
 
   log("3/5 Post to Buffer", "raw Buffer response", {
@@ -152,7 +208,15 @@ for (const item of $input.all()) {
       errorMessage,
       fullResponse: data,
     });
-    throw new Error(`Buffer mutation error (${platform}): ${errorMessage}`);
+    const errMsg = `Buffer mutation error (${platform}): ${errorMessage}`;
+    await reportPostFailed(this, {
+      contentId,
+      contentCode,
+      step: "Post to Buffer",
+      postError: errMsg,
+      details: { platform, errorMessage, typename },
+    });
+    throw new Error(errMsg);
   }
 
   if (!bufferPostId) {
@@ -161,9 +225,15 @@ for (const item of $input.all()) {
       platform,
       fullResponse: data,
     });
-    throw new Error(
-      `Buffer returned no post id for ${contentCode} (${platform}). Response: ${JSON.stringify(data).slice(0, 500)}`
-    );
+    const errMsg = `Buffer returned no post id for ${contentCode} (${platform}). Response: ${JSON.stringify(data).slice(0, 500)}`;
+    await reportPostFailed(this, {
+      contentId,
+      contentCode,
+      step: "Post to Buffer",
+      postError: errMsg,
+      details: { platform },
+    });
+    throw new Error(errMsg);
   }
 
   log("3/5 Post to Buffer", "success", {

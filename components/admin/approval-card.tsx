@@ -19,12 +19,14 @@ import { formatThaiDate, formatLocations } from "@/lib/utils";
 
 interface ApprovalCardProps {
   content: ContentItem;
+  isProcessing?: boolean;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
 }
 
 export function ApprovalCard({
   content,
+  isProcessing = false,
   onApprove,
   onReject,
 }: ApprovalCardProps) {
@@ -87,21 +89,23 @@ export function ApprovalCard({
           </div>
 
           {content.status === "pending" && (
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
+                disabled={isProcessing}
                 onClick={() => onApprove(content.id)}
               >
                 <Check className="h-4 w-4" />
-                อนุมัติ
+                {isProcessing ? "กำลังอนุมัติ..." : "อนุมัติ"}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
+                disabled={isProcessing}
                 onClick={() => onReject(content.id)}
               >
                 <X className="h-4 w-4" />
-                ไม่อนุมัติ
+                {isProcessing ? "กำลังดำเนินการ..." : "ไม่อนุมัติ"}
               </Button>
             </div>
           )}

@@ -44,6 +44,14 @@ export async function validateContentFormData(
     return "กรุณาเลือกแพลตฟอร์มอย่างน้อย 1 แพลตฟอร์ม";
   }
 
+  if (!data.scheduledDate?.trim()) {
+    return "กรุณาเลือกวันโพสต์";
+  }
+
+  if (!data.scheduledTime?.trim()) {
+    return "กรุณาเลือกเวลาโพสต์";
+  }
+
   const available = await getAvailablePlatformsForPostingChannel(data.channel);
   const invalid = data.platforms.filter((p) => !available.includes(p));
   if (invalid.length > 0) {

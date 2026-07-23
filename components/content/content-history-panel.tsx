@@ -56,6 +56,7 @@ function activityTitle(log: AuditLogItem): string {
   if (log.action === "status_changed") {
     const after = log.changes.find((c) => c.field === "สถานะ")?.after;
     if (after === "posted") return "Content Published";
+    if (after === "post_failed") return "Post Failed";
     if (after === "approved") return "Approved Content";
     if (after === "scheduled") return "Content Scheduled";
     if (after === "rejected") return "Content Rejected";

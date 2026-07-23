@@ -26,6 +26,42 @@ function extractHttpError(error) {
   };
 }
 
+async function reportPostFailed(ctx, { contentId, contentCode, step, postError, details }) {
+  const apiKey = $env.N8N_API_KEY;
+  const appUrl = ($env.APP_PUBLIC_URL || "http://localhost:3000").replace(/\/$/, "");
+  const url = `${appUrl}/api/content/${contentId}`;
+  const requestBody = { status: "post_failed", postError: String(postError).slice(0, 4000) };
+
+  log("Mark Post Failed", "PATCH app before workflow error", {
+    contentCode,
+    contentId,
+    step,
+    url,
+    postError,
+    details: details ?? null,
+    hasApiKey: Boolean(apiKey),
+  });
+
+  if (!apiKey) return;
+
+  try {
+    const response = await ctx.helpers.httpRequest({
+      method: "PATCH",
+      url,
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: requestBody,
+    });
+    log("Mark Post Failed", "SUCCESS", { contentCode, contentId, step, response });
+  } catch (patchError) {
+    log("Mark Post Failed", "ERROR PATCH failed", {
+      contentCode,
+      contentId,
+      step,
+      ...extractHttpError(patchError),
+    });
+  }
+}
+
 const results = [];
 
 for (const item of $input.all()) {
@@ -101,9 +137,17 @@ for (const item of $input.all()) {
         ? ""
         : ` body=${typeof detail.responseBody === "string" ? detail.responseBody : JSON.stringify(detail.responseBody)}`;
 
-    throw new Error(
-      `Mark Posted HTTP ${detail.status}: ${detail.message}${bodyHint}`
-    );
+    const errMsg = `Mark Posted HTTP ${detail.status}: ${detail.message}${bodyHint} (Buffer may have posted — check Buffer dashboard)`;
+
+    await reportPostFailed(this, {
+      contentId,
+      contentCode,
+      step: "Mark Posted",
+      postError: errMsg,
+      details: { ...detail, platform, bufferPostId },
+    });
+
+    throw new Error(errMsg);
   }
 }
 

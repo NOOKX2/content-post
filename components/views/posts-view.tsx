@@ -28,6 +28,7 @@ const FILTER_TABS: { id: ContentStatus | "all"; label: string }[] = [
   { id: "scheduled", label: "กำหนดการแล้ว" },
   { id: "posting", label: "กำลังโพสต์" },
   { id: "posted", label: "โพสต์แล้ว" },
+  { id: "post_failed", label: "โพสต์ไม่สำเร็จ" },
   { id: "rejected", label: "ไม่อนุมัติ" },
 ];
 
@@ -137,6 +138,12 @@ export function PostsView() {
                         {content.details && (
                           <p className="mt-2 line-clamp-2 text-sm text-stone-600">
                             {content.details}
+                          </p>
+                        )}
+
+                        {content.status === "post_failed" && content.postError && (
+                          <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                            {content.postError}
                           </p>
                         )}
 

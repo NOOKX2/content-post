@@ -7,6 +7,7 @@ export type ContentStatus =
   | "scheduled"
   | "posting"
   | "posted"
+  | "post_failed"
   | "rejected";
 
 export type Platform =
@@ -78,6 +79,7 @@ export interface ContentItem {
   editor: string;
   approver?: string;
   status: ContentStatus;
+  postError?: string;
   category: string;
   tags: string[];
   imageMeta?: ImageMeta;

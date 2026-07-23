@@ -16,10 +16,13 @@ import { invalidateContentsCache } from "@/lib/content/cache-tags";
 import { formatApiErrorResponse } from "@/lib/content/action-errors";
 import { logPipeline } from "@/lib/content/pipeline-log";
 
+import { markPostFailedRecord } from "@/lib/content/mark-post-failed";
+
 const N8N_ALLOWED_STATUSES: ContentStatus[] = [
   "posted",
   "scheduled",
   "posting",
+  "post_failed",
 ];
 
 function logContentApproved(
@@ -45,6 +48,7 @@ export async function PATCH(
     const body = (await request.json()) as {
       status?: ContentStatus;
       approver?: string;
+      postError?: string;
     };
 
     const existing = await prisma.content.findUnique({ where: { id } });
@@ -76,7 +80,31 @@ export async function PATCH(
         contentId: existing.contentId,
         previousStatus: existing.status,
         requestedStatus: body.status,
+        postError: body.postError ?? null,
       });
+
+      if (body.status === "post_failed") {
+        const postError =
+          typeof body.postError === "string" && body.postError.trim()
+            ? body.postError.trim()
+            : "โพสต์ไม่สำเร็จ (ไม่มีรายละเอียดจาก n8n)";
+
+        const record = await markPostFailedRecord(id, {
+          postError,
+          source: "n8n",
+          step: "pipeline",
+        });
+
+        logContentApproved("app/api", "n8n post_failed applied", {
+          id: record.id,
+          contentId: record.contentId,
+          previousStatus: existing.status,
+          newStatus: record.status,
+          postError: record.postError,
+        });
+
+        return NextResponse.json(toContentItem(record));
+      }
 
       const record = await prisma.content.update({
         where: { id },
@@ -114,7 +142,9 @@ export async function PATCH(
             ? "กำลังโพสต์"
             : record.status === "posted"
               ? "โพสต์แล้ว"
-              : record.status,
+              : record.status === "post_failed"
+                ? "โพสต์ไม่สำเร็จ"
+                : record.status,
       });
 
       invalidateContentsCache(id);

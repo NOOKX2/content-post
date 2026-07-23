@@ -68,7 +68,9 @@ export async function notifyPostStatusUpdate(
         ? "กำลังโพสต์"
         : newStatus === "scheduled"
           ? "ตั้งเวลาโพสต์แล้ว"
-          : `สถานะเปลี่ยนเป็น ${newStatus}`;
+          : newStatus === "post_failed"
+            ? "โพสต์ไม่สำเร็จ"
+            : `สถานะเปลี่ยนเป็น ${newStatus}`;
 
   await createNotifications(userIds, {
     type: "post_status_update",

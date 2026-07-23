@@ -1,5 +1,6 @@
 import type { Content } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { invalidateContentsCache } from "@/lib/content/cache-tags";
 import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/service";
 import { dispatchApprovedContentToN8n } from "@/lib/n8n/dispatch-approved-content";
 import { notifyApprovalApproved } from "@/lib/notifications/events";
@@ -44,13 +45,42 @@ export async function approveContentRecord(
     throw new Error("Not found");
   }
 
-  const record = await prisma.content.update({
-    where: { id },
+  if (
+    existing.status === "approved" ||
+    existing.status === "scheduled" ||
+    existing.status === "posting" ||
+    existing.status === "posted"
+  ) {
+    logContentApproved("app/approve", "skip duplicate approve", {
+      id: existing.id,
+      contentId: existing.contentId,
+      status: existing.status,
+    });
+    return existing;
+  }
+
+  const updated = await prisma.content.updateMany({
+    where: { id, status: { in: ["pending", "rejected", "post_failed"] } },
     data: {
       status: "approved",
       approver: approverName,
     },
   });
+
+  if (updated.count === 0) {
+    const current = await prisma.content.findUnique({ where: { id } });
+    if (!current) {
+      throw new Error("Not found");
+    }
+    logContentApproved("app/approve", "skip concurrent approve", {
+      id: current.id,
+      contentId: current.contentId,
+      status: current.status,
+    });
+    return current;
+  }
+
+  const record = await prisma.content.findUniqueOrThrow({ where: { id } });
 
   logContentApproved("app/approve", "admin approved", {
     id: record.id,
@@ -63,6 +93,8 @@ export async function approveContentRecord(
     platforms: record.platforms,
     schedule: getScheduleDebugInfo(record.scheduledDate, record.scheduledTime),
   });
+
+  invalidateContentsCache(id);
 
   await notifyApprovalApproved(record);
   await syncContentWorkflowToCollaboration({
@@ -83,6 +115,7 @@ export async function approveContentRecord(
       status: scheduled.status,
       note: "If post time already passed, n8n should post immediately then PATCH posted",
     });
+    invalidateContentsCache(id);
     return scheduled;
   }
 

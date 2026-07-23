@@ -32,6 +32,7 @@ enum ContentStatus {
   scheduled
   posting
   posted
+  post_failed
   rejected
 }
 
@@ -227,6 +228,7 @@ model Content {
   editor         String        @default("")
   approver       String?
   status         ContentStatus @default(pending)
+  postError      String        @default("")
   category       String        @default("")
   tags           String[]
   imageMeta      Json          @default("{}")

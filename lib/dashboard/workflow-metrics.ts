@@ -14,6 +14,7 @@ const STATUS_COLORS: Record<ContentStatus, string> = {
   scheduled: "#8b5cf6",
   posting: "#f59e0b",
   posted: "#10b981",
+  post_failed: "#ef4444",
   rejected: "#ef4444",
 };
 

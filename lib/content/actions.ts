@@ -101,14 +101,19 @@ export async function createContent(
   }
 }
 
-export async function approveContent(id: string): Promise<ActionResult> {
+export async function approveContent(
+  id: string
+): Promise<ActionResult<ContentItem>> {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
     return { success: false, error: "Forbidden" };
   }
 
   try {
-    await approveContentRecord(id, session.user.name || "Admin");
+    const record = await approveContentRecord(
+      id,
+      session.user.name || "Admin"
+    );
 
     updateTag(CONTENTS_CACHE_TAG);
     updateTag(contentCacheTag(id));
@@ -117,7 +122,7 @@ export async function approveContent(id: string): Promise<ActionResult> {
     revalidatePath("/posts");
     revalidatePath(`/content/${id}`);
 
-    return { success: true, data: undefined };
+    return { success: true, data: toContentItem(record) };
   } catch (error) {
     logActionError("approveContent", error, { id });
     return {
@@ -235,7 +240,7 @@ export async function deleteContent(id: string): Promise<ActionResult> {
 export async function rejectContent(
   id: string,
   rejectNote?: string
-): Promise<ActionResult> {
+): Promise<ActionResult<ContentItem>> {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
     return { success: false, error: "Forbidden" };
@@ -247,7 +252,11 @@ export async function rejectContent(
       return { success: false, error: "Not found" };
     }
 
-    await prisma.content.update({
+    if (existing.status === "rejected") {
+      return { success: true, data: toContentItem(existing) };
+    }
+
+    const record = await prisma.content.update({
       where: { id },
       data: { status: "rejected", approver: null },
     });
@@ -267,7 +276,7 @@ export async function rejectContent(
     revalidatePath("/posts");
     revalidatePath(`/content/${id}`);
 
-    return { success: true, data: undefined };
+    return { success: true, data: toContentItem(record) };
   } catch (error) {
     logActionError("rejectContent", error, { id });
     return {
