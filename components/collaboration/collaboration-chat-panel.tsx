@@ -57,7 +57,6 @@ export function CollaborationChatPanel({
   const [text, setText] = useState("");
   const [showMembers, setShowMembers] = useState(false);
   const [showChannelCalendar, setShowChannelCalendar] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [], mutate } = useSWR<CollaborationMessageItem[]>(
@@ -101,9 +100,9 @@ export function CollaborationChatPanel({
     void mutateGlobal(COLLAB_CHANNELS_KEY);
   }, [channel.id, messages.length, mutateGlobal]);
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim() || submitting || !session?.user?.id) return;
+    if (!text.trim() || !session?.user?.id) return;
 
     const body = text.trim();
     const optimisticId = `optimistic-${Date.now()}`;
@@ -121,27 +120,25 @@ export function CollaborationChatPanel({
     };
 
     setText("");
-    setSubmitting(true);
 
-    try {
-      await mutate(
-        async (current = []) => {
-          const saved = await postChannelMessage(channel.id, body);
-          return [...current.filter((m) => m.id !== optimisticId), saved];
-        },
-        {
-          optimisticData: (current = []) => [...current, optimisticMessage],
-          rollbackOnError: true,
-          revalidate: false,
-          populateCache: true,
-        }
-      );
-      void mutateGlobal(COLLAB_CHANNELS_KEY);
-    } catch {
-      setText(body);
-    } finally {
-      setSubmitting(false);
-    }
+    void mutate(
+      async (current = []) => {
+        const saved = await postChannelMessage(channel.id, body);
+        return [...current.filter((m) => m.id !== optimisticId), saved];
+      },
+      {
+        optimisticData: (current = []) => [...current, optimisticMessage],
+        rollbackOnError: true,
+        revalidate: false,
+        populateCache: true,
+      }
+    )
+      .then(() => {
+        void mutateGlobal(COLLAB_CHANNELS_KEY);
+      })
+      .catch(() => {
+        setText((current) => current || body);
+      });
   };
 
   const scheduleHint =
@@ -303,7 +300,7 @@ export function CollaborationChatPanel({
             placeholder="พิมพ์ข้อความ..."
             className="min-w-0 flex-1 rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
-          <Button type="submit" size="sm" disabled={submitting || !text.trim()}>
+          <Button type="submit" size="sm" disabled={!text.trim()}>
             <Send className="h-4 w-4" />
           </Button>
         </form>
