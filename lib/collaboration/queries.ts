@@ -33,21 +33,25 @@ export async function getCollaborationBootstrap(
   ]);
 
   const defaultChannel = pickDefaultChannel(channels);
-  const initialMessagesByChannelId: Record<string, CollaborationMessageItem[]> =
-    {};
+
+  const messageEntries = await Promise.all(
+    channels.map(async (channel) => {
+      const messages = await getChannelMessages(channel.id);
+      return [
+        channel.id,
+        messages.map(toCollaborationMessageItem),
+      ] as const;
+    })
+  );
 
   if (defaultChannel) {
-    const messages = await getChannelMessages(defaultChannel.id);
     await markChannelAsRead(defaultChannel.id, userId);
-    initialMessagesByChannelId[defaultChannel.id] = messages.map(
-      toCollaborationMessageItem
-    );
   }
 
   return {
     channels,
     members,
     defaultChannelId: defaultChannel?.id ?? null,
-    initialMessagesByChannelId,
+    initialMessagesByChannelId: Object.fromEntries(messageEntries),
   };
 }
