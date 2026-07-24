@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useSWR, { useSWRConfig } from "swr";
 import { useSession } from "next-auth/react";
@@ -22,8 +22,15 @@ import {
   deleteChannelMessage,
   editChannelMessage,
   fetchChannelMessages,
-  postChannelMessage,
 } from "@/lib/collaboration/fetch-actions";
+import {
+  isClientMessageId,
+} from "@/lib/collaboration/chat-outbox";
+import {
+  mergeMessagesWithOutbox,
+  useChatSendQueue,
+  type ChatDisplayMessage,
+} from "@/lib/collaboration/use-chat-send-queue";
 import { fetchTeamMembers } from "@/lib/collaboration/team-actions";
 import { ApprovalCardMessage } from "@/components/collaboration/approval-card-message";
 import { ChannelCalendarView } from "@/components/collaboration/channel-calendar-view";
@@ -75,6 +82,38 @@ export function CollaborationChatPanel({
     revalidateOnMount: !bootstrap,
   });
 
+  const onMessageSaved = useCallback(
+    (saved: CollaborationMessageItem) => {
+      void mutate(
+        (current = []) => {
+          if (current.some((message) => message.id === saved.id)) {
+            return current;
+          }
+          return [...current, saved];
+        },
+        { revalidate: false }
+      );
+      void mutateGlobal(COLLAB_CHANNELS_KEY);
+    },
+    [mutate, mutateGlobal]
+  );
+
+  const { outbox, enqueue, retry } = useChatSendQueue({
+    channelId: channel.id,
+    authorId: session?.user?.id,
+    authorName: session?.user?.name ?? "ผู้ใช้",
+    serverMessages: messages,
+    onMessageSaved,
+  });
+
+  const displayMessages = useMemo(
+    () =>
+      mergeMessagesWithOutbox(messages, outbox).filter(
+        (message) => !message.deletedAt
+      ),
+    [messages, outbox]
+  );
+
   const headerPeople =
     channel.kind === "dm"
       ? [channel.name]
@@ -90,7 +129,7 @@ export function CollaborationChatPanel({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [displayMessages]);
 
   useEffect(() => {
     setShowChannelCalendar(false);
@@ -104,41 +143,8 @@ export function CollaborationChatPanel({
     e.preventDefault();
     if (!text.trim() || !session?.user?.id) return;
 
-    const body = text.trim();
-    const optimisticId = `optimistic-${Date.now()}`;
-    const optimisticMessage: CollaborationMessageItem = {
-      id: optimisticId,
-      channelId: channel.id,
-      authorId: session.user.id,
-      authorName: session.user.name ?? "ผู้ใช้",
-      body,
-      messageType: "text",
-      metadata: {},
-      createdAt: new Date().toISOString(),
-      editedAt: null,
-      deletedAt: null,
-    };
-
+    enqueue(text.trim());
     setText("");
-
-    void mutate(
-      async (current = []) => {
-        const saved = await postChannelMessage(channel.id, body);
-        return [...current.filter((m) => m.id !== optimisticId), saved];
-      },
-      {
-        optimisticData: (current = []) => [...current, optimisticMessage],
-        rollbackOnError: true,
-        revalidate: false,
-        populateCache: true,
-      }
-    )
-      .then(() => {
-        void mutateGlobal(COLLAB_CHANNELS_KEY);
-      })
-      .catch(() => {
-        setText((current) => current || body);
-      });
   };
 
   const scheduleHint =
@@ -262,11 +268,17 @@ export function CollaborationChatPanel({
       )}
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {messages.map((message) => (
+        {displayMessages.map((message) => (
           <MessageBubble
             key={message.id}
             message={message}
             isSelf={message.authorId === session?.user?.id}
+            sendStatus={message.sendStatus}
+            onRetry={
+              message.sendStatus === "failed"
+                ? () => retry(message.id)
+                : undefined
+            }
             onChanged={() => {
               void mutate();
               void mutateGlobal(COLLAB_CHANNELS_KEY);
@@ -312,10 +324,14 @@ export function CollaborationChatPanel({
 function MessageBubble({
   message,
   isSelf,
+  sendStatus,
+  onRetry,
   onChanged,
 }: {
-  message: CollaborationMessageItem;
+  message: ChatDisplayMessage;
   isSelf: boolean;
+  sendStatus?: ChatDisplayMessage["sendStatus"];
+  onRetry?: () => void;
   onChanged: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -379,8 +395,8 @@ function MessageBubble({
     );
   }
 
-  const isDeleted = Boolean(message.deletedAt);
-  const canManage = isSelf && !isDeleted;
+  const isUnsent = isClientMessageId(message.id);
+  const canManage = isSelf && !isUnsent && !sendStatus;
 
   const handleSaveEdit = async () => {
     if (!draft.trim() || busy) return;
@@ -427,14 +443,17 @@ function MessageBubble({
         className={cn(
           "relative max-w-[85%] rounded-2xl px-3.5 py-2.5 sm:max-w-[70%]",
           canManage && !editing && "cursor-context-menu",
-          isDeleted
-            ? "rounded-bl-md border border-dashed border-stone-300 bg-stone-100 text-stone-500"
-            : isSelf
-              ? "rounded-br-md bg-blue-600 text-white"
-              : "rounded-bl-md bg-white text-stone-800 shadow-sm"
+          isSelf
+            ? cn(
+                "rounded-br-md bg-blue-600 text-white",
+                sendStatus === "failed" && "bg-red-600",
+                (sendStatus === "pending" || sendStatus === "sending") &&
+                  "opacity-80"
+              )
+            : "rounded-bl-md bg-white text-stone-800 shadow-sm"
         )}
       >
-        {!isSelf && !isDeleted && (
+        {!isSelf && (
           <p className="mb-0.5 text-[10px] font-medium opacity-70">
             {message.authorName}
           </p>
@@ -474,26 +493,27 @@ function MessageBubble({
           </div>
         ) : (
           <>
-            <p
-              className={cn(
-                "text-sm whitespace-pre-wrap",
-                isDeleted && "italic"
-              )}
-            >
-              {isDeleted ? "ข้อความถูกลบ" : message.body}
-            </p>
+            <p className="text-sm whitespace-pre-wrap">{message.body}</p>
             <div
               className={cn(
                 "mt-1 flex items-center gap-2 text-[10px]",
-                isDeleted
-                  ? "text-stone-400"
-                  : isSelf
-                    ? "text-blue-100"
-                    : "text-stone-400"
+                isSelf ? "text-blue-100" : "text-stone-400"
               )}
             >
               <span>{formatTime(message.createdAt)}</span>
-              {message.editedAt && !isDeleted && <span>· แก้ไขแล้ว</span>}
+              {sendStatus === "pending" || sendStatus === "sending" ? (
+                <span>· กำลังส่ง...</span>
+              ) : null}
+              {sendStatus === "failed" ? (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="font-medium underline underline-offset-2"
+                >
+                  ส่งอีกครั้ง
+                </button>
+              ) : null}
+              {message.editedAt && <span>· แก้ไขแล้ว</span>}
             </div>
           </>
         )}
