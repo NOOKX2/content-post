@@ -446,9 +446,7 @@ function MessageBubble({
           isSelf
             ? cn(
                 "rounded-br-md bg-blue-600 text-white",
-                sendStatus === "failed" && "bg-red-600",
-                (sendStatus === "pending" || sendStatus === "sending") &&
-                  "opacity-80"
+                sendStatus === "failed" && "bg-red-600"
               )
             : "rounded-bl-md bg-white text-stone-800 shadow-sm"
         )}
@@ -501,9 +499,6 @@ function MessageBubble({
               )}
             >
               <span>{formatTime(message.createdAt)}</span>
-              {sendStatus === "pending" || sendStatus === "sending" ? (
-                <span>· กำลังส่ง...</span>
-              ) : null}
               {sendStatus === "failed" ? (
                 <button
                   type="button"

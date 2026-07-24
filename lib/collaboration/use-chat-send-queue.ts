@@ -27,7 +27,7 @@ function toDisplayMessage(entry: ChatOutboxEntry): ChatDisplayMessage {
     createdAt: entry.createdAt,
     editedAt: null,
     deletedAt: null,
-    sendStatus: entry.status,
+    sendStatus: entry.status === "failed" ? "failed" : undefined,
   };
 }
 
