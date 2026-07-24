@@ -191,6 +191,18 @@ export async function leaveGroupChannel(channelId: string): Promise<void> {
   });
 }
 
+export async function markCollaborationChannelRead(
+  channelId: string
+): Promise<void> {
+  const user = await requireUser();
+  const allowed = await assertCanAccessChannel(channelId, user.id!);
+  if (!allowed) {
+    throw new Error("ไม่มีสิทธิ์เข้าถึงห้องนี้");
+  }
+
+  await markChannelAsRead(channelId, user.id!);
+}
+
 export async function fetchChannelMessages(
   channelId: string
 ): Promise<CollaborationMessageItem[]> {

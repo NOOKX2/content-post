@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { Header } from "@/components/layout/header";
 import { Tabs } from "@/components/ui/tabs";
 import { CollaborationChannelSidebar } from "@/components/collaboration/collaboration-channel-sidebar";
@@ -12,9 +12,13 @@ import { TeamMembersPanel } from "@/components/collaboration/team-members-panel"
 import { TeamTasksPanel } from "@/components/collaboration/team-tasks-panel";
 import {
   COLLAB_CHANNELS_KEY,
+  patchChannelsUnread,
   useCollaborationBootstrap,
 } from "@/lib/collaboration/collaboration-provider";
-import { fetchCollaborationChannels } from "@/lib/collaboration/fetch-actions";
+import {
+  fetchCollaborationChannels,
+  markCollaborationChannelRead,
+} from "@/lib/collaboration/fetch-actions";
 
 const TEAM_TABS = [
   { id: "chat", label: "แชท" },
@@ -28,6 +32,7 @@ type TeamTab = (typeof TEAM_TABS)[number]["id"];
 export function CollaborationView() {
   const { data: session } = useSession();
   const bootstrap = useCollaborationBootstrap();
+  const { mutate: mutateGlobal } = useSWRConfig();
   const { data: channels = [] } = useSWR(
     COLLAB_CHANNELS_KEY,
     fetchCollaborationChannels,
@@ -52,6 +57,20 @@ export function CollaborationView() {
     const teamChannel = channels.find((channel) => channel.kind === "team");
     setActiveChannelId(teamChannel?.id ?? channels[0]?.id ?? null);
   }, [activeChannelId, channels]);
+
+  useEffect(() => {
+    if (tab !== "chat" || !activeChannelId) return;
+
+    void mutateGlobal(
+      COLLAB_CHANNELS_KEY,
+      (current) => patchChannelsUnread(current, activeChannelId, 0),
+      { revalidate: false }
+    );
+
+    void markCollaborationChannelRead(activeChannelId).then(() => {
+      void mutateGlobal(COLLAB_CHANNELS_KEY);
+    });
+  }, [activeChannelId, tab, mutateGlobal]);
 
   const activeChannel =
     channels.find((channel) => channel.id === activeChannelId) ?? null;

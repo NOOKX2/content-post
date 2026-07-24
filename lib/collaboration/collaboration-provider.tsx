@@ -4,12 +4,24 @@ import { createContext, useContext, useMemo } from "react";
 import useSWR, { SWRConfig } from "swr";
 import { fetchCollaborationChannels } from "@/lib/collaboration/fetch-actions";
 import type { CollaborationBootstrap } from "@/lib/collaboration/queries";
+import type { CollaborationChannelItem } from "@/lib/collaboration/types";
 
 export const COLLAB_CHANNELS_KEY = "collab-channels";
 export const TEAM_MEMBERS_KEY = "team-members";
 
 export function collabMessagesKey(channelId: string) {
   return `collab-messages:${channelId}`;
+}
+
+export function patchChannelsUnread(
+  channels: CollaborationChannelItem[] | undefined,
+  channelId: string,
+  unreadCount: number
+): CollaborationChannelItem[] | undefined {
+  if (!channels) return channels;
+  return channels.map((channel) =>
+    channel.id === channelId ? { ...channel, unreadCount } : channel
+  );
 }
 
 const CollaborationBootstrapContext =

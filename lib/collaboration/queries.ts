@@ -46,6 +46,15 @@ export async function getCollaborationBootstrap(
 
   if (defaultChannel) {
     await markChannelAsRead(defaultChannel.id, userId);
+    const defaultIndex = channels.findIndex(
+      (channel) => channel.id === defaultChannel.id
+    );
+    if (defaultIndex >= 0) {
+      channels[defaultIndex] = {
+        ...channels[defaultIndex],
+        unreadCount: 0,
+      };
+    }
   }
 
   return {

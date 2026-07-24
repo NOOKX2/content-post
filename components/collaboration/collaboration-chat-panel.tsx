@@ -15,6 +15,7 @@ import type { TeamMemberItem } from "@/lib/collaboration/team-types";
 import {
   COLLAB_CHANNELS_KEY,
   collabMessagesKey,
+  patchChannelsUnread,
   TEAM_MEMBERS_KEY,
   useCollaborationBootstrap,
 } from "@/lib/collaboration/collaboration-provider";
@@ -136,8 +137,12 @@ export function CollaborationChatPanel({
   }, [channel.id]);
 
   useEffect(() => {
-    void mutateGlobal(COLLAB_CHANNELS_KEY);
-  }, [channel.id, messages.length, mutateGlobal]);
+    void mutateGlobal(
+      COLLAB_CHANNELS_KEY,
+      (current) => patchChannelsUnread(current, channel.id, 0),
+      { revalidate: false }
+    );
+  }, [channel.id, messages, mutateGlobal]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
