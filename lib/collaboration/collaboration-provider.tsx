@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useMemo } from "react";
-import { SWRConfig } from "swr";
+import useSWR, { SWRConfig } from "swr";
+import { fetchCollaborationChannels } from "@/lib/collaboration/fetch-actions";
 import type { CollaborationBootstrap } from "@/lib/collaboration/queries";
 
 export const COLLAB_CHANNELS_KEY = "collab-channels";
@@ -49,4 +50,23 @@ export function CollaborationProvider({
 
 export function useCollaborationBootstrap() {
   return useContext(CollaborationBootstrapContext);
+}
+
+export function useCollaborationUnreadCount() {
+  const bootstrap = useCollaborationBootstrap();
+  const { data: channels = [] } = useSWR(
+    COLLAB_CHANNELS_KEY,
+    fetchCollaborationChannels,
+    {
+      fallbackData: bootstrap?.channels,
+      revalidateOnMount: !bootstrap,
+      refreshInterval: 10000,
+      refreshWhenHidden: false,
+    }
+  );
+
+  return useMemo(
+    () => channels.reduce((total, channel) => total + channel.unreadCount, 0),
+    [channels]
+  );
 }

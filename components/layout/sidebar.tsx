@@ -13,6 +13,7 @@ import { BrandIcon } from "@/components/ui/brand-icon";
 import { cn } from "@/lib/utils";
 import { isAdminRole } from "@/lib/auth/roles";
 import { usePendingCount } from "@/lib/content/contents-provider";
+import { useCollaborationUnreadCount } from "@/lib/collaboration/collaboration-provider";
 import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
 import type { Session } from "next-auth";
 
@@ -34,6 +35,7 @@ const ADMIN_NAV = [
 export function Sidebar({ session }: { session: Session | null }) {
   const { activePath, navigate } = useDashboardNav();
   const pendingCount = usePendingCount();
+  const collaborationUnreadCount = useCollaborationUnreadCount();
   const isAdmin = isAdminRole(session?.user?.role);
   const navItems = isAdmin ? ADMIN_NAV : CREATOR_NAV;
 
@@ -53,6 +55,8 @@ export function Sidebar({ session }: { session: Session | null }) {
             activePath === href ||
             (href === "/calendar" && activePath === "/content-calendar");
           const showBadge = href === "/admin" && pendingCount > 0;
+          const showChatBadge =
+            href === "/collaboration" && collaborationUnreadCount > 0;
 
           return (
             <a
@@ -69,7 +73,16 @@ export function Sidebar({ session }: { session: Session | null }) {
                   : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <div className="relative shrink-0">
+                <Icon className="h-4 w-4" />
+                {showChatBadge && (
+                  <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold leading-none text-white ring-2 ring-white">
+                    {collaborationUnreadCount > 99
+                      ? "99+"
+                      : collaborationUnreadCount}
+                  </span>
+                )}
+              </div>
               <span className="flex-1">{label}</span>
               {showBadge && (
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-xs font-semibold text-white">
