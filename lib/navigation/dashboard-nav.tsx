@@ -32,11 +32,17 @@ export function DashboardNavProvider({
 
   const navigate = useCallback(
     (href: string) => {
-      if (href === activePath) {
+      const targetPath = href.split("?")[0];
+      const currentFull =
+        typeof window !== "undefined"
+          ? window.location.pathname + window.location.search
+          : activePath;
+
+      if (href === currentFull) {
         return;
       }
 
-      setActivePath(href);
+      setActivePath(targetPath);
       startTransition(() => {
         router.push(href);
       });

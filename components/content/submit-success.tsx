@@ -29,10 +29,14 @@ export function SubmitSuccess({ content, onCreateAnother }: SubmitSuccessProps) 
           <CheckCircle2 className="h-8 w-8 text-blue-600" />
         </div>
         <h2 className="mt-4 text-xl font-bold text-stone-900">
-          ส่ง Content เรียบร้อยแล้ว
+          {content.mediaType === "video" && content.status === "pending"
+            ? "ส่งแนวคิดเรียบร้อยแล้ว"
+            : "ส่ง Content เรียบร้อยแล้ว"}
         </h2>
         <p className="mt-2 text-sm text-stone-600">
-          ระบบบันทึก Content ของคุณแล้ว — Admin จะตรวจสอบและอนุมัติก่อนแสดงในปฏิทิน
+          {content.mediaType === "video" && content.status === "pending"
+            ? "Admin จะตรวจสอบแนวคิดและรูปตัวอย่างก่อน — หลังอนุมัติแล้วค่อยกลับมาอัปโหลดคลิปตัดต่อ"
+            : "ระบบบันทึก Content ของคุณแล้ว — Admin จะตรวจสอบและอนุมัติก่อนแสดงในปฏิทิน"}
         </p>
         <Badge className={`mt-4 ${status.color}`}>{status.label}</Badge>
       </div>

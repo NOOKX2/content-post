@@ -153,6 +153,14 @@ const DETAIL_STATUS_STYLES: Record<
 > = {
   draft: { label: "DRAFT", className: "bg-stone-100 text-stone-700" },
   pending: { label: "PENDING", className: "bg-amber-100 text-amber-800" },
+  idea_approved: {
+    label: "IDEA OK",
+    className: "bg-sky-100 text-sky-800",
+  },
+  clip_pending: {
+    label: "CLIP REVIEW",
+    className: "bg-orange-100 text-orange-800",
+  },
   approved: { label: "APPROVED", className: "bg-sky-100 text-sky-800" },
   scheduled: { label: "SCHEDULED", className: "bg-sky-100 text-sky-800" },
   posting: { label: "POSTING", className: "bg-amber-100 text-amber-800" },

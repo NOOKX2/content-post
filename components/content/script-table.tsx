@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
+import { ImagePlus, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ScriptRow } from "@/lib/types";
 import { generateId } from "@/lib/utils";
@@ -206,33 +206,44 @@ export function ScriptTable({
                         <img
                           src={row.imageUrl}
                           alt=""
-                          className="h-9 w-9 rounded object-cover"
+                          className="h-12 w-12 rounded-md object-cover"
                         />
-                        <button
-                          type="button"
-                          onClick={() => updateRowImage(row.id, "")}
-                          className="rounded p-1 text-stone-400 hover:bg-red-50 hover:text-red-500"
-                          aria-label="ลบรูป"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                        <div className="flex flex-col gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openImagePicker(row.id)}
+                            disabled={uploadingRowId === row.id}
+                            className="text-left text-xs font-medium text-blue-600 hover:text-blue-700"
+                          >
+                            เปลี่ยนรูป
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateRowImage(row.id, "")}
+                            className="text-left text-xs text-stone-400 hover:text-red-500"
+                          >
+                            ลบรูป
+                          </button>
+                        </div>
                       </div>
                     ) : (
-                      <Button
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 px-2"
-                        disabled={uploadingRowId === row.id}
                         onClick={() => openImagePicker(row.id)}
+                        disabled={uploadingRowId === row.id}
+                        className="flex h-16 w-full min-w-[120px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-200 bg-pink-50/30 px-2 text-center transition hover:border-pink-300 hover:bg-pink-50/50 disabled:opacity-60"
                       >
                         {uploadingRowId === row.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin text-pink-600" />
                         ) : (
-                          <ImagePlus className="h-4 w-4" />
+                          <>
+                            <ImagePlus className="h-4 w-4 text-pink-600" />
+                            <span className="text-xs font-medium leading-tight text-stone-600">
+                              คลิกเลือกรูป
+                            </span>
+                          </>
                         )}
-                        รูป
-                      </Button>
+                      </button>
                     )}
                   </td>
                   <td className="px-2 py-2">

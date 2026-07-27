@@ -10,6 +10,8 @@ import { formatDateKey } from "@/lib/calendar/content";
 const STATUS_COLORS: Record<ContentStatus, string> = {
   draft: "#a8a29e",
   pending: "#f59e0b",
+  idea_approved: "#0ea5e9",
+  clip_pending: "#f97316",
   approved: "#3b82f6",
   scheduled: "#8b5cf6",
   posting: "#f59e0b",
@@ -19,9 +21,15 @@ const STATUS_COLORS: Record<ContentStatus, string> = {
 };
 
 function isInProgress(status: ContentStatus): boolean {
-  return ["draft", "pending", "approved", "scheduled", "posting"].includes(
-    status
-  );
+  return [
+    "draft",
+    "pending",
+    "idea_approved",
+    "clip_pending",
+    "approved",
+    "scheduled",
+    "posting",
+  ].includes(status);
 }
 
 function isNearDeadline(content: ContentItem, withinDays = 1): boolean {

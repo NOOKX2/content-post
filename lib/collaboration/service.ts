@@ -571,6 +571,14 @@ export async function listChannelMeetings(channelId: string, userId: string) {
 }
 
 export async function markChannelAsRead(channelId: string, userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!user) {
+    return;
+  }
+
   const now = new Date();
   await prisma.collaborationChannelRead.upsert({
     where: {
@@ -665,6 +673,7 @@ async function syncApprovalCardForContent(params: {
   resolvedBy: string;
   rejectReason?: string;
   resolvedAt?: string;
+  approvalRound?: 1 | 2;
 }) {
   const teamChannel = await ensureTeamChannel();
   const resolvedAt = params.resolvedAt ?? new Date().toISOString();
@@ -680,9 +689,13 @@ async function syncApprovalCardForContent(params: {
     messages
       .filter((message) => {
         const metadata = message.metadata as ApprovalCardMetadata;
+        const round = metadata.approvalRound ?? 1;
+        const roundMatches =
+          params.approvalRound === undefined || round === params.approvalRound;
         return (
           metadata.contentId === params.contentId &&
-          metadata.status === "pending"
+          metadata.status === "pending" &&
+          roundMatches
         );
       })
       .map((message) => {
@@ -850,9 +863,12 @@ export async function postSystemMessage(params: {
 
 export async function postApprovalRequest(
   content: Content,
-  requesterName: string
+  requesterName: string,
+  options?: { round?: 1 | 2 }
 ) {
   const teamChannel = await ensureTeamChannel();
+  const round = options?.round ?? 1;
+  const roundLabel = round === 1 ? "แนวคิด" : "คลิป";
 
   const metadata: ApprovalCardMetadata = {
     contentId: content.id,
@@ -862,13 +878,14 @@ export async function postApprovalRequest(
     channel: content.channel,
     remarks: content.details?.slice(0, 200) || "—",
     status: "pending",
+    approvalRound: round,
   };
 
   await prisma.collaborationMessage.create({
     data: {
       channelId: teamChannel.id,
       authorName: "Approval Bot",
-      body: `คำขออนุมัติ: ${content.contentId} — ${content.name}`,
+      body: `คำขออนุมัติ${roundLabel}: ${content.contentId} — ${content.name}`,
       messageType: "approval_request",
       metadata,
     },
@@ -881,7 +898,7 @@ export async function postApprovalRequest(
 
   await postSystemMessage({
     channelId: teamChannel.id,
-    body: `${requesterName} ส่งงาน ${content.contentId} เข้าสู่ขั้นตอนอนุมัติ`,
+    body: `${requesterName} ส่ง${roundLabel} ${content.contentId} เข้าสู่ขั้นตอนอนุมัติ`,
   });
 }
 
@@ -1048,30 +1065,53 @@ export async function resolveApprovalMessage(params: {
 export async function syncContentWorkflowToCollaboration(params: {
   content: Content;
   actorName: string;
-  action: "submitted" | "approved" | "rejected" | "updated";
+  action:
+    | "submitted"
+    | "clip_submitted"
+    | "idea_approved"
+    | "approved"
+    | "rejected"
+    | "updated";
   note?: string;
+  approvalRound?: 1 | 2;
 }) {
   const { content, actorName, action, note } = params;
   const teamChannel = await ensureTeamChannel();
 
   const messages: Record<typeof action, string> = {
-    submitted: `${actorName} ส่งงาน ${content.contentId} เพื่ออนุมัติ`,
+    submitted: `${actorName} ส่งแนวคิด ${content.contentId} เพื่ออนุมัติ`,
+    clip_submitted: `${actorName} ส่งคลิป ${content.contentId} เพื่ออนุมัติ`,
+    idea_approved: `${actorName} อนุมัติแนวคิด ${content.contentId} แล้ว — รออัปโหลดคลิป`,
     approved: `${actorName} อนุมัติ ${content.contentId} แล้ว`,
     rejected: `${actorName} ส่งกลับแก้ไข ${content.contentId}${note ? `: ${note}` : ""}`,
     updated: `${actorName} อัปเดตรายละเอียด ${content.contentId}`,
   };
 
-  // submitted already posts via postApprovalRequest — skip duplicate system line
-  if (action === "submitted") {
+  if (action === "submitted" || action === "clip_submitted") {
     return;
   }
 
+  if (action === "idea_approved") {
+    await syncApprovalCardForContent({
+      contentId: content.id,
+      status: "approved",
+      resolvedBy: actorName,
+      approvalRound: 1,
+    });
+  }
+
   if (action === "approved" || action === "rejected") {
+    const approvalRound =
+      content.status === "clip_pending"
+        ? 2
+        : 1;
+
     await syncApprovalCardForContent({
       contentId: content.id,
       status: action,
       resolvedBy: actorName,
       rejectReason: action === "rejected" ? note : undefined,
+      approvalRound,
     });
   }
 

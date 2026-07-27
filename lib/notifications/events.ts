@@ -17,6 +17,20 @@ function contentLabel(content: Pick<Content, "contentId" | "name">): string {
   return `${content.contentId} — ${content.name}`;
 }
 
+export async function notifyIdeaApproved(content: Content): Promise<void> {
+  const creatorId = await getContentCreatorId(content);
+  if (!creatorId) return;
+
+  await createNotification({
+    userId: creatorId,
+    type: "approval_approved",
+    title: "อนุมัติแนวคิดแล้ว",
+    message: `คอนเทนต์ ${contentLabel(content)} ผ่านการอนุมัติแนวคิดแล้ว — กรุณาอัปโหลดคลิปตัดต่อ`,
+    contentId: content.id,
+    link: `/create?resume=${content.id}`,
+  });
+}
+
 export async function notifyApprovalApproved(content: Content): Promise<void> {
   const creatorId = await getContentCreatorId(content);
   if (!creatorId) return;
@@ -35,13 +49,18 @@ export async function notifyApprovalRejected(content: Content): Promise<void> {
   const creatorId = await getContentCreatorId(content);
   if (!creatorId) return;
 
+  const resumeLink =
+    content.mediaType === "video"
+      ? `/create?resume=${content.id}`
+      : contentLink(content.id);
+
   await createNotification({
     userId: creatorId,
     type: "approval_rejected",
     title: "ไม่ผ่านการอนุมัติ",
     message: `คอนเทนต์ ${contentLabel(content)} ไม่ผ่านการอนุมัติ กรุณาตรวจสอบและแก้ไข`,
     contentId: content.id,
-    link: contentLink(content.id),
+    link: resumeLink,
   });
 
   await createNotification({
@@ -50,7 +69,7 @@ export async function notifyApprovalRejected(content: Content): Promise<void> {
     title: "ต้องแก้ไขคอนเทนต์",
     message: `คอนเทนต์ ${contentLabel(content)} ต้องการการแก้ไข`,
     contentId: content.id,
-    link: contentLink(content.id),
+    link: resumeLink,
   });
 }
 

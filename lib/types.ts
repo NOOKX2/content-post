@@ -3,6 +3,8 @@ export type MediaType = "video" | "image";
 export type ContentStatus =
   | "draft"
   | "pending"
+  | "idea_approved"
+  | "clip_pending"
   | "approved"
   | "scheduled"
   | "posting"
@@ -73,6 +75,7 @@ export interface ContentItem {
   itemsToPrepare: string;
   filmingEquipment: string[];
   attachments: string[];
+  exampleAttachments: string[];
   script: ScriptRow[];
   ideaCreator: string;
   photographer: string;
@@ -105,6 +108,7 @@ export interface ContentFormData {
   itemsToPrepare: string;
   filmingEquipment: string[];
   attachments: string[];
+  exampleAttachments: string[];
   script: ScriptRow[];
   ideaCreator: string;
   photographer: string;

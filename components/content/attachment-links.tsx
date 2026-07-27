@@ -5,7 +5,6 @@ import {
   FileUp,
   Link2,
   Loader2,
-  Paperclip,
   Plus,
   Trash2,
   Video,
@@ -118,6 +117,12 @@ export function AttachmentLinks({
     }
   };
 
+  const openFilePicker = () => {
+    if (!uploading) {
+      fileInputRef.current?.click();
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       void uploadFiles(e.target.files);
@@ -149,7 +154,7 @@ export function AttachmentLinks({
         type="button"
         variant="ghost"
         size="sm"
-        onClick={() => fileInputRef.current?.click()}
+        onClick={openFilePicker}
         disabled={uploading}
       >
         {uploading ? (
@@ -181,21 +186,68 @@ export function AttachmentLinks({
       />
 
       <div
+        role="button"
+        tabIndex={0}
+        onClick={openFilePicker}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openFilePicker();
+          }
+        }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         className={cn(
-          "rounded-lg border border-dashed px-4 py-5 transition-colors",
+          "rounded-lg border border-dashed px-4 py-5 transition-colors cursor-pointer",
           uploading
             ? "border-blue-300 bg-blue-50/50"
-            : "border-stone-300 bg-stone-50 hover:border-stone-400"
+            : "border-stone-300 bg-stone-50 hover:border-stone-400 hover:bg-stone-100/80"
         )}
       >
-        <div className="flex items-center gap-3">
-          <Paperclip className="h-5 w-5 shrink-0 text-stone-400" />
-          <p className="text-sm text-stone-600">
-            ลากวิดีโอมาวาง หรือกด &quot;อัปโหลดวิดีโอ&quot;
-          </p>
+        <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
+            {uploading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            ) : (
+              <Video className="h-5 w-5 text-blue-600" />
+            )}
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-stone-700">
+              {uploading ? "กำลังอัปโหลด..." : "คลิกเพื่อเลือกวิดีโอจากเครื่อง"}
+            </p>
+            <p className="text-xs text-stone-500">
+              หรือลากวิดีโอมาวางที่นี่
+              {!hideToolbar ? ' · กด "เพิ่มลิงก์วิดีโอ" สำหรับ URL' : ""}
+            </p>
+          </div>
         </div>
+
+        {hideToolbar && (
+          <div
+            className="mt-4 flex flex-wrap justify-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={openFilePicker}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileUp className="h-4 w-4" />
+              )}
+              เลือกวิดีโอ
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={addLink}>
+              <Plus className="h-4 w-4" />
+              เพิ่มลิงก์
+            </Button>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

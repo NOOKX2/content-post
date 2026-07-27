@@ -23,6 +23,7 @@ function normalizeContentPayload(body: Partial<ContentFormData>): ContentFormDat
     itemsToPrepare: body.itemsToPrepare ?? "",
     filmingEquipment: body.filmingEquipment ?? [],
     attachments: body.attachments ?? [],
+    exampleAttachments: body.exampleAttachments ?? [],
     script: body.script ?? [],
     ideaCreator: body.ideaCreator ?? "",
     photographer: body.photographer ?? "",

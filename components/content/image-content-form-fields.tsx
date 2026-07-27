@@ -2,6 +2,7 @@
 
 import { Calendar, Eye, ImageIcon, Info, Users } from "lucide-react";
 import { ImageAttachmentLinks } from "@/components/content/image-attachment-links";
+import { ContentFormSection } from "@/components/content/content-form-section";
 import { PlatformSelect } from "@/components/content/platform-select";
 import { TeamTable } from "@/components/content/team-table";
 import { Input } from "@/components/ui/input";
@@ -114,11 +115,18 @@ export function ImageContentFormFields({
           </div>
         </Card>
 
-        <ImageAttachmentLinks
-          links={form.attachments}
-          onChange={(links) => update("attachments", links)}
-          layout="section"
-        />
+        <ContentFormSection
+          title="ตัวอย่างรูปภาพ"
+          description="อัปโหลดรูป reference หรือแนบลิงก์ภาพตัวอย่าง"
+          icon={ImageIcon}
+          className="border-pink-100"
+        >
+          <ImageAttachmentLinks
+            links={form.attachments}
+            onChange={(links) => update("attachments", links)}
+            hideToolbar
+          />
+        </ContentFormSection>
 
         <Card padding="none" className="border-pink-100">
           <div className="flex items-center gap-2.5 border-b border-stone-200 px-6 py-4">

@@ -6,6 +6,7 @@ export type ApprovalCardMetadata = {
   channel: string;
   remarks: string;
   status: "pending" | "approved" | "rejected";
+  approvalRound?: 1 | 2;
   rejectReason?: string;
   resolvedBy?: string;
   resolvedAt?: string;

@@ -5,6 +5,7 @@ import { Providers } from "./providers";
 import { AppShell } from "@/components/layout/app-shell";
 import { getCollaborationBootstrap } from "@/lib/collaboration/queries";
 import { getAllContents } from "@/lib/content/queries";
+import { prisma } from "@/lib/prisma";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,12 +29,18 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+  const userId = session?.user?.id
+    ? (
+        await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { id: true },
+        })
+      )?.id
+    : null;
 
   const [initialContents, initialCollaboration] = await Promise.all([
-    session?.user ? getAllContents() : Promise.resolve(undefined),
-    session?.user?.id
-      ? getCollaborationBootstrap(session.user.id)
-      : Promise.resolve(undefined),
+    userId ? getAllContents() : Promise.resolve(undefined),
+    userId ? getCollaborationBootstrap(userId) : Promise.resolve(undefined),
   ]);
 
   return (

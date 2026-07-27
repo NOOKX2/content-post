@@ -22,9 +22,16 @@ import { resolveNextContentIdFromList } from "@/lib/content/content-id";
 import {
   createContent,
   previewNextContentId,
+  resubmitIdeaForApproval,
+  submitClipForApproval,
   updateContent,
 } from "@/lib/content/actions";
 import { contentItemToFormData } from "@/lib/content/mappers";
+import {
+  hasFinalVideoClip,
+  shouldResubmitClip,
+  shouldResubmitIdea,
+} from "@/lib/content/content-workflow";
 import { useContents } from "@/lib/content/contents-provider";
 import { generateId } from "@/lib/utils";
 
@@ -58,6 +65,7 @@ const EMPTY_FORM: ContentFormData = {
   itemsToPrepare: "",
   filmingEquipment: [],
   attachments: [],
+  exampleAttachments: [],
   script: [],
   ideaCreator: "",
   photographer: "",
@@ -72,7 +80,11 @@ interface ContentFormProps {
   initialContent?: ContentItem;
   onCancel?: () => void;
   onSaved?: (item: ContentItem) => void;
+  onSubmitted?: (item: ContentItem) => void;
   onMediaTypeChange?: (mediaType: MediaType) => void;
+  suppressSuccessScreen?: boolean;
+  workflowPhase?: "plan" | "produce";
+  initialMediaType?: MediaType;
 }
 
 export function ContentForm({
@@ -80,11 +92,17 @@ export function ContentForm({
   initialContent,
   onCancel,
   onSaved,
+  onSubmitted,
   onMediaTypeChange,
+  suppressSuccessScreen = false,
+  workflowPhase,
+  initialMediaType = "video",
 }: ContentFormProps) {
   const isEdit = Boolean(initialContent);
   const [form, setForm] = useState<ContentFormData>(() =>
-    initialContent ? contentItemToFormData(initialContent) : EMPTY_FORM
+    initialContent
+      ? contentItemToFormData(initialContent)
+      : { ...EMPTY_FORM, mediaType: initialMediaType }
   );
   const [contentId, setContentId] = useState(
     () => initialContent?.contentId ?? ""
@@ -207,6 +225,36 @@ export function ContentForm({
     onMediaTypeChange?.(mediaType);
   };
 
+  const willSubmitClip =
+    isEdit &&
+    isVideo &&
+    hasFinalVideoClip(form) &&
+    (initialContent?.status === "idea_approved" ||
+      (initialContent?.status === "rejected" && shouldResubmitClip(initialContent)));
+
+  const willResubmitIdea =
+    isEdit &&
+    isVideo &&
+    initialContent &&
+    shouldResubmitIdea(initialContent) &&
+    !hasFinalVideoClip(form);
+
+  const submitLabel = (() => {
+    if (submitting) {
+      return isEdit ? "กำลังบันทึก..." : "กำลังส่ง...";
+    }
+    if (!isEdit) {
+      return isVideo ? "ส่งขออนุมัติเบื้องต้น" : "ส่งเพื่ออนุมัติ";
+    }
+    if (willSubmitClip) {
+      return "ส่งงานให้ตรวจสอบ";
+    }
+    if (willResubmitIdea) {
+      return "ส่งแนวคิดเพื่ออนุมัติ";
+    }
+    return "บันทึกการแก้ไข";
+  })();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || submitting) return;
@@ -225,13 +273,23 @@ export function ContentForm({
         ...form,
         endTime: "",
         attachments: form.attachments.filter((link) => link.trim()),
+        exampleAttachments: form.exampleAttachments.filter((link) => link.trim()),
         script: isVideo ? form.script : [],
         imageMeta: isVideo ? { ...EMPTY_IMAGE_META } : form.imageMeta,
       };
 
-      const result = isEdit
-        ? await updateContent(initialContent!.id, payload)
-        : await createContent(payload);
+      let result;
+      if (isEdit) {
+        if (willSubmitClip) {
+          result = await submitClipForApproval(initialContent!.id, payload);
+        } else if (willResubmitIdea) {
+          result = await resubmitIdeaForApproval(initialContent!.id, payload);
+        } else {
+          result = await updateContent(initialContent!.id, payload);
+        }
+      } else {
+        result = await createContent(payload);
+      }
 
       if (!result.success) {
         console.error("[content-form] action failed", {
@@ -258,10 +316,17 @@ export function ContentForm({
 
       if (isEdit) {
         onSaved?.(result.data);
+        if (suppressSuccessScreen) {
+          onSubmitted?.(result.data);
+        }
         return;
       }
 
       setSubmittedItem(result.data);
+      if (suppressSuccessScreen) {
+        onSubmitted?.(result.data);
+        return;
+      }
       onSubmitSuccess?.();
     } catch (error) {
       console.error("[content-form] submit crashed", {
@@ -291,8 +356,11 @@ export function ContentForm({
     );
   }
 
+  const isProducePhase = workflowPhase === "produce";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {!isProducePhase && (
       <Card
         padding="none"
         className={isVideo ? "border-amber-100" : "border-pink-100"}
@@ -303,7 +371,7 @@ export function ContentForm({
           </h3>
           <p className="mt-1 text-sm text-stone-500">
             {isVideo
-              ? "กรอก brief งานตัดต่อวีดีโอ"
+              ? "รอบ 1: กรอก brief และแนบรูปตัวอย่าง — หลังอนุมัติแล้วค่อยอัปโหลดคลิปตัดต่อ"
               : "กรอก brief งานออกแบบภาพ"}
           </p>
         </div>
@@ -314,6 +382,7 @@ export function ContentForm({
           />
         </div>
       </Card>
+      )}
 
       {!isVideo ? (
         <ImageContentFormFields
@@ -331,6 +400,8 @@ export function ContentForm({
           form={form}
           contentId={contentId}
           isEdit={isEdit}
+          contentStatus={initialContent?.status}
+          workflowPhase={workflowPhase}
           channelOptions={channelOptions}
           availablePlatforms={availablePlatforms}
           config={config}
@@ -357,13 +428,7 @@ export function ContentForm({
         )}
         <Button type="submit" size="lg" disabled={submitting}>
           <Send className="h-4 w-4" />
-          {submitting
-            ? isEdit
-              ? "กำลังบันทึก..."
-              : "กำลังส่ง..."
-            : isEdit
-              ? "บันทึกการแก้ไข"
-              : "ส่งเพื่ออนุมัติ"}
+          {submitLabel}
         </Button>
       </div>
     </form>

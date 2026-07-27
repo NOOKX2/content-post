@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { toContentItem } from "@/lib/content/mappers";
+import { isAwaitingAdminApproval } from "@/lib/content/content-workflow";
 import type { ContentItem } from "@/lib/types";
 import { CONTENTS_CACHE_TAG, contentCacheTag } from "@/lib/content/cache-tags";
 
@@ -57,5 +58,5 @@ export const getContentById = cache(
 
 export const getPendingCount = cache(async (): Promise<number> => {
   const contents = await getAllContents();
-  return contents.filter((c) => c.status === "pending").length;
+  return contents.filter((c) => isAwaitingAdminApproval(c.status)).length;
 });

@@ -25,6 +25,7 @@ export const MOCK_CONTENT: ContentItem[] = [
     itemsToPrepare: "Backdrop สีเขียว, Props สมุนไพร",
     filmingEquipment: ["Camera", "Lighting"],
     attachments: [],
+    exampleAttachments: [],
     script: [
       {
         id: "s1",
@@ -65,6 +66,7 @@ export const MOCK_CONTENT: ContentItem[] = [
     itemsToPrepare: "Outdoor setup",
     filmingEquipment: ["Microphone", "Drone"],
     attachments: [],
+    exampleAttachments: [],
     script: [],
     ideaCreator: "มานี มีสุข",
     photographer: "พิมพ์ใจ ถ่ายทำ",
@@ -94,6 +96,7 @@ export const MOCK_CONTENT: ContentItem[] = [
     itemsToPrepare: "Ribbon, Gift box props",
     filmingEquipment: [],
     attachments: [],
+    exampleAttachments: [],
     script: [],
     ideaCreator: "Laura Power",
     photographer: "พิมพ์ใจ ถ่ายทำ",

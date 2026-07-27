@@ -5,6 +5,7 @@ import {
 } from "@/lib/content/cache-tags";
 import {
   formDataToCreateInput,
+  formDataToUpdateInput,
   toContentItem,
 } from "@/lib/content/mappers";
 import {
@@ -22,12 +23,24 @@ import {
   getPostingChannelPrefix,
   isValidPostingChannel,
 } from "@/lib/content/posting-channels";
-import { isVideoAttachmentUrl } from "@/lib/content/media-url";
+import {
+  hasExampleImages,
+  hasFinalVideoClip,
+} from "@/lib/content/content-workflow";
 import type { ContentFormData, ContentItem } from "@/lib/types";
 
+export type ContentValidationMode =
+  | "create"
+  | "update"
+  | "submit_idea"
+  | "submit_clip";
+
 export async function validateContentFormData(
-  data: ContentFormData
+  data: ContentFormData,
+  options?: { mode?: ContentValidationMode }
 ): Promise<string | null> {
+  const mode = options?.mode ?? "create";
+
   if (!data.name?.trim()) {
     return "กรุณากรอกชื่อ Content";
   }
@@ -59,12 +72,18 @@ export async function validateContentFormData(
   }
 
   if (data.mediaType === "video") {
-    const attachments = (data.attachments ?? []).filter((url) => url.trim());
-    if (attachments.length === 0) {
-      return "กรุณาอัปโหลดหรือแนบลิงก์วิดีโออย่างน้อย 1 ไฟล์";
+    if (mode === "submit_clip") {
+      if (!hasFinalVideoClip(data)) {
+        return "กรุณาอัปโหลดหรือแนบลิงก์คลิปวิดีโอที่ตัดต่อแล้ว";
+      }
+      return null;
     }
-    if (!attachments.some((url) => isVideoAttachmentUrl(url))) {
-      return "กรุณาแนบลิงก์วิดีโอหรือไฟล์วิดีโออย่างน้อย 1 รายการ";
+
+    if (mode === "create" || mode === "submit_idea") {
+      if (!hasExampleImages(data)) {
+        return "กรุณาแนบรูปภาพตัวอย่างอย่างน้อย 1 รูป (ในส่วนรูปตัวอย่างหรือในสคริป)";
+      }
+      return null;
     }
   }
 
@@ -76,7 +95,7 @@ export async function createContentRecord(
   userId: string,
   actorName: string
 ): Promise<ContentItem> {
-  const validationError = await validateContentFormData(data);
+  const validationError = await validateContentFormData(data, { mode: "create" });
   if (validationError) {
     throw new Error(validationError);
   }
@@ -105,11 +124,12 @@ export async function createContentRecord(
     data: formDataToCreateInput(data, nextContentId, userId),
   });
 
-  await postApprovalRequest(record, actorName);
+  await postApprovalRequest(record, actorName, { round: 1 });
   await syncContentWorkflowToCollaboration({
     content: record,
     actorName,
     action: "submitted",
+    approvalRound: 1,
   });
 
   updateTag(CONTENTS_CACHE_TAG);
@@ -117,6 +137,111 @@ export async function createContentRecord(
   revalidatePath("/admin");
   revalidatePath("/create");
   revalidatePath("/posts");
+
+  return toContentItem(record);
+}
+
+export async function submitClipForApprovalRecord(
+  id: string,
+  data: ContentFormData,
+  actorName: string
+): Promise<ContentItem> {
+  const validationError = await validateContentFormData(data, {
+    mode: "submit_clip",
+  });
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const existing = await prisma.content.findUnique({ where: { id } });
+  if (!existing) {
+    throw new Error("Not found");
+  }
+
+  if (existing.mediaType !== "video") {
+    throw new Error("รองรับเฉพาะงานวิดีโอ");
+  }
+
+  if (!["idea_approved", "rejected"].includes(existing.status)) {
+    throw new Error("สถานะงานไม่พร้อมส่งคลิปเพื่ออนุมัติ");
+  }
+
+  const record = await prisma.content.update({
+    where: { id },
+    data: {
+      ...formDataToUpdateInput(data),
+      status: "clip_pending",
+      approver: null,
+    },
+  });
+
+  await postApprovalRequest(record, actorName, { round: 2 });
+  await syncContentWorkflowToCollaboration({
+    content: record,
+    actorName,
+    action: "clip_submitted",
+    approvalRound: 2,
+  });
+
+  updateTag(CONTENTS_CACHE_TAG);
+  revalidatePath("/calendar");
+  revalidatePath("/admin");
+  revalidatePath("/create");
+  revalidatePath("/posts");
+  revalidatePath(`/content/${id}`);
+
+  return toContentItem(record);
+}
+
+export async function resubmitIdeaForApprovalRecord(
+  id: string,
+  data: ContentFormData,
+  actorName: string
+): Promise<ContentItem> {
+  const validationError = await validateContentFormData(data, {
+    mode: "submit_idea",
+  });
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const existing = await prisma.content.findUnique({ where: { id } });
+  if (!existing) {
+    throw new Error("Not found");
+  }
+
+  if (existing.mediaType !== "video") {
+    throw new Error("รองรับเฉพาะงานวิดีโอ");
+  }
+
+  if (existing.status !== "rejected") {
+    throw new Error("สถานะงานไม่พร้อมส่งแนวคิดเพื่ออนุมัติ");
+  }
+
+  const record = await prisma.content.update({
+    where: { id },
+    data: {
+      ...formDataToUpdateInput(data),
+      status: "pending",
+      approver: null,
+      attachments: [],
+    },
+  });
+
+  await postApprovalRequest(record, actorName, { round: 1 });
+  await syncContentWorkflowToCollaboration({
+    content: record,
+    actorName,
+    action: "submitted",
+    approvalRound: 1,
+  });
+
+  updateTag(CONTENTS_CACHE_TAG);
+  revalidatePath("/calendar");
+  revalidatePath("/admin");
+  revalidatePath("/create");
+  revalidatePath("/posts");
+  revalidatePath(`/content/${id}`);
 
   return toContentItem(record);
 }

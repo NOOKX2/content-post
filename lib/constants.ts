@@ -121,7 +121,15 @@ export const STATUS_LABELS: Record<
   { label: string; color: string }
 > = {
   draft: { label: "แบบร่าง", color: "bg-zinc-100 text-zinc-600" },
-  pending: { label: "รออนุมัติ", color: "bg-amber-100 text-amber-700" },
+  pending: { label: "รออนุมัติแนวคิด", color: "bg-amber-100 text-amber-700" },
+  idea_approved: {
+    label: "อนุมัติแนวคิดแล้ว — รออัปโหลดคลิป",
+    color: "bg-sky-100 text-sky-700",
+  },
+  clip_pending: {
+    label: "รออนุมัติคลิป",
+    color: "bg-orange-100 text-orange-700",
+  },
   approved: { label: "อนุมัติแล้ว", color: "bg-blue-100 text-blue-700" },
   scheduled: { label: "กำหนดการแล้ว", color: "bg-blue-100 text-blue-700" },
   posting: { label: "กำลังโพสต์", color: "bg-amber-100 text-amber-700" },

@@ -28,6 +28,8 @@ enum MediaType {
 enum ContentStatus {
   draft
   pending
+  idea_approved
+  clip_pending
   approved
   scheduled
   posting
@@ -221,8 +223,9 @@ model Content {
   productsNeeded String[]
   itemsToPrepare String        @default("")
   filmingEquipment String[]    @default([])
-  attachments    String[]
-  script         Json          @default("[]")
+  attachments         String[]
+  exampleAttachments  String[]    @default([])
+  script              Json          @default("[]")
   ideaCreator    String        @default("")
   photographer   String        @default("")
   editor         String        @default("")

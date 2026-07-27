@@ -6,6 +6,7 @@ import {
   useContext,
   useMemo,
 } from "react";
+import { useSession } from "next-auth/react";
 import useSWR, { mutate as globalMutate } from "swr";
 import {
   fetchContentByIdForClient,
@@ -15,6 +16,7 @@ import {
   getContentRefreshInterval,
   getContentsRefreshInterval,
 } from "@/lib/content/live-status-polling";
+import { isAwaitingAdminApproval } from "@/lib/content/content-workflow";
 import type { ContentItem } from "@/lib/types";
 
 export const CONTENTS_KEY = "contents";
@@ -33,15 +35,22 @@ export function ContentsProvider({
   children: React.ReactNode;
   initialContents?: ContentItem[];
 }) {
-  const { data, mutate } = useSWR(CONTENTS_KEY, fetchContentsForClient, {
-    fallbackData: initialContents,
-    revalidateOnMount: initialContents === undefined,
-    revalidateOnFocus: true,
-    dedupingInterval: 2000,
-    keepPreviousData: true,
-    refreshInterval: (latestData) => getContentsRefreshInterval(latestData),
-    refreshWhenHidden: false,
-  });
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
+
+  const { data, mutate } = useSWR(
+    isAuthenticated ? CONTENTS_KEY : null,
+    fetchContentsForClient,
+    {
+      fallbackData: initialContents,
+      revalidateOnMount: isAuthenticated && initialContents === undefined,
+      revalidateOnFocus: isAuthenticated,
+      dedupingInterval: 2000,
+      keepPreviousData: true,
+      refreshInterval: (latestData) => getContentsRefreshInterval(latestData),
+      refreshWhenHidden: false,
+    }
+  );
 
   const value = useMemo(
     () => ({
@@ -67,7 +76,9 @@ export function useContents() {
 export function usePendingCount() {
   const { contents } = useContents();
   return useMemo(
-    () => contents.filter((content) => content.status === "pending").length,
+    () =>
+      contents.filter((content) => isAwaitingAdminApproval(content.status))
+        .length,
     [contents]
   );
 }

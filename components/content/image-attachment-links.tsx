@@ -91,6 +91,12 @@ export function ImageAttachmentLinks({
     }
   };
 
+  const openFilePicker = () => {
+    if (!uploading) {
+      fileInputRef.current?.click();
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       void uploadFiles(e.target.files);
@@ -122,7 +128,7 @@ export function ImageAttachmentLinks({
         type="button"
         variant="ghost"
         size="sm"
-        onClick={() => fileInputRef.current?.click()}
+        onClick={openFilePicker}
         disabled={uploading}
       >
         {uploading ? (
@@ -154,23 +160,68 @@ export function ImageAttachmentLinks({
       />
 
       <div
+        role="button"
+        tabIndex={0}
+        onClick={openFilePicker}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openFilePicker();
+          }
+        }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         className={cn(
-          "rounded-lg border border-dashed px-4 py-6 transition-colors",
+          "rounded-lg border border-dashed px-4 py-6 transition-colors cursor-pointer",
           uploading
             ? "border-pink-300 bg-pink-50/50"
-            : "border-pink-200 bg-pink-50/30 hover:border-pink-300"
+            : "border-pink-200 bg-pink-50/30 hover:border-pink-300 hover:bg-pink-50/50"
         )}
       >
         <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:text-left">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pink-100">
-            <ImageIcon className="h-5 w-5 text-pink-600" />
+            {uploading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-pink-600" />
+            ) : (
+              <ImageIcon className="h-5 w-5 text-pink-600" />
+            )}
           </div>
-          <p className="text-sm text-stone-600">
-            ลากรูปมาวาง หรือกด &quot;อัปโหลดรูป&quot; / &quot;เพิ่มลิงก์&quot;
-          </p>
+          <div className="space-y-1">
+            <p className="text-base font-medium text-stone-700">
+              {uploading ? "กำลังอัปโหลด..." : "คลิกเพื่อเลือกรูปจากเครื่อง"}
+            </p>
+            <p className="text-sm text-stone-500">
+              หรือลากรูปมาวางที่นี่
+              {!hideToolbar ? ' · กด "เพิ่มลิงก์" สำหรับ URL' : ""}
+            </p>
+          </div>
         </div>
+
+        {hideToolbar && (
+          <div
+            className="mt-4 flex flex-wrap justify-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={openFilePicker}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileUp className="h-4 w-4" />
+              )}
+              เลือกรูปภาพ
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={addLink}>
+              <Plus className="h-4 w-4" />
+              เพิ่มลิงก์
+            </Button>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

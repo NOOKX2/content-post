@@ -87,7 +87,11 @@ export function ApprovalCardMessage({
         </span>
       </div>
       <div className="space-y-3 px-3 py-3 text-sm">
-        <p className="font-semibold text-stone-900">คำขออนุมัติ Content</p>
+        <p className="font-semibold text-stone-900">
+          {metadata.approvalRound === 2
+            ? "คำขออนุมัติคลิป (รอบ 2)"
+            : "คำขออนุมัติแนวคิด (รอบ 1)"}
+        </p>
         <div className="grid gap-1.5 text-xs text-stone-600">
           <Row label="ผู้ส่ง" value={metadata.requesterName} />
           <Row label="รหัส" value={metadata.contentCode} />

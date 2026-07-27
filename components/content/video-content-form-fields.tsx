@@ -14,6 +14,7 @@ import {
   Video,
 } from "lucide-react";
 import { AttachmentLinks } from "@/components/content/attachment-links";
+import { ImageAttachmentLinks } from "@/components/content/image-attachment-links";
 import {
   ContentFormSection,
   ContentFormSectionAction,
@@ -33,12 +34,10 @@ import {
   PRODUCTS,
   TEAM_MEMBERS,
 } from "@/lib/constants";
-import {
-  isVideoAttachmentUrl,
-  isVideoMediaUrl,
-} from "@/lib/content/media-url";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/form-config";
-import type { ContentFormData, Platform } from "@/lib/types";
+import { showFinalClipSection } from "@/lib/content/content-workflow";
+import { isImageMediaUrl, isVideoAttachmentUrl, isVideoMediaUrl } from "@/lib/content/media-url";
+import type { ContentFormData, ContentStatus, Platform } from "@/lib/types";
 import { generateId } from "@/lib/utils";
 
 type ChannelOption = { value: string; label: string };
@@ -47,6 +46,8 @@ export function VideoContentFormFields({
   form,
   contentId,
   isEdit,
+  contentStatus,
+  workflowPhase,
   channelOptions,
   availablePlatforms,
   config,
@@ -56,6 +57,8 @@ export function VideoContentFormFields({
   form: ContentFormData;
   contentId: string;
   isEdit: boolean;
+  contentStatus?: ContentStatus;
+  workflowPhase?: "plan" | "produce";
   channelOptions: ChannelOption[];
   availablePlatforms: Platform[];
   config: (typeof MEDIA_FORM_CONFIG)["video"];
@@ -89,13 +92,65 @@ export function VideoContentFormFields({
 
   const previewAttachment =
     form.attachments.find((url) => url.trim() && isVideoAttachmentUrl(url)) ??
+    form.exampleAttachments.find((url) => url.trim() && isImageMediaUrl(url)) ??
+    form.script.find((row) => row.imageUrl?.trim())?.imageUrl ??
     "";
   const previewIsDirectVideo =
     previewAttachment && isVideoMediaUrl(previewAttachment);
+  const previewIsImage =
+    previewAttachment && isImageMediaUrl(previewAttachment);
+  const isProducePhase = workflowPhase === "produce";
+  const showClipUpload = isProducePhase
+    ? true
+    : workflowPhase === "plan"
+      ? false
+      : showFinalClipSection(isEdit, contentStatus);
+
+  const briefSummary = (
+    <ContentFormSection title="ข้อมูล Content" icon={Info}>
+      <div className="space-y-3 rounded-xl border border-stone-200 bg-stone-50/80 p-4 text-sm">
+        <div>
+          <p className="text-xs text-stone-500">หัวข้อ Content</p>
+          <p className="font-semibold text-stone-900">{form.name || "—"}</p>
+        </div>
+        {form.details && (
+          <div>
+            <p className="text-xs text-stone-500">รายละเอียด</p>
+            <p className="text-stone-700 whitespace-pre-wrap">{form.details}</p>
+          </div>
+        )}
+        {form.category && (
+          <div>
+            <p className="text-xs text-stone-500">หมวดหมู่</p>
+            <p className="text-stone-700">{form.category}</p>
+          </div>
+        )}
+      </div>
+    </ContentFormSection>
+  );
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
       <div className="min-w-0 space-y-5">
+      {isProducePhase ? (
+        <>
+          {briefSummary}
+          <ContentFormSection
+            title="อัปโหลดวิดีโอที่ตัดต่อแล้ว"
+            description="อัปโหลดคลิปวิดีโอ (.mp4 / .mov / .webm) สูงสุด 200 MB"
+            icon={Video}
+            className="border-amber-100"
+          >
+            <AttachmentLinks
+              links={form.attachments}
+              onChange={(links) => update("attachments", links)}
+              hideHeader
+              hideToolbar
+            />
+          </ContentFormSection>
+        </>
+      ) : (
+        <>
       <ContentFormSection title="ข้อมูล Content" icon={Info}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
@@ -147,11 +202,34 @@ export function VideoContentFormFields({
         </div>
       </ContentFormSection>
 
-      <AttachmentLinks
-        links={form.attachments}
-        onChange={(links) => update("attachments", links)}
-        layout="section"
-      />
+      <ContentFormSection
+        title="รูปภาพตัวอย่าง"
+        description="แนบรูป reference / mood board สำหรับอนุมัติแนวคิดรอบแรก"
+        icon={Eye}
+        className="border-amber-100"
+      >
+        <ImageAttachmentLinks
+          links={form.exampleAttachments}
+          onChange={(links) => update("exampleAttachments", links)}
+          hideToolbar
+        />
+      </ContentFormSection>
+
+      {showClipUpload && (
+        <ContentFormSection
+          title="คลิปวิดีโอ (หลังตัดต่อ)"
+          description="อัปโหลดคลิปที่ตัดต่อเสร็จแล้วเพื่อส่งอนุมัติรอบสอง"
+          icon={Video}
+          className="border-amber-100"
+        >
+          <AttachmentLinks
+            links={form.attachments}
+            onChange={(links) => update("attachments", links)}
+            hideHeader
+            hideToolbar
+          />
+        </ContentFormSection>
+      )}
 
       <ContentFormSection
         title="Pre Post"
@@ -283,6 +361,8 @@ export function VideoContentFormFields({
           />
         </div>
       </ContentFormSection>
+        </>
+      )}
       </div>
 
       <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
@@ -331,6 +411,13 @@ export function VideoContentFormFields({
                   className="h-full w-full object-contain"
                   preload="metadata"
                 />
+              ) : previewIsImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previewAttachment}
+                  alt="ตัวอย่าง"
+                  className="h-full w-full object-contain"
+                />
               ) : previewAttachment ? (
                 <a
                   href={previewAttachment}
@@ -345,7 +432,11 @@ export function VideoContentFormFields({
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-xs text-stone-400">
                   <Video className="h-8 w-8 text-stone-500" />
-                  <span>ยังไม่มีวิดีโอตัวอย่าง</span>
+                  <span>
+                    {showClipUpload
+                      ? "ยังไม่มีคลิปวิดีโอ"
+                      : "ยังไม่มีรูปตัวอย่าง"}
+                  </span>
                 </div>
               )}
             </div>

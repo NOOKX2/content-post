@@ -55,6 +55,7 @@ export function toContentItem(record: PrismaContent): ContentItem {
     itemsToPrepare: record.itemsToPrepare,
     filmingEquipment: toStringArray(record.filmingEquipment),
     attachments: toStringArray(record.attachments),
+    exampleAttachments: toStringArray(record.exampleAttachments),
     script: (Array.isArray(record.script) ? record.script : []).map((row) =>
       normalizeScriptRow(row as unknown as ScriptRow)
     ),
@@ -91,6 +92,7 @@ export function contentItemToFormData(content: ContentItem): ContentFormData {
     itemsToPrepare: content.itemsToPrepare,
     filmingEquipment: toStringArray(content.filmingEquipment),
     attachments: toStringArray(content.attachments),
+    exampleAttachments: toStringArray(content.exampleAttachments),
     script: content.script.map(normalizeScriptRow),
     ideaCreator: content.ideaCreator,
     photographer: content.photographer,
@@ -122,6 +124,7 @@ export function formDataToUpdateInput(
     itemsToPrepare: data.itemsToPrepare,
     filmingEquipment: data.filmingEquipment,
     attachments: data.attachments,
+    exampleAttachments: data.exampleAttachments,
     script: data.script as unknown as Prisma.InputJsonValue,
     ideaCreator: data.ideaCreator,
     photographer: data.photographer,
@@ -156,6 +159,7 @@ export function formDataToCreateInput(
     itemsToPrepare: data.itemsToPrepare,
     filmingEquipment: data.filmingEquipment,
     attachments: data.attachments,
+    exampleAttachments: data.exampleAttachments,
     script: data.script as unknown as Prisma.InputJsonValue,
     ideaCreator: data.ideaCreator,
     photographer: data.photographer,

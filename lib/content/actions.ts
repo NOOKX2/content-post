@@ -32,7 +32,7 @@ import {
 import {
   isValidPostingChannel,
 } from "@/lib/content/posting-channels";
-import { createContentRecord, validateContentFormData } from "@/lib/content/create-content-record";
+import { createContentRecord, validateContentFormData, resubmitIdeaForApprovalRecord, submitClipForApprovalRecord } from "@/lib/content/create-content-record";
 import { approveContentRecord } from "@/lib/content/approve-content-record";
 import type { ContentFormData, ContentItem } from "@/lib/types";
 
@@ -101,6 +101,76 @@ export async function createContent(
   }
 }
 
+export async function submitClipForApproval(
+  id: string,
+  data: ContentFormData
+): Promise<ActionResult<ContentItem>> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const existing = await prisma.content.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false, error: "Not found" };
+    }
+
+    const forbidden = assertCanModifyContent(session, existing, "edit");
+    if (forbidden) {
+      return { success: false, error: forbidden };
+    }
+
+    const item = await submitClipForApprovalRecord(
+      id,
+      data,
+      session.user.name ?? "ผู้ใช้"
+    );
+    return { success: true, data: item };
+  } catch (error) {
+    logActionError("submitClipForApproval", error, { id });
+    return {
+      success: false,
+      error: formatActionError(error),
+    };
+  }
+}
+
+export async function resubmitIdeaForApproval(
+  id: string,
+  data: ContentFormData
+): Promise<ActionResult<ContentItem>> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const existing = await prisma.content.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false, error: "Not found" };
+    }
+
+    const forbidden = assertCanModifyContent(session, existing, "edit");
+    if (forbidden) {
+      return { success: false, error: forbidden };
+    }
+
+    const item = await resubmitIdeaForApprovalRecord(
+      id,
+      data,
+      session.user.name ?? "ผู้ใช้"
+    );
+    return { success: true, data: item };
+  } catch (error) {
+    logActionError("resubmitIdeaForApproval", error, { id });
+    return {
+      success: false,
+      error: formatActionError(error),
+    };
+  }
+}
+
 export async function approveContent(
   id: string
 ): Promise<ActionResult<ContentItem>> {
@@ -141,7 +211,7 @@ export async function updateContent(
     return { success: false, error: "Unauthorized" };
   }
 
-  const validationError = await validateContentFormData(data);
+  const validationError = await validateContentFormData(data, { mode: "update" });
   if (validationError) {
     return { success: false, error: validationError };
   }
@@ -254,6 +324,13 @@ export async function rejectContent(
 
     if (existing.status === "rejected") {
       return { success: true, data: toContentItem(existing) };
+    }
+
+    if (!["pending", "clip_pending"].includes(existing.status)) {
+      return {
+        success: false,
+        error: "ไม่สามารถปฏิเสธงานในสถานะนี้ได้",
+      };
     }
 
     const record = await prisma.content.update({
