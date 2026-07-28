@@ -73,7 +73,7 @@ export function CollaborationChatPanel({
     {
       fallbackData: bootstrap?.initialMessagesByChannelId[channel.id],
       revalidateOnMount: !bootstrap?.initialMessagesByChannelId[channel.id],
-      refreshInterval: 1000,
+      refreshInterval: 5000,
       revalidateOnFocus: true,
       refreshWhenHidden: false,
     }

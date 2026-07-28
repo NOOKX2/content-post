@@ -3,9 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { auth } from "@/auth";
 import { Providers } from "./providers";
 import { AppShell } from "@/components/layout/app-shell";
-import { getCollaborationBootstrap } from "@/lib/collaboration/queries";
-import { getAllContents } from "@/lib/content/queries";
-import { prisma } from "@/lib/prisma";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,19 +26,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
-  const userId = session?.user?.id
-    ? (
-        await prisma.user.findUnique({
-          where: { id: session.user.id },
-          select: { id: true },
-        })
-      )?.id
-    : null;
-
-  const [initialContents, initialCollaboration] = await Promise.all([
-    userId ? getAllContents() : Promise.resolve(undefined),
-    userId ? getCollaborationBootstrap(userId) : Promise.resolve(undefined),
-  ]);
 
   return (
     <html
@@ -49,11 +33,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
-        <Providers
-          initialContents={initialContents}
-          initialCollaboration={initialCollaboration}
-          session={session}
-        >
+        <Providers session={session}>
           <AppShell session={session}>{children}</AppShell>
         </Providers>
       </body>
