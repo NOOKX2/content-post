@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X } from "lucide-react";
+import { ArrowLeft, Check, X } from "lucide-react";
 import { ApprovalFeedbackHistory } from "./approval-feedback-history";
 import {
   canAdminApproveContent,
@@ -19,14 +19,17 @@ import type { ContentItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { STATUS_LABELS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 interface ApprovalDetailPanelProps {
   content: ContentItem | null;
   view: AdminApprovalView;
   stage: AdminApprovalStage;
+  className?: string;
   isProcessing?: boolean;
   onApprove: (id: string) => void;
   onReject: (id: string, note: string) => void;
+  onBack?: () => void;
 }
 
 function ApprovalMediaPreview({ content }: { content: ContentItem }) {
@@ -66,16 +69,23 @@ export function ApprovalDetailPanel({
   content,
   view,
   stage,
+  className,
   isProcessing = false,
   onApprove,
   onReject,
+  onBack,
 }: ApprovalDetailPanelProps) {
   const [rejectNote, setRejectNote] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
 
   if (!content) {
     return (
-      <div className="flex h-full min-h-[28rem] items-center justify-center px-8 text-sm text-stone-500">
+      <div
+        className={cn(
+          "flex h-full min-h-48 items-center justify-center px-4 text-sm text-stone-500 lg:min-h-[28rem] lg:px-8",
+          className
+        )}
+      >
         เลือกรายการจากด้านซ้ายเพื่อดูรายละเอียด
       </div>
     );
@@ -99,8 +109,19 @@ export function ApprovalDetailPanel({
   };
 
   return (
-    <div className="flex h-full min-h-[28rem] flex-col">
-      <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+    <div className={cn("flex h-full min-h-48 flex-col lg:min-h-[28rem]", className)}>
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:space-y-5 sm:px-6 sm:py-5">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 lg:hidden"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            กลับไปรายการ
+          </button>
+        ) : null}
+
         <ApprovalMediaPreview content={content} />
 
         <div>
@@ -140,7 +161,7 @@ export function ApprovalDetailPanel({
       </div>
 
       {canApprove && (
-        <div className="border-t border-stone-200 bg-stone-50 px-6 py-4">
+        <div className="border-t border-stone-200 bg-stone-50 px-4 py-3 sm:px-6 sm:py-4">
           {showRejectForm ? (
             <div className="space-y-3">
               <textarea

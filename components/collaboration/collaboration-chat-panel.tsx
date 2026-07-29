@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useSWR, { useSWRConfig } from "swr";
 import { useSession } from "next-auth/react";
-import { Check, CalendarDays, Pencil, Send, Trash2, X } from "lucide-react";
+import { Check, ArrowLeft, CalendarDays, Pencil, Send, Trash2, X } from "lucide-react";
 import type {
   CollaborationChannelItem,
   CollaborationMessageItem,
@@ -55,9 +55,11 @@ function formatTime(iso: string) {
 export function CollaborationChatPanel({
   channel,
   onLeave,
+  className,
 }: {
   channel: CollaborationChannelItem;
   onLeave?: () => void;
+  className?: string;
 }) {
   const { data: session } = useSession();
   const bootstrap = useCollaborationBootstrap();
@@ -188,9 +190,20 @@ export function CollaborationChatPanel({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-stone-50">
-      <div className="flex items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3">
-        <div className="min-w-0">
+    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col bg-stone-50", className)}>
+      <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {onLeave ? (
+            <button
+              type="button"
+              onClick={onLeave}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100 md:hidden"
+              aria-label="กลับไปรายการแชท"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          ) : null}
+          <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="truncate text-sm font-semibold text-stone-900">
               {channel.name}
@@ -216,8 +229,9 @@ export function CollaborationChatPanel({
           {channel.kind === "dm" && channel.peerEmail && (
             <p className="truncate text-xs text-stone-500">{channel.peerEmail}</p>
           )}
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {(channel.kind === "dm" && channel.peerUserId) ||
           channel.kind === "team" ||
           channel.kind === "group" ? (
@@ -230,9 +244,10 @@ export function CollaborationChatPanel({
                   ? `ดูปฏิทินและนัดประชุมกับ ${channel.name}`
                   : `ดูปฏิทินและนัด${scheduleHint}ในห้องนี้`
               }
+              className="px-2 sm:px-3"
             >
               <CalendarDays className="h-4 w-4" />
-              นัดประชุม
+              <span className="hidden sm:inline">นัดประชุม</span>
             </Button>
           ) : null}
           {channel.kind === "dm" ? (
@@ -293,11 +308,11 @@ export function CollaborationChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-stone-200 bg-white p-3">
+      <div className="border-t border-stone-200 bg-white p-2.5 sm:p-3">
         {(channel.kind === "dm" && channel.peerUserId) ||
         channel.kind === "team" ||
         channel.kind === "group" ? (
-          <p className="mb-2 flex flex-wrap items-center gap-1 text-xs text-stone-500">
+          <p className="mb-2 hidden flex-wrap items-center gap-1 text-xs text-stone-500 sm:flex">
             <CalendarDays className="h-3.5 w-3.5 shrink-0 text-blue-600" />
             <span>{scheduleHint} → กดปุ่ม</span>
             <button

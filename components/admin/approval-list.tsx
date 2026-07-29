@@ -12,6 +12,7 @@ import {
   type AdminApprovalStage,
   type AdminApprovalView,
 } from "@/lib/content/content-workflow";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import type { ContentItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -49,9 +50,11 @@ function sortByNewest(contents: ContentItem[]): ContentItem[] {
 }
 
 export function ApprovalList() {
+  const isMobile = useIsMobile();
   const [view, setView] = useState<AdminApprovalView>("pending");
   const [stage, setStage] = useState<AdminApprovalStage>("clip");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const { contents, mutateContents } = useContents();
 
@@ -79,6 +82,10 @@ export function ApprovalList() {
       setStage("concept");
     }
   }, [view, contents]);
+
+  useEffect(() => {
+    setMobileDetailOpen(false);
+  }, [view, stage]);
 
   useEffect(() => {
     if (!filtered.length) {
@@ -152,7 +159,8 @@ export function ApprovalList() {
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-8 border-b border-stone-200">
+      <div className="overflow-x-auto">
+        <div className="flex min-w-max gap-6 border-b border-stone-200 px-1 sm:gap-8">
         {MAIN_TABS.map((tab) => {
           const count = countAdminApprovalView(contents, tab.id);
           return (
@@ -176,6 +184,7 @@ export function ApprovalList() {
             </button>
           );
         })}
+        </div>
       </div>
 
       <Tabs
@@ -185,13 +194,18 @@ export function ApprovalList() {
         }))}
         activeTab={stage}
         onChange={(id) => setStage(id as AdminApprovalStage)}
-        className="w-fit"
+        className="w-full"
         compact
       />
 
       <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
-        <div className="grid min-h-[36rem] grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="border-b border-stone-200 lg:border-r lg:border-b-0">
+        <div className="grid min-h-[24rem] grid-cols-1 lg:min-h-[36rem] lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div
+            className={cn(
+              "border-b border-stone-200 lg:border-r lg:border-b-0",
+              mobileDetailOpen && "hidden lg:block"
+            )}
+          >
             <div className="border-b border-stone-100 px-4 py-3">
               <h2 className="text-sm font-semibold text-stone-900">
                 {LIST_HEADERS[view]} ({filtered.length})
@@ -210,7 +224,12 @@ export function ApprovalList() {
                     content={content}
                     stage={stage}
                     selected={selectedContent?.id === content.id}
-                    onSelect={() => setSelectedId(content.id)}
+                    onSelect={() => {
+                      setSelectedId(content.id);
+                      if (isMobile) {
+                        setMobileDetailOpen(true);
+                      }
+                    }}
                   />
                 ))}
               </div>
@@ -221,11 +240,13 @@ export function ApprovalList() {
             content={selectedContent}
             view={view}
             stage={stage}
+            className={cn(!mobileDetailOpen && "hidden lg:flex")}
             isProcessing={
               selectedContent ? processingIds.has(selectedContent.id) : false
             }
             onApprove={handleApprove}
             onReject={handleReject}
+            onBack={mobileDetailOpen ? () => setMobileDetailOpen(false) : undefined}
           />
         </div>
       </div>

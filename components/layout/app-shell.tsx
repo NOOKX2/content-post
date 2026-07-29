@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
+import { MobileBottomNav } from "./mobile-bottom-nav";
 import { DashboardRouter } from "./dashboard-router";
 import {
   DashboardNavProvider,
@@ -26,16 +27,19 @@ function AppShellMain({
   const isFullHeightView = isDashboard || isCollaboration;
 
   return (
-    <div className="flex h-screen bg-stone-50">
+    <div className="flex h-dvh bg-stone-50 md:flex-row">
       <Sidebar session={session} />
-      <main
-        className={cn(
-          "flex min-h-0 flex-1 flex-col",
-          isFullHeightView ? "overflow-hidden" : "overflow-y-auto"
-        )}
-      >
-        <DashboardRouter />
-      </main>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <main
+          className={cn(
+            "flex min-h-0 flex-1 flex-col",
+            isFullHeightView ? "overflow-hidden" : "overflow-y-auto"
+          )}
+        >
+          <DashboardRouter />
+        </main>
+        <MobileBottomNav session={session} />
+      </div>
       <div className="hidden" aria-hidden>
         {children}
       </div>

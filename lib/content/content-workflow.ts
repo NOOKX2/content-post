@@ -492,15 +492,36 @@ export function getCreatorActionLabel(content: ContentItem): string {
 }
 
 export const WORKFLOW_BOARD_COLUMNS = [
-  { step: 1 as VideoWorkflowStep, title: "วางแผน", hint: "แก้ไข brief" },
-  { step: 2 as VideoWorkflowStep, title: "รออนุมัติ 1", hint: "รอ Admin" },
+  {
+    step: 1 as VideoWorkflowStep,
+    title: "วางแผน",
+    shortTitle: "วางแผน",
+    hint: "แก้ไข brief",
+  },
+  {
+    step: 2 as VideoWorkflowStep,
+    title: "รออนุมัติ 1",
+    shortTitle: "รอ 1",
+    hint: "รอ Admin",
+  },
   {
     step: 3 as VideoWorkflowStep,
-    title: "พร้อมผลิต",
+    title: "รอ upload คลิป",
+    shortTitle: "ผลิต",
     hint: "อัปโหลดคลิป",
   },
-  { step: 4 as VideoWorkflowStep, title: "รออนุมัติ 2", hint: "รอ Admin" },
-  { step: 5 as VideoWorkflowStep, title: "เผยแพร่แล้ว", hint: "ลงโพสต์แล้ว" },
+  {
+    step: 4 as VideoWorkflowStep,
+    title: "รออนุมัติ 2",
+    shortTitle: "รอ 2",
+    hint: "รอ Admin",
+  },
+  {
+    step: 5 as VideoWorkflowStep,
+    title: "เผยแพร่แล้ว",
+    shortTitle: "เผยแพร่",
+    hint: "ลงโพสต์แล้ว",
+  },
 ] as const;
 
 export function getContentWorkflowStep(content: ContentItem): VideoWorkflowStep {

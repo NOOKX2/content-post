@@ -14,12 +14,8 @@ export function CreateView() {
 
   return (
     <>
-      <Header
-        session={session}
-        title="สร้าง Content"
-        description="ติดตามสถานะและจัดการงานคอนเทนต์ของคุณ"
-      />
-      <div className="flex-1 px-4 py-6 sm:px-6 lg:px-6">
+      <Header session={session} title="สร้าง Content" description="ติดตามสถานะและจัดการงานคอนเทนต์ของคุณ" compact />
+      <div className="flex-1 px-4 py-4 sm:px-6 sm:py-6">
         <div className="w-full max-w-none">
           <Suspense fallback={<div className="py-8 text-center text-sm text-stone-500">กำลังโหลด...</div>}>
             <CreateWorkflowContent />

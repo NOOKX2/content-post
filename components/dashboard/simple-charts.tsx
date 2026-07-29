@@ -62,7 +62,7 @@ export function SimpleDonutChart({
   size?: number;
   compact?: boolean;
 }) {
-  const chartSize = compact ? 96 : size;
+  const chartSize = compact ? 120 : size;
   const total = slices.reduce((sum, slice) => sum + slice.value, 0) || 1;
   const radius = 16;
   const circumference = 2 * Math.PI * radius;
@@ -72,7 +72,7 @@ export function SimpleDonutChart({
     <div
       className={
         compact
-          ? "flex h-full items-center gap-2"
+          ? "flex flex-col items-center gap-4 py-1 sm:flex-row sm:items-center sm:justify-start sm:gap-5"
           : "flex flex-col items-center gap-4 sm:flex-row sm:items-start"
       }
     >
@@ -118,22 +118,30 @@ export function SimpleDonutChart({
           {total}
         </text>
       </svg>
-      <div className={compact ? "min-w-0 space-y-1" : "space-y-2"}>
+      <div
+        className={
+          compact ? "w-full space-y-2.5 sm:w-auto sm:min-w-[11rem]" : "space-y-2"
+        }
+      >
         {slices.map((slice) => (
           <div
             key={slice.label}
             className={
               compact
-                ? "flex items-center gap-1.5 text-[11px]"
+                ? "flex items-start justify-between gap-3 text-xs leading-snug"
                 : "flex items-center gap-2 text-sm"
             }
           >
-            <span
-              className="h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: slice.color }}
-            />
-            <span className="truncate text-stone-600">{slice.label}</span>
-            <span className="font-semibold text-stone-900">{slice.value}</span>
+            <div className="flex min-w-0 items-start gap-2">
+              <span
+                className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: slice.color }}
+              />
+              <span className="text-stone-600">{slice.label}</span>
+            </div>
+            <span className="shrink-0 font-semibold text-stone-900">
+              {slice.value}
+            </span>
           </div>
         ))}
       </div>

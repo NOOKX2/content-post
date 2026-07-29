@@ -38,7 +38,7 @@ export function DashboardFiltersBar({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-stone-200/80 pb-2">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-3 border-b border-stone-200/80 pb-3 sm:gap-y-2 sm:pb-2">
       <InlineFilter label="ช่อง">
         <NativeSelect
           className="w-[8.25rem]"

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { ContentForm } from "@/components/content/content-form";
 import { ContentWorkflowHub } from "@/components/content/content-workflow-hub";
 import { ContentWorkflowStatusPanel } from "@/components/content/content-workflow-status-panel";
@@ -118,7 +118,7 @@ export function ContentWorkflowView() {
   if (showStatusPanel && activeContent) {
     return (
       <div className="space-y-6">
-        <WorkflowBackBar onCreateNew={openCreateNew} />
+        <WorkflowBackBar />
         <ContentWorkflowStatusPanel
           content={activeContent}
           onContentChange={(item) => setResumeContent(item)}
@@ -129,7 +129,7 @@ export function ContentWorkflowView() {
 
   return (
     <div className="space-y-6">
-      <WorkflowBackBar onCreateNew={openCreateNew} />
+      <WorkflowBackBar />
 
       <ContentWorkflowStepper currentStep={step} />
       <div>
@@ -155,28 +155,18 @@ export function ContentWorkflowView() {
   );
 }
 
-function WorkflowBackBar({
-  onCreateNew,
-}: {
-  onCreateNew: () => void;
-}) {
+function WorkflowBackBar() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => router.replace("/create")}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        กลับไปภาพรวมงาน
-      </Button>
-      <Button type="button" variant="secondary" size="sm" onClick={onCreateNew}>
-        <Plus className="h-4 w-4" />
-        สร้าง Content ใหม่
-      </Button>
-    </div>
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={() => router.replace("/create")}
+    >
+      <ArrowLeft className="h-4 w-4" />
+      กลับไปภาพรวมงาน
+    </Button>
   );
 }

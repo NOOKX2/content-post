@@ -68,8 +68,9 @@ export function PostsView() {
         session={session}
         title="รายการ post ทั้งหมด"
         description="ดูและตรวจสอบ Content ทุกสถานะได้จากที่เดียว"
+        compact
       />
-      <div className="space-y-5 px-8 py-6">
+      <div className="space-y-5 px-4 py-4 sm:px-6 md:px-8 md:py-6">
         <PostsFilterBar
           group={group}
           subFilter={subFilter}

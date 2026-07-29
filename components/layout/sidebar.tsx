@@ -1,46 +1,25 @@
 "use client";
 
-import {
-  BarChart3,
-  CalendarDays,
-  ClipboardList,
-  MessageSquare,
-  PenSquare,
-  ShieldCheck,
-  Settings,
-} from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import { BrandIcon } from "@/components/ui/brand-icon";
 import { cn } from "@/lib/utils";
-import { isAdminRole } from "@/lib/auth/roles";
 import { usePendingCount } from "@/lib/content/contents-provider";
 import { useCollaborationUnreadCount } from "@/lib/collaboration/collaboration-provider";
+import {
+  getDashboardNavItems,
+  isNavItemActive,
+} from "@/lib/navigation/dashboard-nav-items";
 import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
 import type { Session } from "next-auth";
-
-const CREATOR_NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/create", label: "สร้าง Content", icon: PenSquare },
-  { href: "/collaboration", label: "Team", icon: MessageSquare },
-  { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
-] as const;
-
-const ADMIN_NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/admin", label: "Admin อนุมัติ", icon: ShieldCheck },
-  { href: "/admin/channels", label: "ตั้งค่าช่อง", icon: Settings },
-  { href: "/collaboration", label: "Team", icon: MessageSquare },
-  { href: "/calendar", label: "ปฏิทิน", icon: CalendarDays },
-] as const;
 
 export function Sidebar({ session }: { session: Session | null }) {
   const { activePath, navigate } = useDashboardNav();
   const pendingCount = usePendingCount();
   const collaborationUnreadCount = useCollaborationUnreadCount();
-  const isAdmin = isAdminRole(session?.user?.role);
-  const navItems = isAdmin ? ADMIN_NAV : CREATOR_NAV;
+  const navItems = getDashboardNavItems(session?.user?.role);
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-stone-200/80 bg-white">
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-stone-200/80 bg-white md:flex">
       <div className="flex items-center gap-3 border-b border-stone-200/80 px-6 py-5">
         <BrandIcon size="md" />
         <div>
@@ -51,9 +30,7 @@ export function Sidebar({ session }: { session: Session | null }) {
 
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive =
-            activePath === href ||
-            (href === "/calendar" && activePath === "/content-calendar");
+          const isActive = isNavItemActive(activePath, href);
           const showBadge = href === "/admin" && pendingCount > 0;
           const showChatBadge =
             href === "/collaboration" && collaborationUnreadCount > 0;

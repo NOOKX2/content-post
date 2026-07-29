@@ -32,14 +32,17 @@ export function KpiCard({
   return (
     <Card
       padding="sm"
-      className={cn("relative overflow-hidden", compact ? "!p-2.5" : "!p-3")}
+      className={cn(
+        "relative overflow-hidden",
+        compact ? "!p-3 sm:!p-2.5" : "!p-3"
+      )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-2.5 sm:gap-2">
         <div>
           <p
             className={cn(
               "font-medium text-stone-500",
-              compact ? "text-[10px]" : "text-xs"
+              compact ? "text-xs sm:text-[10px]" : "text-xs"
             )}
           >
             {label}
@@ -47,7 +50,9 @@ export function KpiCard({
           <p
             className={cn(
               "font-bold text-stone-900",
-              compact ? "mt-0.5 text-lg leading-tight" : "mt-1 text-xl"
+              compact
+                ? "mt-1 text-xl leading-tight sm:mt-0.5 sm:text-lg"
+                : "mt-1 text-xl"
             )}
           >
             {typeof value === "number" ? value.toLocaleString("th-TH") : value}
@@ -65,11 +70,11 @@ export function KpiCard({
           <div
             className={cn(
               "flex items-center justify-center rounded-lg",
-              compact ? "h-7 w-7" : "h-8 w-8",
+              compact ? "h-8 w-8 sm:h-7 sm:w-7" : "h-8 w-8",
               accents[accent]
             )}
           >
-            <Icon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+            <Icon className={compact ? "h-4 w-4 sm:h-3.5 sm:w-3.5" : "h-4 w-4"} />
           </div>
         )}
       </div>

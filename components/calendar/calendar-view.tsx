@@ -225,12 +225,12 @@ export function CalendarView({
   return (
     <>
       <div className="flex h-full flex-col rounded-xl border border-stone-200/80 bg-white">
-        <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between border-b border-stone-200 px-2 py-2 sm:px-4 sm:py-3">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <h3 className="text-sm font-semibold text-stone-900 capitalize">
+            <h3 className="text-xs font-semibold text-stone-900 capitalize sm:text-sm">
               {monthLabel}
             </h3>
             <Button variant="ghost" size="sm" onClick={() => navigate(1)}>
@@ -239,6 +239,7 @@ export function CalendarView({
           </div>
           <Button
             size="sm"
+            className="hidden sm:inline-flex"
             onClick={() => {
               setSelectedContent(null);
               setModalOpen(true);
@@ -248,7 +249,7 @@ export function CalendarView({
           </Button>
         </div>
 
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-stone-200">
+        <div className="grid grid-cols-[28px_repeat(7,minmax(0,1fr))] border-b border-stone-200 sm:grid-cols-[60px_repeat(7,minmax(0,1fr))]">
           <div />
           {weekDays.map((day, i) => {
             const isToday = day.toDateString() === new Date().toDateString();
@@ -256,14 +257,16 @@ export function CalendarView({
               <div
                 key={i}
                 className={cn(
-                  "border-l border-stone-100 px-2 py-2 text-center",
+                  "border-l border-stone-100 px-0.5 py-1.5 text-center sm:px-2 sm:py-2",
                   isToday && "bg-blue-50"
                 )}
               >
-                <div className="text-xs text-stone-500">{DAYS[i]}</div>
+                <div className="text-[11px] text-stone-500 sm:text-xs">
+                  {DAYS[i]}
+                </div>
                 <div
                   className={cn(
-                    "mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold",
+                    "mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold sm:h-7 sm:w-7 sm:text-sm",
                     isToday
                       ? "bg-blue-600 text-white"
                       : "text-stone-800"
@@ -277,10 +280,10 @@ export function CalendarView({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-[60px_repeat(7,1fr)]">
+          <div className="grid grid-cols-[28px_repeat(7,minmax(0,1fr))] sm:grid-cols-[60px_repeat(7,minmax(0,1fr))]">
             {HOURS.map((hour) => (
               <div key={hour} className="contents">
-                <div className="border-b border-stone-100 px-2 py-3 text-right text-xs text-stone-400">
+                <div className="border-b border-stone-100 px-1 py-2 text-right text-[10px] text-stone-400 sm:px-2 sm:py-3 sm:text-xs">
                   {hour}:00
                 </div>
                 {weekDays.map((day, dayIdx) => {
@@ -295,14 +298,14 @@ export function CalendarView({
                   return (
                     <div
                       key={dayIdx}
-                      className="relative min-h-[60px] border-b border-l border-stone-100 p-1"
+                      className="relative min-h-[44px] border-b border-l border-stone-100 p-0.5 sm:min-h-[60px] sm:p-1"
                     >
                       {events.map((event) => (
                         <DashboardLink
                           key={event.id}
                           href={`/content/${event.id}`}
                           className={cn(
-                            "mb-1 block w-full rounded-md px-2 py-1 text-left text-xs font-medium transition-colors line-clamp-2 hover:opacity-90",
+                            "mb-0.5 block w-full rounded px-1 py-0.5 text-left text-[10px] font-medium transition-colors line-clamp-2 hover:opacity-90 sm:mb-1 sm:rounded-md sm:px-2 sm:py-1 sm:text-xs",
                             CALENDAR_EVENT_STYLES[event.status]
                           )}
                         >

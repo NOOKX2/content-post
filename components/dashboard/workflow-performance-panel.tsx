@@ -36,10 +36,10 @@ export function WorkflowPerformancePanel() {
   }, [contents, filters]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-2">
       <DashboardFiltersBar filters={filters} onChange={setFilters} />
 
-      <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+      <div className="grid shrink-0 grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-2 xl:grid-cols-5">
         <KpiCard
           label="งานทั้งหมด"
           value={analytics.summary.total}
@@ -77,10 +77,11 @@ export function WorkflowPerformancePanel() {
         />
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 xl:grid-cols-3">
+      <div className="grid shrink-0 grid-cols-1 gap-3 sm:min-h-0 sm:flex-1 sm:gap-2 xl:grid-cols-3">
         <DashboardChartCard
           title="สรุปสถานะงาน"
           description="สัดส่วนงานตามสถานะปัจจุบัน"
+          bodyClassName="py-1"
         >
           {analytics.statusBreakdown.length === 0 ? (
             <p className="text-xs text-stone-500">ยังไม่มีข้อมูล</p>

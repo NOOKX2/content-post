@@ -21,8 +21,8 @@ export function DashboardView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <Header session={session} title="Dashboard" />
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5 px-5 py-2">
+      <Header session={session} title="Dashboard" compact />
+      <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 py-3 sm:gap-2 sm:px-5 sm:py-2">
         <div className="flex shrink-0 items-center justify-between gap-3">
           <Tabs
             tabs={DASHBOARD_TABS.map((item) => ({

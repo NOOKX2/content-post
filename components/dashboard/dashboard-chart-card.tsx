@@ -17,12 +17,12 @@ export function DashboardChartCard({
   return (
     <Card
       padding="sm"
-      className={cn("flex min-h-0 flex-col !p-2.5", className)}
+      className={cn("flex min-h-0 flex-col !p-3 sm:!p-2.5", className)}
     >
-      <CardHeader className="mb-1 shrink-0">
-        <CardTitle className="text-sm leading-tight">{title}</CardTitle>
+      <CardHeader className="mb-2 shrink-0 sm:mb-1">
+        <CardTitle className="text-sm leading-snug sm:leading-tight">{title}</CardTitle>
         {description && (
-          <CardDescription className="text-[11px] leading-tight">
+          <CardDescription className="mt-0.5 text-xs leading-snug sm:text-[11px] sm:leading-tight">
             {description}
           </CardDescription>
         )}

@@ -29,9 +29,11 @@ function matchesQuery(text: string, query: string) {
 export function CollaborationChannelSidebar({
   activeChannelId,
   onSelect,
+  className,
 }: {
   activeChannelId: string | null;
   onSelect: (channel: CollaborationChannelItem) => void;
+  className?: string;
 }) {
   const { data: session } = useSession();
   const [search, setSearch] = useState("");
@@ -108,7 +110,12 @@ export function CollaborationChannelSidebar({
   };
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-stone-200 bg-white">
+    <aside
+      className={cn(
+        "flex shrink-0 flex-col border-r border-stone-200 bg-white",
+        className
+      )}
+    >
       <CreateGroupDialog
         open={showCreateGroup}
         members={members}

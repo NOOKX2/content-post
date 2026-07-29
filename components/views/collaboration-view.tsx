@@ -19,6 +19,8 @@ import {
   fetchCollaborationChannels,
   markCollaborationChannelRead,
 } from "@/lib/collaboration/fetch-actions";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
+import { cn } from "@/lib/utils";
 
 const TEAM_TABS = [
   { id: "chat", label: "แชท" },
@@ -31,6 +33,7 @@ type TeamTab = (typeof TEAM_TABS)[number]["id"];
 
 export function CollaborationView() {
   const { data: session } = useSession();
+  const isMobile = useIsMobile();
   const bootstrap = useCollaborationBootstrap();
   const { mutate: mutateGlobal } = useSWRConfig();
   const { data: channels = [] } = useSWR(
@@ -42,6 +45,7 @@ export function CollaborationView() {
     }
   );
   const [tab, setTab] = useState<TeamTab>("chat");
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(
     () => bootstrap?.defaultChannelId ?? null
   );
@@ -72,18 +76,40 @@ export function CollaborationView() {
     });
   }, [activeChannelId, tab, mutateGlobal]);
 
+  useEffect(() => {
+    if (tab !== "chat") {
+      setMobileChatOpen(false);
+    }
+  }, [tab]);
+
   const activeChannel =
     channels.find((channel) => channel.id === activeChannelId) ?? null;
 
+  const handleSelectChannel = (channelId: string) => {
+    setActiveChannelId(channelId);
+    if (isMobile) {
+      setMobileChatOpen(true);
+    }
+  };
+
+  const hideTopNavOnMobile = isMobile && tab === "chat" && mobileChatOpen;
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <Header session={session} title="Team Collaboration" />
-      <div className="border-b border-stone-200 bg-white px-4 py-2">
+      <div className={cn(hideTopNavOnMobile && "hidden")}>
+        <Header session={session} title="Team Collaboration" compact />
+      </div>
+      <div
+        className={cn(
+          "border-b border-stone-200 bg-white px-3 py-2 sm:px-4",
+          hideTopNavOnMobile && "hidden"
+        )}
+      >
         <Tabs
           tabs={[...TEAM_TABS]}
           activeTab={tab}
           onChange={(id) => setTab(id as TeamTab)}
-          className="w-fit"
+          className="w-full"
           compact
         />
       </div>
@@ -92,12 +118,20 @@ export function CollaborationView() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <CollaborationChannelSidebar
             activeChannelId={activeChannelId}
-            onSelect={(channel) => setActiveChannelId(channel.id)}
+            onSelect={(channel) => handleSelectChannel(channel.id)}
+            className={cn(
+              "w-full md:w-72",
+              mobileChatOpen && "hidden md:flex"
+            )}
           />
           {activeChannel ? (
-            <CollaborationChatPanel channel={activeChannel} />
+            <CollaborationChatPanel
+              channel={activeChannel}
+              className={cn(!mobileChatOpen && "hidden md:flex")}
+              onLeave={() => setMobileChatOpen(false)}
+            />
           ) : (
-            <div className="flex flex-1 items-center justify-center text-sm text-stone-400">
+            <div className="hidden flex-1 items-center justify-center text-sm text-stone-400 md:flex">
               เลือกห้องแชทเพื่อเริ่มสนทนา
             </div>
           )}

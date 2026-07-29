@@ -49,7 +49,7 @@ export function SocialAnalyticsPanel() {
   });
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-2">
       <DashboardFiltersBar
         filters={filters}
         onChange={setFilters}
@@ -62,7 +62,7 @@ export function SocialAnalyticsPanel() {
         </div>
       )}
 
-      <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4 xl:grid-cols-7">
+      <div className="grid shrink-0 grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-2 xl:grid-cols-7">
         <MiniKpi label="Reach" value={data?.summary.reach ?? 0} />
         <MiniKpi label="Views" value={data?.summary.views ?? 0} />
         <MiniKpi
@@ -80,7 +80,7 @@ export function SocialAnalyticsPanel() {
         <MiniKpi label="Shares" value={data?.summary.shares ?? 0} />
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 xl:grid-cols-3">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:gap-2 xl:grid-cols-3">
         <DashboardChartCard
           className="xl:col-span-2"
           title="เปรียบเทียบ Engagement ต่อโพสต์"
@@ -121,7 +121,7 @@ export function SocialAnalyticsPanel() {
         </DashboardChartCard>
       </div>
 
-      <div className="grid min-h-0 shrink-0 grid-cols-1 gap-2 lg:grid-cols-2 lg:max-h-[9.5rem]">
+      <div className="grid min-h-0 shrink-0 grid-cols-1 gap-3 sm:gap-2 lg:grid-cols-2 lg:max-h-[9.5rem]">
         <CompactPostList
           title="โพสต์ยอดนิยม"
           posts={data?.popularPosts ?? []}
@@ -157,17 +157,17 @@ function CompactPostList({
       ) : posts.length === 0 ? (
         <p className="text-xs text-stone-500">ยังไม่มีข้อมูล</p>
       ) : (
-        <ul className="space-y-1">
+        <ul className="space-y-2 sm:space-y-1">
           {posts.slice(0, 2).map((post, index) => (
             <li
               key={post.id}
-              className="flex items-start justify-between gap-2 rounded-md border border-stone-200/80 bg-stone-50/70 px-2 py-1.5"
+              className="flex items-start justify-between gap-2.5 rounded-md border border-stone-200/80 bg-stone-50/70 px-2.5 py-2 sm:gap-2 sm:px-2 sm:py-1.5"
             >
               <div className="min-w-0">
-                <p className="text-[10px] font-medium text-stone-500">
+                <p className="text-xs font-medium text-stone-500 sm:text-[10px]">
                   #{index + 1} · {post.channelService}
                 </p>
-                <p className="truncate text-xs text-stone-800">
+                <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-stone-800 sm:truncate sm:text-xs">
                   {truncateText(post.text)}
                 </p>
               </div>

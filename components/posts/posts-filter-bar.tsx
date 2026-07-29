@@ -75,7 +75,8 @@ export function PostsFilterBar({
   return (
     <div ref={barRef} className="space-y-3">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div className="flex flex-wrap items-end gap-2 border-b border-stone-200 sm:gap-3">
+        <div className="-mx-1 overflow-x-auto px-1 pb-1">
+          <div className="flex min-w-max items-end gap-1 border-b border-stone-200 sm:gap-3">
           {POSTS_GROUP_TABS.map((tab) => {
             const isActive = group === tab.id;
             const showDropdown = openGroup === tab.id && tab.hasSubFilter;
@@ -86,7 +87,7 @@ export function PostsFilterBar({
                   type="button"
                   onClick={() => handleGroupClick(tab.id)}
                   className={cn(
-                    "-mb-px inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-t-lg px-5 pb-4 pt-3 text-[15px] font-medium transition-colors sm:px-7",
+                    "-mb-px inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-t-lg px-3 pb-3 pt-2 text-sm font-medium transition-colors sm:min-h-11 sm:gap-1.5 sm:px-7 sm:pb-4 sm:pt-3 sm:text-[15px]",
                     isActive
                       ? "border-b-[3px] border-blue-600 text-blue-600"
                       : "border-b-[3px] border-transparent text-stone-500 hover:border-stone-300 hover:bg-stone-50/80 hover:text-stone-800"
@@ -127,6 +128,7 @@ export function PostsFilterBar({
               </div>
             );
           })}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
