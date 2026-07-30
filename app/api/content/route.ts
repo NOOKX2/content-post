@@ -10,6 +10,7 @@ function normalizeContentPayload(body: Partial<ContentFormData>): ContentFormDat
     mediaType: body.mediaType ?? "video",
     channel: body.channel ?? "",
     platforms: body.platforms ?? [],
+    postingTargets: body.postingTargets ?? [],
     details: body.details ?? "",
     location: body.location ?? [],
     scheduledDate: body.scheduledDate ?? "",

@@ -211,6 +211,7 @@ model Content {
   mediaType      MediaType
   channel        String        @default("")
   platforms      Platform[]
+  postingTargets Json          @default("[]")
   details        String        @default("")
   location       String[]
   scheduledDate     String

@@ -7,6 +7,8 @@ import { PlatformSelect } from "@/components/content/platform-select";
 import { TeamTable } from "@/components/content/team-table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { PostingChannelSelect } from "@/components/content/posting-channel-select";
+import type { PostingChannelOption } from "@/components/content/posting-channel-select";
 import { Select } from "@/components/ui/select";
 import { CreatableMultiSelect } from "@/components/ui/creatable-multi-select";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,23 +24,27 @@ import { isImageAttachment } from "@/lib/content/attachments";
 import { generateId } from "@/lib/utils";
 import type { ContentFormData, ImageMeta, Platform } from "@/lib/types";
 
-type ChannelOption = { value: string; label: string };
+type ChannelOption = PostingChannelOption;
 
 export function ImageContentFormFields({
   form,
   contentId,
   isEdit,
   channelOptions,
+  channelTargetSlugs,
   availablePlatforms,
+  hidePlatformSelect = false,
   update,
   updateImageMeta,
-  onChannelChange,
+  onChannelsChange,
 }: {
   form: ContentFormData;
   contentId: string;
   isEdit: boolean;
   channelOptions: ChannelOption[];
+  channelTargetSlugs: string[];
   availablePlatforms: Platform[];
+  hidePlatformSelect?: boolean;
   update: <K extends keyof ContentFormData>(
     key: K,
     value: ContentFormData[K]
@@ -47,7 +53,7 @@ export function ImageContentFormFields({
     key: K,
     value: ImageMeta[K]
   ) => void;
-  onChannelChange: (channel: string) => void;
+  onChannelsChange: (slugs: string[]) => void;
 }) {
   const config = MEDIA_FORM_CONFIG.image;
   const previewImage =
@@ -79,14 +85,22 @@ export function ImageContentFormFields({
               placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
               className="bg-stone-50 font-mono"
             />
-            <Select
-              label="ช่องที่ลง *"
-              options={channelOptions}
-              placeholder="เลือกช่อง..."
-              value={form.channel}
-              onChange={(e) => onChannelChange(e.target.value)}
-              required={!isEdit}
-            />
+            <div>
+              <PostingChannelSelect
+                label="ช่องที่ลง *"
+                options={channelOptions}
+                placeholder="เลือกช่อง..."
+                value={channelTargetSlugs}
+                onChange={onChannelsChange}
+                required={!isEdit}
+                multiple={hidePlatformSelect}
+                hint={
+                  hidePlatformSelect
+                    ? "เลือกได้หลายช่อง — รายการดึงจาก Buffer"
+                    : undefined
+                }
+              />
+            </div>
             <Select
               label="วัตถุประสงค์"
               options={CONTENT_OBJECTIVES}
@@ -95,14 +109,16 @@ export function ImageContentFormFields({
               onChange={(e) => updateImageMeta("objective", e.target.value)}
             />
           </div>
+          {!hidePlatformSelect && (
           <div className="mt-4">
             <PlatformSelect
               selected={form.platforms}
               availablePlatforms={availablePlatforms}
-              disabled={!form.channel}
+              disabled={channelTargetSlugs.length === 0}
               onChange={(platforms: Platform[]) => update("platforms", platforms)}
             />
           </div>
+          )}
           <div className="mt-4">
             <Textarea
               label="รายละเอียด"

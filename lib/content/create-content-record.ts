@@ -19,6 +19,9 @@ import {
   resolveNextContentIdForChannel,
 } from "@/lib/content/content-id";
 import {
+  resolvePostingTargetsFromSlugs,
+} from "@/lib/buffer/posting-targets";
+import {
   getAvailablePlatformsForPostingChannel,
   getPostingChannelPrefix,
   isValidPostingChannel,
@@ -45,16 +48,34 @@ export async function validateContentFormData(
     return "กรุณากรอกชื่อ Content";
   }
 
-  if (!data.channel?.trim()) {
-    return "กรุณาเลือกช่องที่ลง";
-  }
+  if (!data.postingTargets?.length) {
+    if (!data.channel?.trim()) {
+      return "กรุณาเลือกช่องที่ลง";
+    }
 
-  if (!(await isValidPostingChannel(data.channel))) {
-    return "ช่องที่ลงไม่ถูกต้อง";
-  }
+    if (!(await isValidPostingChannel(data.channel, data.platforms))) {
+      return "ช่องที่ลงไม่ถูกต้อง";
+    }
 
-  if (!data.platforms.length) {
-    return "กรุณาเลือกแพลตฟอร์มอย่างน้อย 1 แพลตฟอร์ม";
+    if (!data.platforms.length) {
+      return "กรุณาเลือกแพลตฟอร์มอย่างน้อย 1 แพลตฟอร์ม";
+    }
+
+    const available = await getAvailablePlatformsForPostingChannel(
+      data.channel,
+      data.platforms[0]
+    );
+    const invalid = data.platforms.filter((p) => !available.includes(p));
+    if (invalid.length > 0) {
+      return `แพลตฟอร์มไม่รองรับสำหรับช่องนี้: ${invalid.join(", ")}`;
+    }
+  } else {
+    const resolved = await resolvePostingTargetsFromSlugs(
+      data.postingTargets.map((target) => target.bufferChannelId)
+    );
+    if (resolved.length !== data.postingTargets.length) {
+      return "ช่องที่ลงไม่ถูกต้อง";
+    }
   }
 
   if (!data.scheduledDate?.trim()) {
@@ -63,12 +84,6 @@ export async function validateContentFormData(
 
   if (!data.scheduledTime?.trim()) {
     return "กรุณาเลือกเวลาโพสต์";
-  }
-
-  const available = await getAvailablePlatformsForPostingChannel(data.channel);
-  const invalid = data.platforms.filter((p) => !available.includes(p));
-  if (invalid.length > 0) {
-    return `แพลตฟอร์มไม่รองรับสำหรับช่องนี้: ${invalid.join(", ")}`;
   }
 
   if (data.mediaType === "video") {
@@ -100,7 +115,15 @@ export async function createContentRecord(
     throw new Error(validationError);
   }
 
-  let nextContentId = await resolveNextContentIdForChannel(data.channel, prisma);
+  const primaryTarget = data.postingTargets[0];
+  const channelForId = primaryTarget?.name ?? data.channel;
+  const platformForId = primaryTarget?.platform ?? data.platforms[0];
+
+  let nextContentId = await resolveNextContentIdForChannel(
+    channelForId,
+    prisma,
+    platformForId
+  );
   let attempts = 0;
 
   while (attempts < 5) {
@@ -109,7 +132,7 @@ export async function createContentRecord(
     });
     if (!existing) break;
 
-    const prefix = await getPostingChannelPrefix(data.channel);
+    const prefix = await getPostingChannelPrefix(channelForId, platformForId);
     const sequence = prefix
       ? parseChannelContentIdSequence(nextContentId, prefix)
       : null;

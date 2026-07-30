@@ -8,7 +8,9 @@ import type {
   MediaType,
   ContentStatus,
   ImageMeta,
+  PostingTarget,
 } from "@/lib/types";
+import { parsePostingTargets } from "@/lib/buffer/posting-targets";
 import { EMPTY_IMAGE_META } from "@/lib/types";
 import { normalizeScriptRow } from "@/lib/content/script";
 
@@ -42,6 +44,7 @@ export function toContentItem(record: PrismaContent): ContentItem {
     mediaType: record.mediaType as MediaType,
     channel: record.channel,
     platforms: record.platforms as Platform[],
+    postingTargets: parsePostingTargets(record.postingTargets),
     details: record.details,
     location: toStringArray(record.location),
     scheduledDate: record.scheduledDate,
@@ -79,6 +82,7 @@ export function contentItemToFormData(content: ContentItem): ContentFormData {
     mediaType: content.mediaType,
     channel: content.channel,
     platforms: content.platforms,
+    postingTargets: content.postingTargets ?? [],
     details: content.details,
     location: content.location,
     scheduledDate: content.scheduledDate,
@@ -111,6 +115,7 @@ export function formDataToUpdateInput(
     mediaType: data.mediaType,
     channel: data.channel,
     platforms: data.platforms,
+    postingTargets: data.postingTargets as unknown as Prisma.InputJsonValue,
     details: data.details,
     location: data.location,
     scheduledDate: data.scheduledDate,
@@ -146,6 +151,7 @@ export function formDataToCreateInput(
     mediaType: data.mediaType,
     channel: data.channel,
     platforms: data.platforms,
+    postingTargets: data.postingTargets as unknown as Prisma.InputJsonValue,
     details: data.details,
     location: data.location,
     scheduledDate: data.scheduledDate,

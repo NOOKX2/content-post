@@ -22,9 +22,10 @@ export function parseChannelContentIdSequence(
 
 export async function resolveNextContentIdForChannel(
   channel: string,
-  db: PrismaClient
+  db: PrismaClient,
+  platform?: import("@/lib/types").Platform
 ): Promise<string> {
-  const prefix = await getPostingChannelPrefix(channel);
+  const prefix = await getPostingChannelPrefix(channel, platform);
   if (!prefix) {
     throw new Error("ช่องที่ลงไม่ถูกต้อง");
   }

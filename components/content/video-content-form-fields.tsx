@@ -26,6 +26,8 @@ import { TeamTable } from "@/components/content/team-table";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreatableMultiSelect } from "@/components/ui/creatable-multi-select";
 import { Input } from "@/components/ui/input";
+import { PostingChannelSelect } from "@/components/content/posting-channel-select";
+import type { PostingChannelOption } from "@/components/content/posting-channel-select";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -40,7 +42,7 @@ import { isImageMediaUrl, isVideoAttachmentUrl, isVideoMediaUrl } from "@/lib/co
 import type { ContentFormData, ContentStatus, Platform } from "@/lib/types";
 import { generateId } from "@/lib/utils";
 
-type ChannelOption = { value: string; label: string };
+type ChannelOption = PostingChannelOption;
 
 export function VideoContentFormFields({
   form,
@@ -49,10 +51,12 @@ export function VideoContentFormFields({
   contentStatus,
   workflowPhase,
   channelOptions,
+  channelTargetSlugs,
   availablePlatforms,
+  hidePlatformSelect = false,
   config,
   update,
-  onChannelChange,
+  onChannelsChange,
 }: {
   form: ContentFormData;
   contentId: string;
@@ -60,13 +64,15 @@ export function VideoContentFormFields({
   contentStatus?: ContentStatus;
   workflowPhase?: "plan" | "produce";
   channelOptions: ChannelOption[];
+  channelTargetSlugs: string[];
   availablePlatforms: Platform[];
+  hidePlatformSelect?: boolean;
   config: (typeof MEDIA_FORM_CONFIG)["video"];
   update: <K extends keyof ContentFormData>(
     key: K,
     value: ContentFormData[K]
   ) => void;
-  onChannelChange: (channel: string) => void;
+  onChannelsChange: (slugs: string[]) => void;
 }) {
   const addTeamRow = () => {
     update("team", [
@@ -167,14 +173,22 @@ export function VideoContentFormFields({
             placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
             className="bg-stone-50 font-mono"
           />
-          <Select
-            label="ช่องที่ลง *"
-            options={channelOptions}
-            placeholder="เลือกช่อง..."
-            value={form.channel}
-            onChange={(e) => onChannelChange(e.target.value)}
-            required={!isEdit}
-          />
+          <div>
+            <PostingChannelSelect
+              label="ช่องที่ลง *"
+              options={channelOptions}
+              placeholder="เลือกช่อง..."
+              value={channelTargetSlugs}
+              onChange={onChannelsChange}
+              required={!isEdit}
+              multiple={hidePlatformSelect}
+              hint={
+                hidePlatformSelect
+                  ? "เลือกได้หลายช่อง — รายการดึงจาก Buffer"
+                  : undefined
+              }
+            />
+          </div>
           <Select
             label="วัตถุประสงค์"
             options={CONTENT_OBJECTIVES}
@@ -183,14 +197,16 @@ export function VideoContentFormFields({
             onChange={(e) => update("category", e.target.value)}
           />
         </div>
+        {!hidePlatformSelect && (
         <div className="mt-4">
           <PlatformSelect
             selected={form.platforms}
             availablePlatforms={availablePlatforms}
-            disabled={!form.channel}
+            disabled={channelTargetSlugs.length === 0}
             onChange={(platforms: Platform[]) => update("platforms", platforms)}
           />
         </div>
+        )}
         <div className="mt-4">
           <Textarea
             label="รายละเอียด"

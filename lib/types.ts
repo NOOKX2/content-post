@@ -18,6 +18,12 @@ export type Platform =
   | "tiktok"
   | "youtube";
 
+export type PostingTarget = {
+  bufferChannelId: string;
+  platform: Platform;
+  name: string;
+};
+
 export interface ScriptRow {
   id: string;
   startTime: string;
@@ -62,6 +68,7 @@ export interface ContentItem {
   mediaType: MediaType;
   channel: string;
   platforms: Platform[];
+  postingTargets: PostingTarget[];
   details: string;
   location: string[];
   scheduledDate: string;
@@ -95,6 +102,7 @@ export interface ContentFormData {
   mediaType: MediaType;
   channel: string;
   platforms: Platform[];
+  postingTargets: PostingTarget[];
   details: string;
   location: string[];
   scheduledDate: string;

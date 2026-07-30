@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
 import { Send } from "lucide-react";
 import { MediaTypeToggle } from "./media-type-toggle";
+import type { PostingChannelOption as PostingChannelSelectOption } from "@/components/content/posting-channel-select";
+import {
+  formatChannelLabelFromTargets,
+  platformsFromPostingTargets,
+} from "@/lib/buffer/posting-targets";
 import { VideoContentFormFields } from "./video-content-form-fields";
 import { ImageContentFormFields } from "./image-content-form-fields";
 import { SubmitSuccess } from "./submit-success";
@@ -35,23 +40,59 @@ import {
 import { useContents } from "@/lib/content/contents-provider";
 import { generateId } from "@/lib/utils";
 
-type PostingChannelOption = {
+type PostingChannelApiOption = {
   slug: string;
   label: string;
   prefix: string;
   platforms: Platform[];
+  name: string;
 };
 
 const fetchPostingChannels = () =>
   fetch("/api/posting-channels").then((res) => res.json()) as Promise<{
-    channels: PostingChannelOption[];
+    channels: PostingChannelApiOption[];
+    source: "buffer" | "legacy";
   }>;
+
+function resolveChannelTargetSlugs(
+  channels: PostingChannelApiOption[],
+  content: Pick<ContentFormData, "channel" | "platforms" | "postingTargets">
+): string[] {
+  if (content.postingTargets.length > 0) {
+    return content.postingTargets.map((target) => target.bufferChannelId);
+  }
+
+  const slug = resolveLegacyChannelTargetSlug(
+    channels,
+    content.channel,
+    content.platforms
+  );
+  return slug ? [slug] : [];
+}
+
+function resolveLegacyChannelTargetSlug(
+  channels: PostingChannelApiOption[],
+  channel: string,
+  platforms: Platform[]
+): string {
+  const bySlug = channels.find((item) => item.slug === channel);
+  if (bySlug) return bySlug.slug;
+
+  const platform = platforms[0];
+  const byName = channels.find(
+    (item) =>
+      item.name === channel &&
+      (!platform || item.platforms.includes(platform))
+  );
+  return byName?.slug ?? "";
+}
 
 const EMPTY_FORM: ContentFormData = {
   name: "",
   mediaType: "video",
   channel: "",
   platforms: [],
+  postingTargets: [],
   details: "",
   location: [],
   scheduledDate: "",
@@ -109,18 +150,29 @@ export function ContentForm({
   );
   const [submittedItem, setSubmittedItem] = useState<ContentItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [channelTargetSlugs, setChannelTargetSlugs] = useState<string[]>(() =>
+    initialContent
+      ? initialContent.postingTargets.map((target) => target.bufferChannelId)
+      : []
+  );
   const { contents, mutateContents } = useContents();
   const { data: postingData } = useSWR("posting-channels", fetchPostingChannels);
 
-  const channelOptions =
+  const isBufferChannelMode = postingData?.source === "buffer";
+
+  const channelOptions: PostingChannelSelectOption[] =
     postingData?.channels.map((channel) => ({
       value: channel.slug,
-      label: channel.label,
+      label: isBufferChannelMode ? channel.name : channel.label,
+      platform: channel.platforms[0],
     })) ?? [];
-  const selectedChannel = postingData?.channels.find(
-    (channel) => channel.slug === form.channel
-  );
-  const availablePlatforms = selectedChannel?.platforms ?? [];
+  const selectedChannels =
+    postingData?.channels.filter((channel) =>
+      channelTargetSlugs.includes(channel.slug)
+    ) ?? [];
+  const availablePlatforms = isBufferChannelMode
+    ? platformsFromPostingTargets(form.postingTargets)
+    : (selectedChannels[0]?.platforms ?? []);
 
   const config = MEDIA_FORM_CONFIG[form.mediaType];
   const isVideo = form.mediaType === "video";
@@ -154,7 +206,7 @@ export function ContentForm({
   };
 
   const syncContentIdForChannel = useCallback(
-    async (channel: string, active: () => boolean) => {
+    async (channel: string, platform: Platform | undefined, active: () => boolean) => {
       if (isEdit) return;
 
       if (!channel) {
@@ -163,7 +215,7 @@ export function ContentForm({
       }
 
       const channelPrefix = postingData?.channels.find(
-        (item) => item.slug === channel
+        (item) => item.slug === channelTargetSlugs[0]
       )?.prefix;
       const localId = channelPrefix
         ? resolveNextContentIdFromList(channel, contents, channelPrefix)
@@ -172,7 +224,7 @@ export function ContentForm({
         setContentId(localId);
       }
 
-      const result = await previewNextContentId(channel);
+      const result = await previewNextContentId(channel, platform);
       if (!active()) return;
 
       if (result.success) {
@@ -182,26 +234,71 @@ export function ContentForm({
         console.error("[content-form] preview content id failed", result.error);
       }
     },
-    [contents, isEdit, postingData?.channels]
+    [channelTargetSlugs, contents, isEdit, postingData?.channels]
   );
 
-  const handleChannelChange = (channel: string) => {
-    const nextChannel = postingData?.channels.find((item) => item.slug === channel);
+  const handleChannelsChange = (slugs: string[]) => {
+    const selected =
+      postingData?.channels.filter((item) => slugs.includes(item.slug)) ?? [];
+
+    if (isBufferChannelMode) {
+      const postingTargets = selected.map((channel) => ({
+        bufferChannelId: channel.slug,
+        platform: channel.platforms[0],
+        name: channel.name,
+      }));
+
+      setChannelTargetSlugs(slugs);
+      setForm((prev) => ({
+        ...prev,
+        postingTargets,
+        channel: formatChannelLabelFromTargets(postingTargets),
+        platforms: platformsFromPostingTargets(postingTargets),
+      }));
+
+      if (isEdit) return;
+
+      if (!postingTargets.length) {
+        setContentId("");
+        return;
+      }
+
+      const firstChannel = selected[0];
+      if (!firstChannel) return;
+
+      const localId = resolveNextContentIdFromList(
+        firstChannel.name,
+        contents,
+        firstChannel.prefix
+      );
+      if (localId) {
+        setContentId(localId);
+      }
+      return;
+    }
+
+    const slug = slugs[0] ?? "";
+    const nextChannel = selected[0];
     const nextAvailable = nextChannel?.platforms ?? [];
+
+    setChannelTargetSlugs(slug ? [slug] : []);
     setForm((prev) => ({
       ...prev,
-      channel,
-      platforms: prev.platforms.filter((p) => nextAvailable.includes(p)),
+      postingTargets: [],
+      channel: slug,
+      platforms: prev.platforms.filter((platform) =>
+        nextAvailable.includes(platform)
+      ),
     }));
     if (isEdit) return;
 
-    if (!channel || !nextChannel) {
+    if (!slug || !nextChannel) {
       setContentId("");
       return;
     }
 
     const localId = resolveNextContentIdFromList(
-      channel,
+      slug,
       contents,
       nextChannel.prefix
     );
@@ -211,16 +308,34 @@ export function ContentForm({
   };
 
   useEffect(() => {
+    if (!postingData?.channels.length) return;
+    const slugs = resolveChannelTargetSlugs(postingData.channels, form);
+    if (slugs.length > 0) {
+      setChannelTargetSlugs(slugs);
+    }
+  }, [
+    form.channel,
+    form.platforms,
+    form.postingTargets,
+    postingData?.channels,
+  ]);
+
+  useEffect(() => {
     let active = true;
-    void syncContentIdForChannel(form.channel, () => active);
+    void syncContentIdForChannel(
+      form.channel,
+      form.platforms[0],
+      () => active
+    );
     return () => {
       active = false;
     };
-  }, [form.channel, syncContentIdForChannel]);
+  }, [form.channel, form.platforms, syncContentIdForChannel]);
 
   const startNewContent = (mediaType: MediaType = "video") => {
     setSubmittedItem(null);
     setContentId("");
+    setChannelTargetSlugs([]);
     setForm({ ...EMPTY_FORM, mediaType });
     onMediaTypeChange?.(mediaType);
   };
@@ -258,11 +373,19 @@ export function ContentForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || submitting) return;
-    if (!isEdit && !form.channel.trim()) {
+    if (
+      !isEdit &&
+      !form.channel.trim() &&
+      form.postingTargets.length === 0
+    ) {
       alert("กรุณาเลือกช่องที่ลง");
       return;
     }
-    if (!isEdit && form.platforms.length === 0) {
+    if (
+      !isEdit &&
+      form.postingTargets.length === 0 &&
+      form.platforms.length === 0
+    ) {
       alert("กรุณาเลือกแพลตฟอร์มอย่างน้อย 1 แพลตฟอร์ม");
       return;
     }
@@ -390,10 +513,12 @@ export function ContentForm({
           contentId={contentId}
           isEdit={isEdit}
           channelOptions={channelOptions}
+          channelTargetSlugs={channelTargetSlugs}
           availablePlatforms={availablePlatforms}
+          hidePlatformSelect={isBufferChannelMode}
           update={update}
           updateImageMeta={updateImageMeta}
-          onChannelChange={handleChannelChange}
+          onChannelsChange={handleChannelsChange}
         />
       ) : (
         <VideoContentFormFields
@@ -403,10 +528,12 @@ export function ContentForm({
           contentStatus={initialContent?.status}
           workflowPhase={workflowPhase}
           channelOptions={channelOptions}
+          channelTargetSlugs={channelTargetSlugs}
           availablePlatforms={availablePlatforms}
+          hidePlatformSelect={isBufferChannelMode}
           config={config}
           update={update}
-          onChannelChange={handleChannelChange}
+          onChannelsChange={handleChannelsChange}
         />
       )}
 
@@ -419,9 +546,10 @@ export function ContentForm({
           <Button
             type="button"
             variant="secondary"
-            onClick={() =>
-              setForm({ ...EMPTY_FORM, mediaType: form.mediaType })
-            }
+            onClick={() => {
+              setChannelTargetSlugs([]);
+              setForm({ ...EMPTY_FORM, mediaType: form.mediaType });
+            }}
           >
             ล้างฟอร์ม
           </Button>

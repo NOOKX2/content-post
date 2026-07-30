@@ -9,17 +9,22 @@ import { cn } from "@/lib/utils";
 
 export function ContentWorkflowStepper({
   currentStep,
+  fullyPublished = false,
   className,
 }: {
   currentStep: VideoWorkflowStep;
+  /** When true, the final step (เผยแพร่) shows a checkmark — e.g. status is posted */
+  fullyPublished?: boolean;
   className?: string;
 }) {
   return (
     <div className={cn("w-full", className)}>
       <div className="flex items-start justify-between gap-1 sm:gap-2">
         {VIDEO_WORKFLOW_STEPS.map((step, index) => {
-          const isComplete = step.id < currentStep;
-          const isCurrent = step.id === currentStep;
+          const isComplete =
+            step.id < currentStep ||
+            (fullyPublished && step.id === currentStep);
+          const isCurrent = step.id === currentStep && !fullyPublished;
           const isLast = index === VIDEO_WORKFLOW_STEPS.length - 1;
 
           return (
@@ -60,7 +65,10 @@ export function ContentWorkflowStepper({
                 <div
                   className={cn(
                     "mt-4 h-0.5 min-w-2 flex-1 rounded-full sm:min-w-4",
-                    step.id < currentStep ? "bg-blue-600" : "bg-stone-200"
+                    step.id < currentStep ||
+                      (fullyPublished && step.id === currentStep)
+                      ? "bg-blue-600"
+                      : "bg-stone-200"
                   )}
                   aria-hidden
                 />

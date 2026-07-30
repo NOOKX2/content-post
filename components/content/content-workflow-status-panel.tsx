@@ -318,7 +318,10 @@ export function ContentWorkflowStatusPanel({
 
   return (
     <div className="space-y-6">
-      <ContentWorkflowStepper currentStep={step} />
+      <ContentWorkflowStepper
+        currentStep={step}
+        fullyPublished={content.status === "posted"}
+      />
 
       <div>
         <h2 className="text-xl font-bold text-stone-900">{header.title}</h2>

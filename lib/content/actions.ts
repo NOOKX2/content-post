@@ -41,7 +41,8 @@ export type ActionResult<T = void> =
   | { success: false; error: string };
 
 export async function previewNextContentId(
-  channel: string
+  channel: string,
+  platform?: import("@/lib/types").Platform
 ): Promise<ActionResult<string>> {
   const session = await auth();
   if (!session?.user) {
@@ -52,12 +53,16 @@ export async function previewNextContentId(
     return { success: false, error: "กรุณาเลือกช่องที่ลง" };
   }
 
-  if (!(await isValidPostingChannel(channel))) {
+  if (!(await isValidPostingChannel(channel, platform ? [platform] : undefined))) {
     return { success: false, error: "ช่องที่ลงไม่ถูกต้อง" };
   }
 
   try {
-    const nextContentId = await resolveNextContentIdForChannel(channel, prisma);
+    const nextContentId = await resolveNextContentIdForChannel(
+      channel,
+      prisma,
+      platform
+    );
     return { success: true, data: nextContentId };
   } catch (error) {
     logActionError("previewNextContentId", error, { channel });

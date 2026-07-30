@@ -1,4 +1,5 @@
 import type { Content } from "@prisma/client";
+import { parsePostingTargets } from "@/lib/buffer/posting-targets";
 import { resolveBufferTargets } from "@/lib/buffer/channel-map";
 import { toContentItem } from "@/lib/content/mappers";
 import {
@@ -10,10 +11,17 @@ import type { Platform } from "@/lib/types";
 export async function buildN8nContentPayload(record: Content) {
   const item = toContentItem(record);
   const appPublicUrl = getAppPublicUrl();
-  const bufferTargets = await resolveBufferTargets(
-    item.channel,
-    item.platforms as Platform[]
-  );
+  const postingTargets = parsePostingTargets(record.postingTargets);
+  const bufferTargets =
+    postingTargets.length > 0
+      ? postingTargets.map((target) => ({
+          platform: target.platform,
+          bufferChannelId: target.bufferChannelId,
+        }))
+      : await resolveBufferTargets(
+          item.channel,
+          item.platforms as Platform[]
+        );
 
   const mediaUrl = resolvePublicMediaUrl(
     item.attachments,

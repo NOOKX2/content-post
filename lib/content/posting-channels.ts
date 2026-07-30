@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import type { Platform } from "@/lib/types";
+import {
+  findBufferPostingTarget,
+  isValidBufferPostingChannel,
+  listBufferPostingTargets,
+} from "@/lib/buffer/posting-targets";
+import { isBufferConfigured } from "@/lib/buffer/client";
 
 const DEFAULT_CHANNELS: Array<{
   slug: string;
@@ -63,6 +69,8 @@ export type PostingChannelOption = {
   label: string;
   prefix: string;
   platforms: Platform[];
+  /** Buffer account name stored in Content.channel */
+  name: string;
 };
 
 export type PostingChannelAdmin = PostingChannelOption & {
@@ -87,6 +95,7 @@ function mapChannelOption(
     platforms: channel.links
       .filter((link) => link.enabled)
       .map((link) => link.platform as Platform),
+    name: channel.label,
   };
 }
 
@@ -126,9 +135,33 @@ export async function listPostingChannels() {
   });
 }
 
-export async function listPostingChannelsForForm(): Promise<PostingChannelOption[]> {
+export type PostingChannelsForForm = {
+  channels: PostingChannelOption[];
+  source: "buffer" | "legacy";
+};
+
+export async function listPostingChannelsForForm(): Promise<PostingChannelsForForm> {
+  if (isBufferConfigured()) {
+    const bufferTargets = await listBufferPostingTargets();
+    if (bufferTargets.length > 0) {
+      return {
+        source: "buffer",
+        channels: bufferTargets.map((target) => ({
+          slug: target.slug,
+          label: target.label,
+          prefix: target.prefix,
+          platforms: target.platforms,
+          name: target.name,
+        })),
+      };
+    }
+  }
+
   const channels = await listPostingChannels();
-  return channels.map(mapChannelOption);
+  return {
+    source: "legacy",
+    channels: channels.map(mapChannelOption),
+  };
 }
 
 export async function listPostingChannelsForAdmin(): Promise<PostingChannelAdmin[]> {
@@ -144,6 +177,7 @@ export async function listPostingChannelsForAdmin(): Promise<PostingChannelAdmin
     slug: channel.slug,
     label: channel.label,
     prefix: channel.prefix,
+    name: channel.label,
     enabled: channel.enabled,
     platforms: channel.links
       .filter((link) => link.enabled)
@@ -158,29 +192,46 @@ export async function listPostingChannelsForAdmin(): Promise<PostingChannelAdmin
   }));
 }
 
-export async function isValidPostingChannel(slug: string): Promise<boolean> {
-  const channel = await prisma.postingChannel.findFirst({
-    where: { slug, enabled: true },
+export async function isValidPostingChannel(
+  channel: string,
+  platforms?: Platform[]
+): Promise<boolean> {
+  if (platforms?.length && (await isValidBufferPostingChannel(channel, platforms))) {
+    return true;
+  }
+
+  const record = await prisma.postingChannel.findFirst({
+    where: { slug: channel, enabled: true },
     select: { id: true },
   });
-  return Boolean(channel);
+  return Boolean(record);
 }
 
-export async function getPostingChannelPrefix(slug: string): Promise<string | undefined> {
-  const channel = await prisma.postingChannel.findFirst({
-    where: { slug, enabled: true },
+export async function getPostingChannelPrefix(
+  channel: string,
+  platform?: Platform
+): Promise<string | undefined> {
+  const bufferTarget = await findBufferPostingTarget(channel, platform);
+  if (bufferTarget) return bufferTarget.prefix;
+
+  const record = await prisma.postingChannel.findFirst({
+    where: { slug: channel, enabled: true },
     select: { prefix: true },
   });
-  return channel?.prefix;
+  return record?.prefix;
 }
 
 export async function getAvailablePlatformsForPostingChannel(
-  slug: string
+  channel: string,
+  platform?: Platform
 ): Promise<Platform[]> {
+  const bufferTarget = await findBufferPostingTarget(channel, platform);
+  if (bufferTarget) return [bufferTarget.platform];
+
   const links = await prisma.postingChannelPlatform.findMany({
     where: {
       enabled: true,
-      postingChannel: { slug, enabled: true },
+      postingChannel: { slug: channel, enabled: true },
     },
     select: { platform: true },
     orderBy: { platform: "asc" },
@@ -204,13 +255,22 @@ export async function getBufferChannelIdForPostingChannel(
 }
 
 export async function resolveBufferTargetsForPostingChannel(
-  slug: string,
+  channel: string,
   platforms: Platform[]
 ) {
   const targets = [];
   for (const platform of platforms) {
+    const bufferTarget = await findBufferPostingTarget(channel, platform);
+    if (bufferTarget) {
+      targets.push({
+        platform,
+        bufferChannelId: bufferTarget.bufferChannelId,
+      });
+      continue;
+    }
+
     const bufferChannelId = await getBufferChannelIdForPostingChannel(
-      slug,
+      channel,
       platform
     );
     if (bufferChannelId) {

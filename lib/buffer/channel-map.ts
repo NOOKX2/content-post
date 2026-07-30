@@ -4,6 +4,7 @@ import {
   listPostingChannels,
   resolveBufferTargetsForPostingChannel,
 } from "@/lib/content/posting-channels";
+import { findBufferPostingTarget } from "@/lib/buffer/posting-targets";
 import type { Platform } from "@/lib/types";
 
 export type BufferPlatformTarget = {
@@ -23,6 +24,13 @@ export async function getAllMappedBufferChannelIds(
   contentChannel?: string,
   platform?: string
 ): Promise<string[]> {
+  if (contentChannel) {
+    const platformFilter =
+      platform && platform !== "all" ? (platform as Platform) : undefined;
+    const target = await findBufferPostingTarget(contentChannel, platformFilter);
+    if (target) return [target.bufferChannelId];
+  }
+
   const ids = new Set<string>();
   const channels = contentChannel
     ? [{ slug: contentChannel }]

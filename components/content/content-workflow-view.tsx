@@ -131,7 +131,10 @@ export function ContentWorkflowView() {
     <div className="space-y-6">
       <WorkflowBackBar />
 
-      <ContentWorkflowStepper currentStep={step} />
+      <ContentWorkflowStepper
+        currentStep={step}
+        fullyPublished={activeContent?.status === "posted"}
+      />
       <div>
         <h2 className="text-xl font-bold text-stone-900">{header.title}</h2>
         <p className="mt-1 text-sm text-stone-500">{header.description}</p>

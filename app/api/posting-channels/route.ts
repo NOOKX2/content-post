@@ -6,6 +6,6 @@ export async function GET() {
   const authResult = await requireSession();
   if ("error" in authResult) return authResult.error;
 
-  const channels = await listPostingChannelsForForm();
-  return NextResponse.json({ channels });
+  const { channels, source } = await listPostingChannelsForForm();
+  return NextResponse.json({ channels, source });
 }
