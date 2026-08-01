@@ -203,14 +203,16 @@ function WorkflowBoardCard({
   );
 }
 
+type WorkflowBoardColumnWithItems = (typeof WORKFLOW_BOARD_COLUMNS)[number] & {
+  items: ContentItem[];
+};
+
 function WorkflowDesktopBoard({
   columnsWithItems,
   onCreateNew,
   onSelectContent,
 }: {
-  columnsWithItems: (typeof WORKFLOW_BOARD_COLUMNS)[number] & {
-    items: ContentItem[];
-  }[];
+  columnsWithItems: WorkflowBoardColumnWithItems[];
   onCreateNew: () => void;
   onSelectContent: (content: ContentItem) => void;
 }) {
