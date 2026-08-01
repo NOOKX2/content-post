@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { Content, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ApprovalCardMetadata } from "@/lib/collaboration/types";
+import { COLLAB_MESSAGES_PAGE_SIZE } from "@/lib/collaboration/types";
 import {
   createCalendarMeeting,
   isGoogleCalendarConfigured,
@@ -595,9 +596,60 @@ export async function markChannelAsRead(channelId: string, userId: string) {
   });
 }
 
-export async function getChannelMessages(channelId: string, limit = 80) {
+export async function getChannelMessages(
+  channelId: string,
+  limit = COLLAB_MESSAGES_PAGE_SIZE
+) {
+  const page = await getChannelMessagesPage(channelId, { limit });
+  return page.messages;
+}
+
+export async function getChannelMessagesPage(
+  channelId: string,
+  options?: { limit?: number; before?: string }
+) {
+  const limit = options?.limit ?? COLLAB_MESSAGES_PAGE_SIZE;
+  const before = options?.before
+    ? await prisma.collaborationMessage.findFirst({
+        where: { id: options.before, channelId },
+        select: { createdAt: true },
+      })
+    : null;
+
   const messages = await prisma.collaborationMessage.findMany({
-    where: { channelId },
+    where: {
+      channelId,
+      ...(before ? { createdAt: { lt: before.createdAt } } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit + 1,
+  });
+
+  const hasMore = messages.length > limit;
+  const slice = hasMore ? messages.slice(0, limit) : messages;
+  const ordered = slice.reverse();
+
+  return {
+    messages: await reconcilePendingApprovalCards(ordered),
+    hasMore,
+  };
+}
+
+export async function getChannelMessagesSince(
+  channelId: string,
+  since: string,
+  limit = COLLAB_MESSAGES_PAGE_SIZE
+) {
+  const sinceDate = new Date(since);
+  if (Number.isNaN(sinceDate.getTime())) {
+    return [];
+  }
+
+  const messages = await prisma.collaborationMessage.findMany({
+    where: {
+      channelId,
+      createdAt: { gt: sinceDate },
+    },
     orderBy: { createdAt: "asc" },
     take: limit,
   });

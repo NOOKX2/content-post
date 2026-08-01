@@ -11,6 +11,8 @@ import {
   deleteTextMessage,
   ensureDmChannel,
   getChannelMessages,
+  getChannelMessagesPage,
+  getChannelMessagesSince,
   leaveGroupChannel as leaveGroupChannelInService,
   listChannelMeetings,
   listChannels,
@@ -25,6 +27,7 @@ import {
 } from "@/lib/collaboration/service";
 import type {
   ApprovalCardMetadata,
+  ChannelMessagesPage,
   CollaborationChannelItem,
   CollaborationMessageItem,
   GroupMemberItem,
@@ -203,18 +206,43 @@ export async function markCollaborationChannelRead(
   await markChannelAsRead(channelId, user.id!);
 }
 
-export async function fetchChannelMessages(
-  channelId: string
-): Promise<CollaborationMessageItem[]> {
+async function assertChannelAccess(channelId: string) {
   const user = await requireUser();
   const allowed = await assertCanAccessChannel(channelId, user.id!);
   if (!allowed) {
     throw new Error("ไม่มีสิทธิ์เข้าถึงห้องนี้");
   }
+  return user;
+}
 
-  const messages = await getChannelMessages(channelId);
+export async function fetchChannelMessagesPage(
+  channelId: string,
+  options?: { before?: string }
+): Promise<ChannelMessagesPage> {
+  const user = await assertChannelAccess(channelId);
+  const page = await getChannelMessagesPage(channelId, options);
   await markChannelAsRead(channelId, user.id!);
+  return {
+    hasMore: page.hasMore,
+    messages: page.messages.map(toCollaborationMessageItem),
+  };
+}
+
+export async function fetchNewChannelMessages(
+  channelId: string,
+  since: string
+): Promise<CollaborationMessageItem[]> {
+  await assertChannelAccess(channelId);
+  const messages = await getChannelMessagesSince(channelId, since);
   return messages.map(toCollaborationMessageItem);
+}
+
+/** @deprecated Use fetchChannelMessagesPage for paginated loading */
+export async function fetchChannelMessages(
+  channelId: string
+): Promise<CollaborationMessageItem[]> {
+  const page = await fetchChannelMessagesPage(channelId);
+  return page.messages;
 }
 
 export async function postChannelMessage(

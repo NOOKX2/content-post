@@ -1,6 +1,6 @@
 import { toCollaborationMessageItem } from "@/lib/collaboration/mappers";
 import {
-  getChannelMessages,
+  getChannelMessagesPage,
   listChannels,
   markChannelAsRead,
 } from "@/lib/collaboration/service";
@@ -33,16 +33,15 @@ export async function getCollaborationBootstrap(
   ]);
 
   const defaultChannel = pickDefaultChannel(channels);
+  const initialMessagesByChannelId: Record<string, CollaborationMessageItem[]> =
+    {};
 
-  const messageEntries = await Promise.all(
-    channels.map(async (channel) => {
-      const messages = await getChannelMessages(channel.id);
-      return [
-        channel.id,
-        messages.map(toCollaborationMessageItem),
-      ] as const;
-    })
-  );
+  if (defaultChannel) {
+    const page = await getChannelMessagesPage(defaultChannel.id);
+    initialMessagesByChannelId[defaultChannel.id] = page.messages.map(
+      toCollaborationMessageItem
+    );
+  }
 
   if (defaultChannel) {
     await markChannelAsRead(defaultChannel.id, userId);
@@ -61,6 +60,6 @@ export async function getCollaborationBootstrap(
     channels,
     members,
     defaultChannelId: defaultChannel?.id ?? null,
-    initialMessagesByChannelId: Object.fromEntries(messageEntries),
+    initialMessagesByChannelId,
   };
 }

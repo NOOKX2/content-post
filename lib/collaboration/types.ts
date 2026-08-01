@@ -22,6 +22,8 @@ export type MeetingCardMetadata = {
   attendeeCount?: number;
 };
 
+export const COLLAB_MESSAGES_PAGE_SIZE = 30;
+
 export type CollaborationMessageItem = {
   id: string;
   channelId: string;
@@ -33,6 +35,11 @@ export type CollaborationMessageItem = {
   createdAt: string;
   editedAt: string | null;
   deletedAt: string | null;
+};
+
+export type ChannelMessagesPage = {
+  messages: CollaborationMessageItem[];
+  hasMore: boolean;
 };
 
 export type MeetingItem = {

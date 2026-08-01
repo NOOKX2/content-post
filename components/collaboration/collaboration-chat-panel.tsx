@@ -11,10 +11,10 @@ import type {
   ApprovalCardMetadata,
   MeetingCardMetadata,
 } from "@/lib/collaboration/types";
+import { COLLAB_MESSAGES_PAGE_SIZE } from "@/lib/collaboration/types";
 import type { TeamMemberItem } from "@/lib/collaboration/team-types";
 import {
   COLLAB_CHANNELS_KEY,
-  collabMessagesKey,
   patchChannelsUnread,
   TEAM_MEMBERS_KEY,
   useCollaborationBootstrap,
@@ -22,8 +22,8 @@ import {
 import {
   deleteChannelMessage,
   editChannelMessage,
-  fetchChannelMessages,
 } from "@/lib/collaboration/fetch-actions";
+import { usePaginatedChannelMessages } from "@/lib/collaboration/use-paginated-channel-messages";
 import {
   isClientMessageId,
 } from "@/lib/collaboration/chat-outbox";
@@ -69,17 +69,19 @@ export function CollaborationChatPanel({
   const [showChannelCalendar, setShowChannelCalendar] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { data: messages = [], mutate } = useSWR<CollaborationMessageItem[]>(
-    collabMessagesKey(channel.id),
-    () => fetchChannelMessages(channel.id),
-    {
-      fallbackData: bootstrap?.initialMessagesByChannelId[channel.id],
-      revalidateOnMount: !bootstrap?.initialMessagesByChannelId[channel.id],
-      refreshInterval: 5000,
-      revalidateOnFocus: true,
-      refreshWhenHidden: false,
-    }
-  );
+  const {
+    messages,
+    hasMoreOlder,
+    loadingOlder,
+    loadingInitial,
+    scrollRef,
+    handleScroll,
+    appendMessage,
+    refreshMessages,
+    scrollToBottom,
+  } = usePaginatedChannelMessages(channel.id, {
+    fallbackMessages: bootstrap?.initialMessagesByChannelId[channel.id],
+  });
   const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers, {
     fallbackData: bootstrap?.members,
     revalidateOnMount: !bootstrap,
@@ -87,18 +89,10 @@ export function CollaborationChatPanel({
 
   const onMessageSaved = useCallback(
     (saved: CollaborationMessageItem) => {
-      void mutate(
-        (current = []) => {
-          if (current.some((message) => message.id === saved.id)) {
-            return current;
-          }
-          return [...current, saved];
-        },
-        { revalidate: false }
-      );
+      appendMessage(saved);
       void mutateGlobal(COLLAB_CHANNELS_KEY);
     },
-    [mutate, mutateGlobal]
+    [appendMessage, mutateGlobal]
   );
 
   const { outbox, enqueue, retry } = useChatSendQueue({
@@ -131,8 +125,8 @@ export function CollaborationChatPanel({
         : Math.max(members.length, headerPeople.length);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [displayMessages]);
+    scrollToBottom(messages.length <= COLLAB_MESSAGES_PAGE_SIZE ? "auto" : "smooth");
+  }, [displayMessages, scrollToBottom, messages.length]);
 
   useEffect(() => {
     setShowChannelCalendar(false);
@@ -276,7 +270,7 @@ export function CollaborationChatPanel({
           currentUserId={session?.user?.id}
           onClose={() => setShowMembers(false)}
           onMembersChanged={() => {
-            void mutate();
+            void refreshMessages();
             void mutateGlobal(COLLAB_CHANNELS_KEY);
           }}
           onLeft={() => {
@@ -287,7 +281,25 @@ export function CollaborationChatPanel({
         />
       )}
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
+      >
+        {(loadingOlder || (loadingInitial && !displayMessages.length)) && (
+          <div className="flex justify-center py-2">
+            <span className="text-xs text-stone-400">
+              {loadingInitial ? "กำลังโหลดข้อความ..." : "กำลังโหลดข้อความเก่า..."}
+            </span>
+          </div>
+        )}
+        {!loadingInitial && hasMoreOlder && displayMessages.length > 0 && (
+          <div className="flex justify-center pb-1">
+            <span className="text-xs text-stone-400">
+              เลื่อนขึ้นเพื่อดูข้อความเก่า
+            </span>
+          </div>
+        )}
         {displayMessages.map((message) => (
           <MessageBubble
             key={message.id}
@@ -300,7 +312,7 @@ export function CollaborationChatPanel({
                 : undefined
             }
             onChanged={() => {
-              void mutate();
+              void refreshMessages();
               void mutateGlobal(COLLAB_CHANNELS_KEY);
             }}
           />
