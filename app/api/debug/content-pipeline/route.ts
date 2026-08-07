@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAdmin, verifyN8nApiKey } from "@/lib/content/api-auth";
-import { parseScheduledAt } from "@/lib/content/scheduled";
-import { logPipeline } from "@/lib/content/pipeline-log";
+import { prisma } from "@/lib/shared/prisma";
+import { requireAdmin, verifyN8nApiKey } from "@/lib/shared/api-auth";
+import { parseScheduledAt } from "@/lib/content/posting/scheduled";
+import { logPipeline } from "@/lib/content/posting/pipeline-log";
 
 /**
  * Debug stuck "scheduled" content on production.

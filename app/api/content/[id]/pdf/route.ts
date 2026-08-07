@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/content/api-auth";
-import { toContentItem } from "@/lib/content/mappers";
-import { generateContentPdf } from "@/lib/content/generate-content-pdf";
-import { contentPdfFilename } from "@/lib/content/pdf-filename";
+import { prisma } from "@/lib/shared/prisma";
+import { requireSession } from "@/lib/shared/api-auth";
+import { toContentItem } from "@/lib/content/data/mappers";
+import { generateContentPdf } from "@/lib/content/pdf/generate";
+import { contentPdfFilename } from "@/lib/content/pdf/filename";
 
 export async function GET(
   _request: Request,

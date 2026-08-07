@@ -2,11 +2,11 @@
 
 import { FileDown } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-import { NotificationBell } from "@/components/notifications/notification-bell";
-import { UserMenu } from "./user-menu";
-import { useAppSession } from "@/lib/auth/app-session";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { UserMenu } from "./UserMenu";
+import { useAppSession } from "@/lib/auth/client/app-session";
+import { cn } from "@/lib/shared/utils";
 import type { Session } from "next-auth";
 
 interface HeaderProps {

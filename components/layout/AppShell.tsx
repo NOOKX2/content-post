@@ -1,0 +1,71 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import { Sidebar } from "./Sidebar";
+import { MobileBottomNav } from "./MobileBottomNav";
+import { DashboardRouter } from "./DashboardRouter";
+import {
+  DashboardNavProvider,
+  useDashboardNav,
+} from "@/lib/navigation/client/dashboard-nav";
+import { AppSessionProvider } from "@/lib/auth/client/app-session";
+import { cn } from "@/lib/shared/utils";
+import type { Session } from "next-auth";
+
+const AUTH_PATHS = ["/login", "/register"];
+
+function AppShellMain({
+  session,
+  children,
+}: {
+  session: Session | null;
+  children: React.ReactNode;
+}) {
+  const { activePath } = useDashboardNav();
+  const isDashboard = activePath === "/dashboard";
+  const isCollaboration = activePath === "/collaboration";
+  const isFullHeightView = isDashboard || isCollaboration;
+
+  return (
+    <div className="flex h-dvh bg-stone-50 md:flex-row">
+      <Sidebar session={session} />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <main
+          className={cn(
+            "flex min-h-0 flex-1 flex-col",
+            isFullHeightView ? "overflow-hidden" : "overflow-y-auto"
+          )}
+        >
+          <DashboardRouter />
+        </main>
+        <MobileBottomNav session={session} />
+      </div>
+      <div className="hidden" aria-hidden>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function AppShell({
+  children,
+  session,
+}: {
+  children: React.ReactNode;
+  session: Session | null;
+}) {
+  const pathname = usePathname();
+  const isAuthPage = AUTH_PATHS.includes(pathname);
+
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
+
+  return (
+    <AppSessionProvider session={session}>
+      <DashboardNavProvider>
+        <AppShellMain session={session}>{children}</AppShellMain>
+      </DashboardNavProvider>
+    </AppSessionProvider>
+  );
+}

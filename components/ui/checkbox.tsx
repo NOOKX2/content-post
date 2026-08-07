@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 import type { InputHTMLAttributes } from "react";
 
 interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {

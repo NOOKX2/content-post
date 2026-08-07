@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/content/api-auth";
-import { listPostingChannelsForForm } from "@/lib/content/posting-channels";
+import { requireSession } from "@/lib/shared/api-auth";
+import { listPostingChannelsForForm } from "@/lib/content/posting/posting-channels";
 
 export async function GET() {
   const authResult = await requireSession();

@@ -1,15 +1,15 @@
 "use client";
 
 import { ClipboardList } from "lucide-react";
-import { BrandIcon } from "@/components/ui/brand-icon";
-import { cn } from "@/lib/utils";
-import { usePendingCount } from "@/lib/content/contents-provider";
-import { useCollaborationUnreadCount } from "@/lib/collaboration/collaboration-provider";
+import { BrandIcon } from "@/components/ui/BrandIcon";
+import { cn } from "@/lib/shared/utils";
+import { usePendingCount } from "@/lib/content/client/contents-provider";
+import { useCollaborationUnreadCount } from "@/lib/collaboration/client/collaboration-provider";
 import {
   getDashboardNavItems,
   isNavItemActive,
-} from "@/lib/navigation/dashboard-nav-items";
-import { useDashboardNav } from "@/lib/navigation/dashboard-nav";
+} from "@/lib/navigation/domain/nav-items";
+import { useDashboardNav } from "@/lib/navigation/client/dashboard-nav";
 import type { Session } from "next-auth";
 
 export function Sidebar({ session }: { session: Session | null }) {

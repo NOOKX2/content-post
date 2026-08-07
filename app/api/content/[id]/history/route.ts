@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/content/api-auth";
-import { listContentAuditLogs } from "@/lib/collaboration/team-service";
+import { requireSession } from "@/lib/shared/api-auth";
+import { listContentAuditLogs } from "@/lib/collaboration/data/team-service";
 
 type Params = { params: Promise<{ id: string }> };
 

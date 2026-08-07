@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/content/api-auth";
-import { fetchSocialAnalytics } from "@/lib/buffer/metrics";
-import { getDateRangeForPeriod } from "@/lib/dashboard/filters";
+import { requireSession } from "@/lib/shared/api-auth";
+import { fetchSocialAnalytics } from "@/lib/integrations/buffer/metrics";
+import { getDateRangeForPeriod } from "@/lib/dashboard/domain/filters";
 import type { DashboardPeriod } from "@/lib/dashboard/types";
 
 export async function GET(request: Request) {

@@ -1,22 +1,22 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/shared/prisma";
 import {
   requireAdmin,
   requireSessionOrN8n,
-} from "@/lib/content/api-auth";
-import { toContentItem } from "@/lib/content/mappers";
+} from "@/lib/shared/api-auth";
+import { toContentItem } from "@/lib/content/data/mappers";
 import type { ContentStatus } from "@/lib/types";
 import {
   notifyApprovalRejected,
   notifyPostStatusUpdate,
-} from "@/lib/notifications/events";
-import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/service";
-import { approveContentRecord } from "@/lib/content/approve-content-record";
-import { invalidateContentsCache } from "@/lib/content/cache-tags";
-import { formatApiErrorResponse } from "@/lib/content/action-errors";
-import { logPipeline } from "@/lib/content/pipeline-log";
+} from "@/lib/notifications/domain/events";
+import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/data/service";
+import { approveContentRecord } from "@/lib/content/actions/approve";
+import { invalidateContentsCache } from "@/lib/content/data/cache-tags";
+import { formatApiErrorResponse } from "@/lib/content/actions/errors";
+import { logPipeline } from "@/lib/content/posting/pipeline-log";
 
-import { markPostFailedRecord } from "@/lib/content/mark-post-failed";
+import { markPostFailedRecord } from "@/lib/content/posting/mark-failed";
 
 const N8N_ALLOWED_STATUSES: ContentStatus[] = [
   "posted",

@@ -1,5 +1,5 @@
 import type { Platform } from "./types";
-import { CHANNEL_SELECT_OPTIONS } from "@/lib/content/channels";
+import { CHANNEL_SELECT_OPTIONS } from "@/lib/content/posting/channels";
 
 export const CHANNELS = CHANNEL_SELECT_OPTIONS;
 

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function AdminChannelsPage() {
-  return null;
+  redirect("/admin");
 }

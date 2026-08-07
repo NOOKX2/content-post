@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/content/api-auth";
-import { markNotificationRead } from "@/lib/notifications/service";
+import { requireSession } from "@/lib/shared/api-auth";
+import { markNotificationRead } from "@/lib/notifications/data/service";
 
 export async function PATCH(
   _request: Request,

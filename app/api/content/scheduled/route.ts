@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireN8nApiKey } from "@/lib/content/api-auth";
-import { filterDueContent } from "@/lib/content/scheduled";
-import { buildN8nContentPayload } from "@/lib/n8n/build-content-payload";
+import { prisma } from "@/lib/shared/prisma";
+import { requireN8nApiKey } from "@/lib/shared/api-auth";
+import { filterDueContent } from "@/lib/content/posting/scheduled";
+import { buildN8nContentPayload } from "@/lib/integrations/n8n/build-content-payload";
 
 export async function GET(request: Request) {
   const authResult = requireN8nApiKey(request);

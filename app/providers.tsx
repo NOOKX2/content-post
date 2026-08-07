@@ -1,9 +1,9 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { CollaborationProvider } from "@/lib/collaboration/collaboration-provider";
-import type { CollaborationBootstrap } from "@/lib/collaboration/queries";
-import { ContentsProvider } from "@/lib/content/contents-provider";
+import { CollaborationProvider } from "@/lib/collaboration/client/collaboration-provider";
+import type { CollaborationBootstrap } from "@/lib/collaboration/data/queries";
+import { ContentsProvider } from "@/lib/content/client/contents-provider";
 import type { ContentItem } from "@/lib/types";
 import type { Session } from "next-auth";
 

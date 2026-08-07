@@ -1,6 +1,6 @@
 import { PrismaClient, Role } from "@prisma/client";
-import { hashPassword } from "../lib/auth/password";
-import { seedDefaultPostingChannels } from "../lib/content/posting-channels";
+import { hashPassword } from "../lib/auth/domain/password";
+import { seedDefaultPostingChannels } from "../lib/content/posting/posting-channels";
 
 const prisma = new PrismaClient();
 

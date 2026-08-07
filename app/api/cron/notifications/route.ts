@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireN8nApiKey } from "@/lib/content/api-auth";
-import { processAllReminders } from "@/lib/notifications/reminders";
+import { requireN8nApiKey } from "@/lib/shared/api-auth";
+import { processAllReminders } from "@/lib/notifications/data/reminders";
 
 export async function POST(request: Request) {
   const authResult = requireN8nApiKey(request);

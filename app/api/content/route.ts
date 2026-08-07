@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireCreator } from "@/lib/content/api-auth";
-import { createContentRecord } from "@/lib/content/create-content-record";
+import { requireCreator } from "@/lib/shared/api-auth";
+import { createContentRecord } from "@/lib/content/actions/create";
 import type { ContentFormData } from "@/lib/types";
 import { EMPTY_IMAGE_META } from "@/lib/types";
 

@@ -1,6 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import type { Role } from "@prisma/client";
-import { getDefaultPathForRole } from "@/lib/auth/routes";
+import { getDefaultPathForRole } from "@/lib/auth/domain/routes";
 
 export const authConfig = {
   trustHost: true,

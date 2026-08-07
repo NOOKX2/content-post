@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import path from "path";
 import { randomUUID } from "crypto";
 import { auth } from "@/auth";
-import { uploadToR2, isR2Configured } from "@/lib/storage/r2";
+import { uploadToR2, isR2Configured } from "@/lib/shared/storage/r2";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 200 * 1024 * 1024;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/content/api-auth";
-import { notifyTeamComment } from "@/lib/notifications/events";
+import { prisma } from "@/lib/shared/prisma";
+import { requireSession } from "@/lib/shared/api-auth";
+import { notifyTeamComment } from "@/lib/notifications/domain/events";
 
 export async function GET(
   _request: Request,
