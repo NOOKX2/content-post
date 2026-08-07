@@ -7,7 +7,6 @@ import {
   Eye,
   ExternalLink,
   Info,
-  MapPin,
   Package,
   UserRound,
   Users,
@@ -19,7 +18,6 @@ import {
   ContentFormSection,
   ContentFormSectionAction,
 } from "@/app/create/_components/ContentFormSection";
-import { LocationSelect } from "@/app/create/_components/LocationSelect";
 import { PlatformSelect } from "@/app/create/_components/PlatformSelect";
 import { ScriptTable } from "@/app/create/_components/ScriptTable";
 import { TeamTable } from "@/app/create/_components/TeamTable";
@@ -33,6 +31,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import {
   CONTENT_OBJECTIVES,
   FILMING_EQUIPMENT,
+  LOCATIONS,
   PRODUCTS,
   TEAM_MEMBERS,
 } from "@/lib/constants";
@@ -113,10 +112,10 @@ export function VideoContentFormFields({
       : showFinalClipSection(isEdit, contentStatus);
 
   const briefSummary = (
-    <ContentFormSection title="ข้อมูล Content" icon={Info}>
+    <ContentFormSection title="ข้อมูลคอนเทนต์" icon={Info}>
       <div className="space-y-3 rounded-xl border border-stone-200 bg-stone-50/80 p-4 text-sm">
         <div>
-          <p className="text-xs text-stone-500">หัวข้อ Content</p>
+          <p className="text-xs text-stone-500">หัวข้อคอนเทนต์</p>
           <p className="font-semibold text-stone-900">{form.name || "—"}</p>
         </div>
         {form.details && (
@@ -157,17 +156,17 @@ export function VideoContentFormFields({
         </>
       ) : (
         <>
-      <ContentFormSection title="ข้อมูล Content" icon={Info}>
+      <ContentFormSection title="ข้อมูลคอนเทนต์" icon={Info}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="ชื่อ Content *"
+            label="ชื่อคอนเทนต์ *"
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
             placeholder="เช่น Hero Serum Launch Video"
             required
           />
           <Input
-            label="รหัส Content"
+            label="รหัสคอนเทนต์"
             value={contentId}
             readOnly
             placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
@@ -219,9 +218,7 @@ export function VideoContentFormFields({
       </ContentFormSection>
 
       <ContentFormSection
-        title="รูปภาพตัวอย่าง"
-        description="แนบรูป reference / mood board สำหรับอนุมัติแนวคิดรอบแรก"
-        icon={Eye}
+        title="แนบรูป/คลิปวิดีโอตัวอย่าง (10 MB)"
         className="border-amber-100"
       >
         <ImageAttachmentLinks
@@ -247,38 +244,12 @@ export function VideoContentFormFields({
         </ContentFormSection>
       )}
 
-      <ContentFormSection
-        title="Pre Post"
-        icon={CalendarRange}
-        className="border-amber-100"
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Input
-            label="คอนเทนต์คิดเสร็จ"
-            type="date"
-            value={form.ideaFinishedDate}
-            onChange={(e) => update("ideaFinishedDate", e.target.value)}
-          />
-          <Input
-            label="นัดวันถ่าย"
-            type="date"
-            value={form.shootDate}
-            onChange={(e) => update("shootDate", e.target.value)}
-          />
-          <Input
-            label="ตัดเสร็จ"
-            type="date"
-            value={form.editFinishedDate}
-            onChange={(e) => update("editFinishedDate", e.target.value)}
-          />
-        </div>
-      </ContentFormSection>
-
-      <ContentFormSection title="สถานที่ถ่าย" icon={MapPin}>
-        <LocationSelect
-          selected={form.location}
-          onChange={(locations) => update("location", locations)}
-          optional={config.locationOptional}
+      <ContentFormSection title="นัดวันถ่าย" icon={CalendarRange} className="border-amber-100">
+        <Input
+          label="นัดวันถ่าย"
+          type="date"
+          value={form.shootDate}
+          onChange={(e) => update("shootDate", e.target.value)}
         />
       </ContentFormSection>
 
@@ -301,6 +272,15 @@ export function VideoContentFormFields({
       <ContentFormSection title="สิ่งที่ต้องเตรียม" icon={Package}>
         <div className="space-y-4">
           <CreatableMultiSelect
+            label="เลือกสถานที่..."
+            options={LOCATIONS}
+            value={form.location}
+            onChange={(locations) => update("location", locations)}
+            optional={config.locationOptional}
+            placeholder="เลือกสถานที่..."
+            addPlaceholder="อื่นๆ..."
+          />
+          <CreatableMultiSelect
             label="สินค้า"
             options={PRODUCTS}
             value={form.productsNeeded}
@@ -312,7 +292,7 @@ export function VideoContentFormFields({
             label="อุปกรณ์ประกอบฉาก"
             value={form.itemsToPrepare}
             onChange={(e) => update("itemsToPrepare", e.target.value)}
-            placeholder="Backdrop, Props, Equipment..."
+            placeholder="อื่นๆ..."
           />
           <CreatableMultiSelect
             label="อุปกรณ์ถ่าย"
@@ -332,7 +312,7 @@ export function VideoContentFormFields({
         className="border-amber-100"
         actions={
           <ContentFormSectionAction onClick={addScriptRow}>
-            + เพิ่ม Scene
+            เพิ่มซีน
           </ContentFormSectionAction>
         }
       >
@@ -343,7 +323,7 @@ export function VideoContentFormFields({
         />
       </ContentFormSection>
 
-      <ContentFormSection title="ผู้สร้าง content" icon={UserRound}>
+      <ContentFormSection title="ผู้สร้างคอนเทนต์" icon={UserRound}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
             label="ผู้คิดไอเดีย"
@@ -383,20 +363,20 @@ export function VideoContentFormFields({
 
       <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
         <ContentFormSection
-          title="วันโพสต์ Content"
+          title="วันที่โพสต์คอนเทนต์"
           icon={Calendar}
           className="border-amber-100"
           bodyClassName="space-y-3"
         >
           <Input
-            label="วันโพสต์ *"
+            label="วันที่โพสต์"
             type="date"
             value={form.scheduledDate}
             onChange={(e) => update("scheduledDate", e.target.value)}
             required
           />
           <Input
-            label="เวลาโพสต์ *"
+            label="เวลา"
             type="time"
             value={form.scheduledTime}
             onChange={(e) => update("scheduledTime", e.target.value)}
@@ -405,8 +385,7 @@ export function VideoContentFormFields({
           <div className="flex gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-xs text-blue-800">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <p>
-              วันและเวลานี้จะใช้สำหรับลงโพสต์อัตโนมัติ และแสดงในปฏิทิน
-              Content
+              วันและเวลานี้จะใช้สำหรับลงโพสต์อัตโนมัติ และแสดงในปฏิทินคอนเทนต์
             </p>
           </div>
         </ContentFormSection>
@@ -415,7 +394,7 @@ export function VideoContentFormFields({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Eye className="h-4 w-4 text-stone-500" />
-              Preview
+              พรีวิว
             </CardTitle>
           </CardHeader>
           <div className="overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
@@ -458,7 +437,7 @@ export function VideoContentFormFields({
             </div>
             <div className="border-t border-stone-200 bg-white p-3">
               <p className="text-sm font-bold leading-snug text-stone-900">
-                {form.name.trim() || "ชื่อ Content"}
+                {form.name.trim() || "ชื่อคอนเทนต์"}
               </p>
               <p className="mt-1 line-clamp-2 text-xs text-stone-500">
                 {form.details.trim() || "รายละเอียด brief จะแสดงที่นี่"}
@@ -466,7 +445,7 @@ export function VideoContentFormFields({
             </div>
           </div>
           <p className="mt-2 text-[11px] text-stone-400">
-            ตัวอย่างวิดีโอและชื่อ Content ก่อนส่งอนุมัติ
+            ตัวอย่างวิดีโอและชื่อคอนเทนต์ ก่อนส่งอนุมัติ
           </p>
         </Card>
       </aside>

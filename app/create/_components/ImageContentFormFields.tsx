@@ -66,20 +66,20 @@ export function ImageContentFormFields({
           <div className="flex items-center gap-2.5 border-b border-stone-200 px-6 py-4">
             <Info className="h-5 w-5 shrink-0 text-stone-900" strokeWidth={2.25} />
             <h3 className="text-xl font-bold tracking-tight text-stone-900">
-              ข้อมูล Content
+              ข้อมูลคอนเทนต์
             </h3>
           </div>
           <div className="p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
-              label="ชื่อ Content *"
+              label="ชื่อคอนเทนต์ *"
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
               placeholder="เช่น Herbal Lifestyle Post"
               required
             />
             <Input
-              label="รหัส Content"
+              label="รหัสคอนเทนต์"
               value={contentId}
               readOnly
               placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
@@ -288,19 +288,19 @@ export function ImageContentFormFields({
               strokeWidth={2.25}
             />
             <h3 className="text-xl font-bold tracking-tight text-stone-900">
-              วันโพสต์ Content
+              วันที่โพสต์คอนเทนต์
             </h3>
           </div>
           <div className="space-y-3 p-6">
             <Input
-              label="วันโพสต์ *"
+              label="วันที่โพสต์"
               type="date"
               value={form.scheduledDate}
               onChange={(e) => update("scheduledDate", e.target.value)}
               required
             />
             <Input
-              label="เวลาโพสต์ *"
+              label="เวลา"
               type="time"
               value={form.scheduledTime}
               onChange={(e) => update("scheduledTime", e.target.value)}
@@ -320,7 +320,7 @@ export function ImageContentFormFields({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Eye className="h-4 w-4 text-stone-500" />
-              Preview
+              พรีวิว
             </CardTitle>
           </CardHeader>
           <div className="overflow-hidden rounded-xl border border-stone-200 bg-stone-100">

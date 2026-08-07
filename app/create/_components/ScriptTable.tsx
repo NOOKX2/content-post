@@ -106,7 +106,7 @@ export function ScriptTable({
         <div className="flex items-center justify-end">
           <Button type="button" variant="ghost" size="sm" onClick={addRow}>
             <Plus className="h-4 w-4" />
-            เพิ่ม Scene
+            เพิ่มซีน
           </Button>
         </div>
       )}
@@ -128,7 +128,7 @@ export function ScriptTable({
 
       {rows.length === 0 ? (
         <p className="rounded-lg border border-dashed border-stone-200 py-6 text-center text-sm text-stone-400">
-          ยังไม่มี Scene — กด &quot;เพิ่ม Scene&quot; สำหรับ Video
+          ยังไม่มีซีน-กด&quot;เพิ่มซีน&quot;สำหรับวิดีโอ
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-stone-200">

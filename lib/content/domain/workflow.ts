@@ -266,13 +266,12 @@ export function showFinalClipSection(
 
 export const VIDEO_WORKFLOW_STEPS = [
   { id: 1, label: "วางแผน" },
-  { id: 2, label: "รออนุมัติ 1" },
-  { id: 3, label: "ผลิต" },
-  { id: 4, label: "รออนุมัติ 2" },
-  { id: 5, label: "เผยแพร่" },
+  { id: 2, label: "ถ่ายทำ" },
+  { id: 3, label: "ตัดต่อ" },
+  { id: 4, label: "เสร็จสิ้น" },
 ] as const;
 
-export type VideoWorkflowStep = (typeof VIDEO_WORKFLOW_STEPS)[number]["id"];
+export type VideoWorkflowStep = 1 | 2 | 3 | 4 | 5;
 
 export function getVideoWorkflowStep(content: ContentItem): VideoWorkflowStep {
   if (content.mediaType !== "video") return 1;
@@ -304,8 +303,8 @@ export function getVideoWorkflowHeader(step: VideoWorkflowStep): {
   switch (step) {
     case 1:
       return {
-        title: "วางแผน Content & ส่งอนุมัติเบื้องต้น",
-        description: "กรอก brief และแนบรูปตัวอย่างเพื่อส่งให้ Admin อนุมัติรอบแรก",
+        title: "วางแผนคอนเทนต์และส่งอนุมัติ",
+        description: "กรอกข้อมูลและแนบรูปตัวอย่างเพื่อส่งอนุมัติ",
       };
     case 2:
       return {
@@ -500,20 +499,20 @@ export const WORKFLOW_BOARD_COLUMNS = [
   },
   {
     step: 2 as VideoWorkflowStep,
-    title: "รออนุมัติ 1",
-    shortTitle: "รอ 1",
+    title: "ถ่ายทำ",
+    shortTitle: "ถ่ายทำ",
     hint: "รอ Admin",
   },
   {
     step: 3 as VideoWorkflowStep,
-    title: "รอ upload คลิป",
-    shortTitle: "ผลิต",
+    title: "ตัดต่อ",
+    shortTitle: "ตัดต่อ",
     hint: "อัปโหลดคลิป",
   },
   {
     step: 4 as VideoWorkflowStep,
-    title: "รออนุมัติ 2",
-    shortTitle: "รอ 2",
+    title: "เสร็จสิ้น",
+    shortTitle: "เสร็จสิ้น",
     hint: "รอ Admin",
   },
   {

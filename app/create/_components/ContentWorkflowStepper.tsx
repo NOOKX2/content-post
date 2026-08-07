@@ -13,18 +13,20 @@ export function ContentWorkflowStepper({
   className,
 }: {
   currentStep: VideoWorkflowStep;
-  /** When true, the final step (เผยแพร่) shows a checkmark — e.g. status is posted */
+  /** When true, the final step shows a checkmark — e.g. status is posted */
   fullyPublished?: boolean;
   className?: string;
 }) {
+  const displayStep = Math.min(currentStep, 4) as VideoWorkflowStep;
+  const isFullyDone = fullyPublished || currentStep >= 5;
+
   return (
     <div className={cn("w-full", className)}>
       <div className="flex items-start justify-between gap-1 sm:gap-2">
         {VIDEO_WORKFLOW_STEPS.map((step, index) => {
           const isComplete =
-            step.id < currentStep ||
-            (fullyPublished && step.id === currentStep);
-          const isCurrent = step.id === currentStep && !fullyPublished;
+            step.id < displayStep || (isFullyDone && step.id === displayStep);
+          const isCurrent = step.id === displayStep && !isFullyDone;
           const isLast = index === VIDEO_WORKFLOW_STEPS.length - 1;
 
           return (
@@ -65,8 +67,8 @@ export function ContentWorkflowStepper({
                 <div
                   className={cn(
                     "mt-4 h-0.5 min-w-2 flex-1 rounded-full sm:min-w-4",
-                    step.id < currentStep ||
-                      (fullyPublished && step.id === currentStep)
+                    step.id < displayStep ||
+                      (isFullyDone && step.id === displayStep)
                       ? "bg-blue-600"
                       : "bg-stone-200"
                   )}

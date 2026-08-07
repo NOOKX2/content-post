@@ -24,8 +24,8 @@ export const CREATOR_NAV_ITEMS: DashboardNavItem[] = [
   },
   {
     href: "/create",
-    label: "สร้าง Content",
-    shortLabel: "สร้าง",
+    label: "Create Content",
+    shortLabel: "Create",
     icon: PenSquare,
   },
   {
@@ -36,8 +36,8 @@ export const CREATOR_NAV_ITEMS: DashboardNavItem[] = [
   },
   {
     href: "/calendar",
-    label: "ปฏิทิน",
-    shortLabel: "ปฏิทิน",
+    label: "Calendar",
+    shortLabel: "Calendar",
     icon: CalendarDays,
   },
 ];
@@ -63,8 +63,8 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
   },
   {
     href: "/calendar",
-    label: "ปฏิทิน",
-    shortLabel: "ปฏิทิน",
+    label: "Calendar",
+    shortLabel: "Calendar",
     icon: CalendarDays,
   },
 ];

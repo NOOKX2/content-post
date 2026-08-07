@@ -359,7 +359,7 @@ export function ContentForm({
       return isEdit ? "กำลังบันทึก..." : "กำลังส่ง...";
     }
     if (!isEdit) {
-      return isVideo ? "ส่งขออนุมัติเบื้องต้น" : "ส่งเพื่ออนุมัติ";
+      return isVideo ? "เสร็จสิ้น" : "ส่งเพื่ออนุมัติ";
     }
     if (willSubmitClip) {
       return "ส่งงานให้ตรวจสอบ";
@@ -490,11 +490,11 @@ export function ContentForm({
       >
         <div className="border-b border-stone-200 px-6 py-4">
           <h3 className="text-xl font-bold tracking-tight text-stone-900">
-            {isVideo ? "Video Content" : "Picture Content"}
+            {isVideo ? "วิดีโอคอนเทนต์" : "รูปภาพคอนเทนต์"}
           </h3>
           <p className="mt-1 text-sm text-stone-500">
             {isVideo
-              ? "รอบ 1: กรอก brief และแนบรูปตัวอย่าง — หลังอนุมัติแล้วค่อยอัปโหลดคลิปตัดต่อ"
+              ? "รอบ 1 : กรอกข้อมูลและแนบรูปตัวอย่าง - หลังอนุมัติแล้ว ค่อยอัปโหลดคลิปเพื่อส่งให้ตัดต่อ"
               : "กรอก brief งานออกแบบภาพ"}
           </p>
         </div>

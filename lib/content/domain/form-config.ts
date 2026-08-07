@@ -17,7 +17,7 @@ export const MEDIA_FORM_CONFIG: Record<
   }
 > = {
   video: {
-    label: "Video",
+    label: "วิดีโอ",
     accentBorder: "border-amber-600",
     accentBg: "bg-amber-50",
     accentText: "text-amber-900",
@@ -30,7 +30,7 @@ export const MEDIA_FORM_CONFIG: Record<
     showEditor: true,
   },
   image: {
-    label: "Picture / Post",
+    label: "รูปภาพ",
     accentBorder: "border-pink-500",
     accentBg: "bg-pink-50",
     accentText: "text-pink-900",

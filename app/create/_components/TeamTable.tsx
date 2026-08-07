@@ -78,7 +78,7 @@ export function TeamTable({
                         updateRow(row.id, "participant", value)
                       }
                       placeholder="เลือกชื่อ..."
-                      customPlaceholder="พิมพ์ชื่อ..."
+                      customPlaceholder="อื่นๆ..."
                       customOptionLabel="ระบุเอง..."
                     />
                   </td>
@@ -90,7 +90,7 @@ export function TeamTable({
                         updateRow(row.id, "responsibility", value)
                       }
                       placeholder="เลือกหน้าที่..."
-                      customPlaceholder="พิมพ์หน้าที่..."
+                      customPlaceholder="อื่นๆ..."
                       customOptionLabel="ระบุเอง..."
                     />
                   </td>

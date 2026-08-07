@@ -169,7 +169,7 @@ function WorkflowBackBar() {
       onClick={() => router.replace("/create")}
     >
       <ArrowLeft className="h-4 w-4" />
-      กลับไปภาพรวมงาน
+      ย้อนกลับ
     </Button>
   );
 }
