@@ -19,7 +19,9 @@ export async function bufferGraphql<T>(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({ query, variables }),
-    next: { revalidate: 300 },
+    // Never cache Buffer GraphQL — channel access changes when channels
+    // reconnect, and a cached channel list can poison analytics queries.
+    cache: "no-store",
   });
 
   if (!response.ok) {

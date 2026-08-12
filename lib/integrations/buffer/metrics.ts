@@ -117,6 +117,76 @@ type PostsQueryResult = {
   };
 };
 
+function isActorChannelAccessError(error: unknown) {
+  return (
+    error instanceof Error &&
+    /Actor can not access the specified channels/i.test(error.message)
+  );
+}
+
+/** Probe posts access — a channel can appear in ListChannels but still fail posts. */
+async function canAccessChannelPosts(
+  organizationId: string,
+  channelId: string,
+  startDate: string,
+  endDate: string
+): Promise<boolean> {
+  try {
+    await bufferGraphql<PostsQueryResult>(
+      `query ProbeChannelPosts($input: PostsInput!, $first: Int) {
+        posts(input: $input, first: $first) {
+          edges { cursor node { id } }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`,
+      {
+        input: {
+          organizationId,
+          filter: {
+            channelIds: [channelId],
+            startDate: `${startDate}T00:00:00Z`,
+            endDate: `${endDate}T23:59:59Z`,
+            status: ["sent"],
+          },
+          sort: [{ field: "dueAt", direction: "desc" }],
+        },
+        first: 1,
+      }
+    );
+    return true;
+  } catch (error) {
+    if (isActorChannelAccessError(error)) return false;
+    throw error;
+  }
+}
+
+async function filterChannelIdsForPostsAccess(
+  organizationId: string,
+  channelIds: string[],
+  startDate: string,
+  endDate: string
+): Promise<string[]> {
+  const usable: string[] = [];
+  for (const channelId of channelIds) {
+    if (
+      await canAccessChannelPosts(
+        organizationId,
+        channelId,
+        startDate,
+        endDate
+      )
+    ) {
+      usable.push(channelId);
+    } else {
+      console.warn(
+        "[dashboard/social] skipping Buffer channel blocked for posts",
+        { channelId }
+      );
+    }
+  }
+  return usable;
+}
+
 async function fetchPostsWithMetrics(
   organizationId: string,
   startDate: string,
@@ -255,7 +325,27 @@ export async function fetchSocialAnalytics(options: {
         };
       }
 
-      channelIds = usable;
+      // ListChannels can still return channels that posts/metrics reject
+      // (e.g. recently reconnected IG). Probe posts access before batching.
+      channelIds = await filterChannelIdsForPostsAccess(
+        organizationId,
+        usable,
+        options.startDate,
+        options.endDate
+      );
+
+      if (channelIds.length === 0) {
+        return {
+          summary: emptySummary(),
+          popularPosts: [],
+          unpopularPosts: [],
+          comparison: [],
+          trend: [],
+          configured: true,
+          error:
+            "Buffer channel ที่เชื่อมไว้เข้าถึงไม่ได้ (อาจถูก reconnect หรือเปลี่ยนบัญชี) — ตรวจสอบที่ Buffer dashboard",
+        };
+      }
     }
 
     const [summary, posts] = await Promise.all([

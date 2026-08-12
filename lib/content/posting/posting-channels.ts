@@ -44,7 +44,7 @@ const DEFAULT_CHANNELS: Array<{
     links: [
       {
         platform: "instagram",
-        bufferChannelId: "6a4f72e44048344628883dee",
+        bufferChannelId: "6a66fa9d4b2d03035f4a7475",
         bufferChannelName: "idea_content_post",
       },
     ],
