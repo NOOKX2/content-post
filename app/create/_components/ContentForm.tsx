@@ -52,6 +52,7 @@ const fetchPostingChannels = () =>
   fetch("/api/posting-channels").then((res) => res.json()) as Promise<{
     channels: PostingChannelApiOption[];
     source: "buffer" | "legacy";
+    error?: string;
   }>;
 
 function resolveChannelTargetSlugs(
@@ -161,11 +162,11 @@ export function ContentForm({
   const isBufferChannelMode = postingData?.source === "buffer";
 
   const channelOptions: PostingChannelSelectOption[] =
-    postingData?.channels.map((channel) => ({
+    (postingData?.channels ?? []).map((channel) => ({
       value: channel.slug,
       label: isBufferChannelMode ? channel.name : channel.label,
       platform: channel.platforms[0],
-    })) ?? [];
+    }));
   const selectedChannels =
     postingData?.channels.filter((channel) =>
       channelTargetSlugs.includes(channel.slug)
@@ -483,6 +484,11 @@ export function ContentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {postingData?.error && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {postingData.error}
+        </div>
+      )}
       {!isProducePhase && (
       <Card
         padding="none"

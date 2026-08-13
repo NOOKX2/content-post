@@ -39,6 +39,7 @@ services:
       R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
       R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
       N8N_API_KEY: ${N8N_API_KEY:-dev-n8n-api-key-change-in-production}
+      # Compose DNS. Host `bun run dev` uses localhost via dispatch helper / .env.
       N8N_WEBHOOK_URL: http://n8n:5678
       BUFFER_API_KEY: ${BUFFER_API_KEY:-}
       BUFFER_ORG_ID: ${BUFFER_ORG_ID:-}

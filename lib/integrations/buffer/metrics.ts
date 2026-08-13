@@ -5,6 +5,7 @@ import {
   isBufferConfigured,
 } from "@/lib/integrations/buffer/client";
 import type {
+  SocialAnalyticsDebug,
   SocialAnalyticsResponse,
   SocialMetricSummary,
   SocialPostMetric,
@@ -124,67 +125,60 @@ function isActorChannelAccessError(error: unknown) {
   );
 }
 
-/** Probe posts access — a channel can appear in ListChannels but still fail posts. */
-async function canAccessChannelPosts(
-  organizationId: string,
-  channelId: string,
-  startDate: string,
-  endDate: string
-): Promise<boolean> {
-  try {
-    await bufferGraphql<PostsQueryResult>(
-      `query ProbeChannelPosts($input: PostsInput!, $first: Int) {
-        posts(input: $input, first: $first) {
-          edges { cursor node { id } }
-          pageInfo { hasNextPage endCursor }
-        }
-      }`,
-      {
-        input: {
-          organizationId,
-          filter: {
-            channelIds: [channelId],
-            startDate: `${startDate}T00:00:00Z`,
-            endDate: `${endDate}T23:59:59Z`,
-            status: ["sent"],
-          },
-          sort: [{ field: "dueAt", direction: "desc" }],
-        },
-        first: 1,
-      }
-    );
-    return true;
-  } catch (error) {
-    if (isActorChannelAccessError(error)) return false;
-    throw error;
-  }
+function isRateLimitError(error: unknown) {
+  return (
+    error instanceof Error && /Buffer API error: HTTP 429/i.test(error.message)
+  );
 }
 
-async function filterChannelIdsForPostsAccess(
-  organizationId: string,
-  channelIds: string[],
-  startDate: string,
-  endDate: string
-): Promise<string[]> {
-  const usable: string[] = [];
-  for (const channelId of channelIds) {
-    if (
-      await canAccessChannelPosts(
-        organizationId,
-        channelId,
-        startDate,
-        endDate
-      )
-    ) {
-      usable.push(channelId);
-    } else {
-      console.warn(
-        "[dashboard/social] skipping Buffer channel blocked for posts",
-        { channelId }
-      );
-    }
+function emptyAnalytics(
+  partial: Pick<SocialAnalyticsResponse, "configured" | "error" | "debug">
+): SocialAnalyticsResponse {
+  return {
+    summary: emptySummary(),
+    popularPosts: [],
+    unpopularPosts: [],
+    comparison: [],
+    trend: [],
+    ...partial,
+  };
+}
+
+function logSocialError(message: string, details: Record<string, unknown>) {
+  console.error(`[dashboard/social] ${message}`, details);
+}
+
+function formatAnalyticsError(debug: SocialAnalyticsDebug): string {
+  if (debug.rateLimited) {
+    return (
+      "ดึงข้อมูล Buffer ไม่สำเร็จ — โควต้า Buffer API เต็มแล้ว (HTTP 429). " +
+      "ตอนนี้ติดโควต้า 24 ชั่วโมง ไม่ใช่ช่องพัง — อย่ารีเฟรชซ้ำ จะยิ่งถูกบล็อกต่อ. " +
+      `(${debug.bufferMessage ?? "HTTP 429"})`
+    );
   }
-  return usable;
+
+  const parts: string[] = ["ดึงข้อมูล Buffer ไม่สำเร็จ"];
+
+  if (debug.missingFromBuffer.length) {
+    parts.push(
+      `ช่องที่ไม่มีใน Buffer ListChannels: ${debug.missingFromBuffer.join(", ")}`
+    );
+  }
+  if (debug.postsAccessDenied.length) {
+    parts.push(
+      `ช่องที่ Buffer ปฏิเสธสิทธิ์ posts (Actor access denied): ${debug.postsAccessDenied.join(", ")}`
+    );
+  }
+  if (debug.bufferMessage) {
+    parts.push(`Buffer: ${debug.bufferMessage}`);
+  }
+  if (debug.missingFromBuffer.length || debug.postsAccessDenied.length) {
+    parts.push(
+      "แก้ที่ตาราง PostingChannelPlatform หรือ reconnect ช่องใน Buffer แล้วอัปเดต bufferChannelId"
+    );
+  }
+
+  return parts.join(" — ");
 }
 
 async function fetchPostsWithMetrics(
@@ -266,86 +260,58 @@ export async function fetchSocialAnalytics(options: {
   platform?: string;
 }): Promise<SocialAnalyticsResponse> {
   if (!isBufferConfigured()) {
-    return {
-      summary: emptySummary(),
-      popularPosts: [],
-      unpopularPosts: [],
-      comparison: [],
-      trend: [],
+    return emptyAnalytics({
       configured: false,
       error: "ยังไม่ได้ตั้งค่า Buffer API",
-    };
+    });
   }
 
   const organizationId = process.env.BUFFER_ORG_ID!;
-  const mappedChannelIds = await getBufferChannelIdsForPlatform(
-    options.platform
-  );
+  const mappedChannelIds =
+    (await getBufferChannelIdsForPlatform(options.platform)) ?? [];
   const { startDateTime, endDateTime } = {
     startDateTime: `${options.startDate}T00:00:00Z`,
     endDateTime: `${options.endDate}T23:59:59Z`,
   };
 
+  let missingFromBuffer: string[] = [];
+  let channelIds = mappedChannelIds.length ? mappedChannelIds : undefined;
+
   try {
-    // Buffer rejects the whole query if any channelId is inaccessible
-    // (e.g. a channel that was reconnected/removed and now has a new id).
-    // Keep only channels the current token can actually access.
-    let channelIds = mappedChannelIds;
-    if (mappedChannelIds?.length) {
+    // One ListChannels call only — do NOT probe posts per channel (causes HTTP 429).
+    if (mappedChannelIds.length) {
       const accessible = await fetchAccessibleBufferChannels(organizationId);
       const accessibleIds = new Set(
         accessible
           .filter((channel) => !channel.isDisconnected)
           .map((channel) => channel.id)
       );
-      const usable = mappedChannelIds.filter((id) => accessibleIds.has(id));
-      const skipped = mappedChannelIds.filter((id) => !accessibleIds.has(id));
-
-      if (skipped.length) {
-        console.warn(
-          "[dashboard/social] skipping inaccessible Buffer channels",
-          {
-            skipped,
-            usable,
-            hint: "Check Buffer account connection or reconnect channels in Buffer",
-          }
-        );
-      }
-
-      if (usable.length === 0) {
-        return {
-          summary: emptySummary(),
-          popularPosts: [],
-          unpopularPosts: [],
-          comparison: [],
-          trend: [],
-          configured: true,
-          error:
-            "Buffer channel ที่เชื่อมไว้เข้าถึงไม่ได้ (อาจถูก reconnect หรือเปลี่ยนบัญชี) — ตรวจสอบที่ Buffer dashboard",
-        };
-      }
-
-      // ListChannels can still return channels that posts/metrics reject
-      // (e.g. recently reconnected IG). Probe posts access before batching.
-      channelIds = await filterChannelIdsForPostsAccess(
-        organizationId,
-        usable,
-        options.startDate,
-        options.endDate
+      missingFromBuffer = mappedChannelIds.filter(
+        (id) => !accessibleIds.has(id)
       );
 
-      if (channelIds.length === 0) {
-        return {
-          summary: emptySummary(),
-          popularPosts: [],
-          unpopularPosts: [],
-          comparison: [],
-          trend: [],
-          configured: true,
-          error:
-            "Buffer channel ที่เชื่อมไว้เข้าถึงไม่ได้ (อาจถูก reconnect หรือเปลี่ยนบัญชี) — ตรวจสอบที่ Buffer dashboard",
+      if (missingFromBuffer.length) {
+        const debug: SocialAnalyticsDebug = {
+          organizationId,
+          mappedChannelIds,
+          missingFromBuffer,
+          postsAccessDenied: [],
+          bufferMessage: "mapped channel id not returned by ListChannels",
         };
+        logSocialError("mapped channels missing from Buffer", {
+          ...debug,
+          accessibleChannelIds: [...accessibleIds],
+          accessibleChannels: accessible,
+          platform: options.platform ?? "all",
+        });
+        return emptyAnalytics({
+          configured: true,
+          error: formatAnalyticsError(debug),
+          debug,
+        });
       }
+
+      channelIds = mappedChannelIds;
     }
 
     const [summary, posts] = await Promise.all([
@@ -382,16 +348,33 @@ export async function fetchSocialAnalytics(options: {
       configured: true,
     };
   } catch (error) {
-    return {
-      summary: emptySummary(),
-      popularPosts: [],
-      unpopularPosts: [],
-      comparison: [],
-      trend: [],
-      configured: true,
-      error:
-        error instanceof Error ? error.message : "ไม่สามารถดึงข้อมูล Buffer ได้",
+    const bufferMessage =
+      error instanceof Error ? error.message : "ไม่สามารถดึงข้อมูล Buffer ได้";
+
+    const debug: SocialAnalyticsDebug = {
+      organizationId,
+      mappedChannelIds,
+      missingFromBuffer,
+      postsAccessDenied: isActorChannelAccessError(error)
+        ? (channelIds ?? mappedChannelIds)
+        : [],
+      rateLimited: isRateLimitError(error),
+      bufferMessage,
     };
+
+    logSocialError("social analytics fetch failed", {
+      ...debug,
+      platform: options.platform ?? "all",
+      startDate: options.startDate,
+      endDate: options.endDate,
+      error: bufferMessage,
+    });
+
+    return emptyAnalytics({
+      configured: true,
+      error: formatAnalyticsError(debug),
+      debug,
+    });
   }
 }
 

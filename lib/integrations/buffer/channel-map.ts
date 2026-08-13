@@ -4,6 +4,11 @@ import {
   listPostingChannels,
   resolveBufferTargetsForPostingChannel,
 } from "@/lib/content/posting/posting-channels";
+import {
+  ensurePostingChannelsSyncedFromEnv,
+  getEnvMappedBufferChannelIds,
+  parseBufferChannelMapFromEnv,
+} from "@/lib/integrations/buffer/env-channel-map";
 import { findBufferPostingTarget } from "@/lib/integrations/buffer/posting-targets";
 import type { Platform } from "@/lib/types";
 
@@ -24,6 +29,16 @@ export async function getAllMappedBufferChannelIds(
   contentChannel?: string,
   platform?: string
 ): Promise<string[]> {
+  const envIds = getEnvMappedBufferChannelIds({ contentChannel, platform });
+  if (envIds.length) {
+    await ensurePostingChannelsSyncedFromEnv().catch((error) => {
+      console.error("[buffer] failed to sync PostingChannelPlatform from env", {
+        error: error instanceof Error ? error.message : error,
+      });
+    });
+    return envIds;
+  }
+
   if (contentChannel) {
     const platformFilter =
       platform && platform !== "all" ? (platform as Platform) : undefined;

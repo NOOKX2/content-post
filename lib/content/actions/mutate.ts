@@ -85,6 +85,18 @@ export async function createContent(
     return { success: false, error: "Forbidden" };
   }
 
+  const actor = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true },
+  });
+  if (!actor) {
+    return {
+      success: false,
+      error:
+        "บัญชีในเซสชันไม่อยู่ในฐานข้อมูลนี้ กรุณาออกจากระบบแล้วเข้าใหม่ (Docker กับ bun ใช้คนละฐานข้อมูล)",
+    };
+  }
+
   try {
     const item = await createContentRecord(
       data,

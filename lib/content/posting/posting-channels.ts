@@ -6,6 +6,10 @@ import {
   listBufferPostingTargets,
 } from "@/lib/integrations/buffer/posting-targets";
 import { isBufferConfigured } from "@/lib/integrations/buffer/client";
+import {
+  ensurePostingChannelsSyncedFromEnv,
+  parseBufferChannelMapFromEnv,
+} from "@/lib/integrations/buffer/env-channel-map";
 
 const DEFAULT_CHANNELS: Array<{
   slug: string;
@@ -44,8 +48,13 @@ const DEFAULT_CHANNELS: Array<{
     links: [
       {
         platform: "instagram",
-        bufferChannelId: "6a66fa9d4b2d03035f4a7475",
+        bufferChannelId: "6a7d5222b2d9d577436aea55",
         bufferChannelName: "idea_content_post",
+      },
+      {
+        platform: "facebook",
+        bufferChannelId: "6a7d5245b2d9d577436aeedf",
+        bufferChannelName: "Idea content post",
       },
     ],
   },
@@ -100,6 +109,12 @@ function mapChannelOption(
 }
 
 export async function seedDefaultPostingChannels() {
+  const envLinks = parseBufferChannelMapFromEnv();
+  if (envLinks.length) {
+    await ensurePostingChannelsSyncedFromEnv();
+    return;
+  }
+
   const count = await prisma.postingChannel.count();
   if (count > 0) return;
 
@@ -123,6 +138,12 @@ export async function seedDefaultPostingChannels() {
 }
 
 export async function listPostingChannels() {
+  await ensurePostingChannelsSyncedFromEnv().catch((error) => {
+    console.error("[posting-channels] env sync failed", {
+      error: error instanceof Error ? error.message : error,
+    });
+  });
+
   return prisma.postingChannel.findMany({
     where: { enabled: true },
     include: {
@@ -142,18 +163,25 @@ export type PostingChannelsForForm = {
 
 export async function listPostingChannelsForForm(): Promise<PostingChannelsForForm> {
   if (isBufferConfigured()) {
-    const bufferTargets = await listBufferPostingTargets();
-    if (bufferTargets.length > 0) {
-      return {
-        source: "buffer",
-        channels: bufferTargets.map((target) => ({
-          slug: target.slug,
-          label: target.label,
-          prefix: target.prefix,
-          platforms: target.platforms,
-          name: target.name,
-        })),
-      };
+    try {
+      const bufferTargets = await listBufferPostingTargets();
+      if (bufferTargets.length > 0) {
+        return {
+          source: "buffer",
+          channels: bufferTargets.map((target) => ({
+            slug: target.slug,
+            label: target.label,
+            prefix: target.prefix,
+            platforms: target.platforms,
+            name: target.name,
+          })),
+        };
+      }
+    } catch (error) {
+      console.error(
+        "[posting-channels] Buffer list failed, falling back to database mapping",
+        { error: error instanceof Error ? error.message : error }
+      );
     }
   }
 
@@ -165,6 +193,12 @@ export async function listPostingChannelsForForm(): Promise<PostingChannelsForFo
 }
 
 export async function listPostingChannelsForAdmin(): Promise<PostingChannelAdmin[]> {
+  await ensurePostingChannelsSyncedFromEnv().catch((error) => {
+    console.error("[posting-channels] env sync failed", {
+      error: error instanceof Error ? error.message : error,
+    });
+  });
+
   const channels = await prisma.postingChannel.findMany({
     include: {
       links: { orderBy: { platform: "asc" } },
@@ -243,6 +277,11 @@ export async function getBufferChannelIdForPostingChannel(
   slug: string,
   platform: Platform
 ): Promise<string | undefined> {
+  const envLink = parseBufferChannelMapFromEnv().find(
+    (link) => link.slug === slug && link.platform === platform
+  );
+  if (envLink) return envLink.bufferChannelId;
+
   const link = await prisma.postingChannelPlatform.findFirst({
     where: {
       enabled: true,

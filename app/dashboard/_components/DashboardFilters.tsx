@@ -29,7 +29,10 @@ export function DashboardFiltersBar({
   showMediaType = true,
 }: DashboardFiltersBarProps) {
   const { data: postingData } = useSWR("/api/posting-channels", (url: string) =>
-    fetch(url).then((res) => res.json())
+    fetch(url).then((res) => res.json()) as Promise<{
+      channels?: { slug: string; label: string }[];
+      error?: string;
+    }>
   );
   const range = getDateRangeForPeriod(
     filters.period,
@@ -39,6 +42,11 @@ export function DashboardFiltersBar({
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-3 border-b border-stone-200/80 pb-3 sm:gap-y-2 sm:pb-2">
+      {postingData?.error && (
+        <p className="w-full rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900">
+          {postingData.error}
+        </p>
+      )}
       <InlineFilter label="ช่อง">
         <NativeSelect
           className="w-[8.25rem]"

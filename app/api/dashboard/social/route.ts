@@ -15,11 +15,54 @@ export async function GET(request: Request) {
   const platform = searchParams.get("platform") ?? "all";
 
   const range = getDateRangeForPeriod(period, startDate, endDate);
-  const data = await fetchSocialAnalytics({
-    startDate: range.start,
-    endDate: range.end,
-    platform: platform === "all" ? undefined : platform,
-  });
 
-  return NextResponse.json(data);
+  try {
+    const data = await fetchSocialAnalytics({
+      startDate: range.start,
+      endDate: range.end,
+      platform: platform === "all" ? undefined : platform,
+    });
+
+    if (data.error) {
+      console.error("[api/dashboard/social] analytics error", {
+        period,
+        platform,
+        startDate: range.start,
+        endDate: range.end,
+        error: data.error,
+        debug: data.debug,
+      });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "ดึงข้อมูล Buffer ไม่สำเร็จ";
+    console.error("[api/dashboard/social] unhandled error", {
+      period,
+      platform,
+      startDate: range.start,
+      endDate: range.end,
+      error: message,
+    });
+    return NextResponse.json({
+      summary: {
+        reach: 0,
+        views: 0,
+        impressions: 0,
+        engagementRate: 0,
+        ctr: 0,
+        reactions: 0,
+        comments: 0,
+        shares: 0,
+        postCount: 0,
+      },
+      popularPosts: [],
+      unpopularPosts: [],
+      comparison: [],
+      trend: [],
+      configured: true,
+      error: `ดึงข้อมูล Buffer ไม่สำเร็จ — ${message}`,
+    });
+  }
 }

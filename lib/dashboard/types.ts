@@ -39,6 +39,16 @@ export type SocialPostMetric = {
   score: number;
 };
 
+export type SocialAnalyticsDebug = {
+  organizationId?: string;
+  mappedChannelIds: string[];
+  missingFromBuffer: string[];
+  /** Channel IDs that Buffer rejected with Actor access denied (when known) */
+  postsAccessDenied: string[];
+  rateLimited?: boolean;
+  bufferMessage?: string;
+};
+
 export type SocialAnalyticsResponse = {
   summary: SocialMetricSummary;
   popularPosts: SocialPostMetric[];
@@ -47,6 +57,8 @@ export type SocialAnalyticsResponse = {
   trend: { date: string; engagement: number; reach: number }[];
   configured: boolean;
   error?: string;
+  /** Present when Buffer fetch fails — use for debugging channel mapping */
+  debug?: SocialAnalyticsDebug;
 };
 
 export type WorkflowSummary = {

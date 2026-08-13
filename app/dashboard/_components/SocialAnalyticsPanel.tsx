@@ -26,8 +26,23 @@ function buildSocialKey(filters: DashboardFilters) {
 
 async function fetchSocialAnalytics(url: string): Promise<SocialAnalyticsResponse> {
   const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to load social analytics");
-  return res.json();
+  const data = (await res.json().catch(() => null)) as
+    | SocialAnalyticsResponse
+    | { error?: string }
+    | null;
+
+  if (data && "error" in data && data.error) {
+    return data as SocialAnalyticsResponse;
+  }
+
+  if (!res.ok || !data) {
+    throw new Error(
+      (data && "error" in data && data.error) ||
+        `โหลดข้อมูลไม่สำเร็จ (HTTP ${res.status})`
+    );
+  }
+
+  return data as SocialAnalyticsResponse;
 }
 
 function truncateText(text: string, max = 48) {
@@ -57,8 +72,35 @@ export function SocialAnalyticsPanel() {
       />
 
       {(error || data?.error) && (
-        <div className="shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-800">
-          {error ? "โหลดข้อมูลไม่สำเร็จ" : data?.error}
+        <div className="shrink-0 space-y-1 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] text-amber-900">
+          <p className="font-medium">
+            {data?.error ||
+              (error instanceof Error ? error.message : "โหลดข้อมูลไม่สำเร็จ")}
+          </p>
+          {data?.debug && (
+            <div className="space-y-0.5 font-mono text-[10px] text-amber-800/90">
+              {data.debug.organizationId && (
+                <p>org: {data.debug.organizationId}</p>
+              )}
+              {data.debug.mappedChannelIds.length > 0 && (
+                <p>mapped: {data.debug.mappedChannelIds.join(", ")}</p>
+              )}
+              {data.debug.missingFromBuffer.length > 0 && (
+                <p>
+                  missingFromBuffer: {data.debug.missingFromBuffer.join(", ")}
+                </p>
+              )}
+              {data.debug.postsAccessDenied.length > 0 && (
+                <p>
+                  postsAccessDenied: {data.debug.postsAccessDenied.join(", ")}
+                </p>
+              )}
+              {data.debug.rateLimited && <p>rateLimited: true</p>}
+              {data.debug.bufferMessage && (
+                <p>buffer: {data.debug.bufferMessage}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

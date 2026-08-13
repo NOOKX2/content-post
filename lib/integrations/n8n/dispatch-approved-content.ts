@@ -1,5 +1,30 @@
+import { existsSync } from "node:fs";
 import type { Content } from "@prisma/client";
 import { buildN8nContentPayload } from "@/lib/integrations/n8n/build-content-payload";
+
+function isRunningInDocker() {
+  try {
+    return existsSync("/.dockerenv");
+  } catch {
+    return false;
+  }
+}
+
+function resolveN8nBaseUrl() {
+  const configured = (process.env.N8N_WEBHOOK_URL || "").replace(/\/$/, "");
+  const dockerUrl = "http://n8n:5678";
+  const hostUrl = "http://localhost:5678";
+
+  if (configured) {
+    // Compose hostname only resolves inside the Docker network.
+    if (/^https?:\/\/n8n(?::|\/|$)/i.test(configured) && !isRunningInDocker()) {
+      return hostUrl;
+    }
+    return configured;
+  }
+
+  return isRunningInDocker() ? dockerUrl : hostUrl;
+}
 
 function logContentApproved(
   step: string,
@@ -37,10 +62,7 @@ function getApprovedWebhookUrl(): string {
     return process.env.N8N_CONTENT_APPROVED_WEBHOOK_URL;
   }
 
-  const baseUrl = (process.env.N8N_WEBHOOK_URL || "http://n8n:5678").replace(
-    /\/$/,
-    ""
-  );
+  const baseUrl = resolveN8nBaseUrl();
   return `${baseUrl}/webhook/content-approved`;
 }
 
