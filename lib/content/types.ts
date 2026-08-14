@@ -32,6 +32,8 @@ export interface ScriptRow {
   endTime: string;
   /** @deprecated Prefer startTime/endTime. Kept for legacy script rows. */
   duration?: string;
+  /** Who speaks this line / scene */
+  speaker: string;
   action: string;
   dialogue: string;
   notes: string;

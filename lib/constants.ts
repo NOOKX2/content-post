@@ -9,13 +9,13 @@ export const PLATFORMS: {
   shortLabel: string;
   color: string;
 }[] = [
-  { id: "facebook", label: "Facebook", shortLabel: "FB", color: "#1877F2" },
-  { id: "instagram", label: "Instagram", shortLabel: "IG", color: "#E4405F" },
-  { id: "tiktok", label: "TikTok", shortLabel: "TT", color: "#000000" },
-  { id: "line", label: "LINE", shortLabel: "LINE", color: "#06C755" },
-  { id: "lemon8", label: "Lemon8", shortLabel: "L8", color: "#FFC700" },
-  { id: "youtube", label: "YouTube", shortLabel: "YT", color: "#FF0000" },
-];
+    { id: "facebook", label: "Facebook", shortLabel: "FB", color: "#1877F2" },
+    { id: "instagram", label: "Instagram", shortLabel: "IG", color: "#E4405F" },
+    { id: "tiktok", label: "TikTok", shortLabel: "TT", color: "#000000" },
+    { id: "line", label: "LINE", shortLabel: "LINE", color: "#06C755" },
+    { id: "lemon8", label: "Lemon8", shortLabel: "L8", color: "#FFC700" },
+    { id: "youtube", label: "YouTube", shortLabel: "YT", color: "#FF0000" },
+  ];
 
 export const TEAM_MEMBERS = [
   "โอปอ",
@@ -53,23 +53,56 @@ export const PRODUCTS = [
   "ยาน้ำมันสูตรคลาสสิค 60 ซีซี",
 ] as const;
 
-export const FILMING_EQUIPMENT = [
-  "กล้อง 1 อัน",
-  "ปลอกใส่กล้อง 1 อัน",
-  "พาวเวอร์แบงค์อันใหญ่ 1 อัน",
-  "พาวเวอร์แบงค์อันเล็ก 1 อัน",
-  "ขาตั้งกล้อง 1 อัน",
-  "กระเป๋าใส่กล้อง 1 อัน",
-  "กล่องไมค์",
-  "ไมค์ 2 ตัว",
-  "ตัวเชื่อมกับมือถือ 1 อัน",
-  "ตัวเชื่อมหัว Type C 1 อัน",
-  "ที่กรองเสียง 4 อัน",
-  "สายเชื่อม 1 อัน",
-  "กระเป๋าใส่ไมค์ 1 อัน",
-  "External Harddisk Sandisk 1 TB",
-  "Flash Drive UGREEN",
+export type FilmingEquipmentGroup = {
+  /** Numbered heading shown in the dropdown, e.g. "1.Dji osmo pocket3" */
+  label: string;
+  /** Selectable kit name (same as heading text without forcing the number) */
+  kit: string;
+  items: readonly string[];
+};
+
+export const FILMING_EQUIPMENT_GROUPS: readonly FilmingEquipmentGroup[] = [
+  {
+    label: "1.Dji osmo pocket3",
+    kit: "Dji osmo pocket3",
+    items: [
+      "กล้อง 1 อัน",
+      "ปลอกใส่กล้อง 1 อัน",
+      "พาวเวอร์แบงค์อันใหญ่ 1 อัน",
+      "พาวเวอร์แบงค์อันเล็ก 1 อัน",
+      "ขาตั้งกล้อง 1 อัน",
+      "กระเป๋าใส่กล้อง 1 อัน",
+    ],
+  },
+  {
+    label: "2.Dji Mic3",
+    kit: "Dji Mic3",
+    items: [
+      "กล่องไมค์",
+      "ไมค์ 2 ตัว",
+      "ตัวเชื่อมกับมือถือ 1 อัน",
+      "ตัวเชื่อมหัว Type C 1 อัน",
+      "ที่กรองเสียง 4 อัน",
+      "สายเชื่อม 1 อัน",
+      "กระเป๋าใส่ไมค์ 1 อัน",
+    ],
+  },
+  {
+    label: "3.External Harddisk Sandisk 1 TB",
+    kit: "External Harddisk Sandisk 1 TB",
+    items: [],
+  },
+  {
+    label: "4.Flash Drive UGREEN",
+    kit: "Flash Drive UGREEN",
+    items: [],
+  },
 ] as const;
+
+/** Flat list of selectable values for forms and validation */
+export const FILMING_EQUIPMENT = FILMING_EQUIPMENT_GROUPS.flatMap((group) =>
+  group.items.length > 0 ? [...group.items] : [group.kit]
+);
 
 export const LOCATIONS = [
   "บ้านลาดพร้าว - ห้องนั่งเล่น",

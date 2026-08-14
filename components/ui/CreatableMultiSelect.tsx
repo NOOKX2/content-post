@@ -5,9 +5,15 @@ import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/shared/utils";
 
-interface CreatableMultiSelectProps {
+export type CreatableMultiSelectGroup = {
   label: string;
   options: readonly string[];
+};
+
+interface CreatableMultiSelectProps {
+  label: string;
+  options?: readonly string[];
+  optionGroups?: readonly CreatableMultiSelectGroup[];
   value: string[];
   onChange: (value: string[]) => void;
   optional?: boolean;
@@ -18,7 +24,8 @@ interface CreatableMultiSelectProps {
 
 export function CreatableMultiSelect({
   label,
-  options,
+  options = [],
+  optionGroups,
   value,
   onChange,
   optional = false,
@@ -28,10 +35,27 @@ export function CreatableMultiSelect({
 }: CreatableMultiSelectProps) {
   const [customText, setCustomText] = useState("");
 
+  const flatOptions = useMemo(() => {
+    if (optionGroups?.length) {
+      return optionGroups.flatMap((group) => group.options);
+    }
+    return options;
+  }, [optionGroups, options]);
+
   const availableOptions = useMemo(
-    () => options.filter((option) => !value.includes(option)),
-    [options, value]
+    () => flatOptions.filter((option) => !value.includes(option)),
+    [flatOptions, value]
   );
+
+  const availableGroups = useMemo(() => {
+    if (!optionGroups?.length) return null;
+    return optionGroups
+      .map((group) => ({
+        label: group.label,
+        options: group.options.filter((option) => !value.includes(option)),
+      }))
+      .filter((group) => group.options.length > 0);
+  }, [optionGroups, value]);
 
   const addValue = (next: string) => {
     const trimmed = next.trim();
@@ -66,11 +90,21 @@ export function CreatableMultiSelect({
           className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         >
           <option value="">{placeholder}</option>
-          {availableOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
+          {availableGroups
+            ? availableGroups.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </optgroup>
+              ))
+            : availableOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
         </select>
 
         <div className="flex w-full gap-2">

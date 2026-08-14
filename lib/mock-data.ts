@@ -33,6 +33,7 @@ export const MOCK_CONTENT: ContentItem[] = [
         id: "s1",
         startTime: "00:00",
         endTime: "00:15",
+        speaker: "พิธีกร",
         action: "Open with product shot",
         dialogue: "สวัสดีค่ะ วันนี้มาแนะนำ Hero Serum",
         notes: "Close-up macro",

@@ -113,6 +113,16 @@ function scriptTable(doc: Doc, content: ContentItem) {
       .fillColor("#7a7a7a")
       .text(formatScriptDuration(row) || "—", { continued: false });
     doc.moveDown(0.15);
+    if (row.speaker) {
+      doc
+        .font(FONT_REGULAR)
+        .fontSize(11)
+        .fillColor("#1d1d1f")
+        .text(`คนพูด: ${row.speaker}`, {
+          width: CONTENT_WIDTH,
+        });
+      doc.moveDown(0.1);
+    }
     if (row.action) {
       doc.font(FONT_REGULAR).fontSize(11).fillColor("#1d1d1f").text(row.action, {
         width: CONTENT_WIDTH,

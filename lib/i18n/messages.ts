@@ -284,7 +284,7 @@ export const th = {
     finalClip: "คลิปวิดีโอ (หลังตัดต่อ)",
     finalClipHint: "อัปโหลดคลิปที่ตัดต่อเสร็จแล้วเพื่อส่งอนุมัติรอบสอง",
     coverHint: "อัปโหลดรูปภาพปกคลิป (.jpg / .png / .webp) สูงสุด 10 MB",
-    scriptHint: "เวลาเริ่มต้น, เวลาสิ้นสุด, Action, บทพูด, หมายเหตุ, เพิ่มรูปภาพ",
+    scriptHint: "เวลาเริ่มต้น, เวลาสิ้นสุด, คนพูด, Action, บทพูด, หมายเหตุ, เพิ่มรูปภาพ",
     imageRefHint: "อัปโหลดรูปอ้างอิง หรือแนบลิงก์ภาพตัวอย่าง",
     videoLinkHint: "หรือแนบลิงก์วิดีโอสาธารณะ",
     videoFileHint: "อัปโหลดคลิปวิดีโอ (.mp4 / .mov / .webm) สูงสุด 200 MB",
@@ -1020,7 +1020,7 @@ export const en: Messages = {
     finalClipHint: "Upload the finished clip to submit for round-two approval",
     coverHint: "Upload a cover image (.jpg / .png / .webp), max 10 MB",
     scriptHint:
-      "Start time, end time, action, dialogue, notes, and add an image",
+      "Start time, end time, speaker, action, dialogue, notes, and add an image",
     imageRefHint: "Upload a reference image or attach a sample image link",
     videoLinkHint: "Or attach a public video link",
     videoFileHint: "Upload a video clip (.mp4 / .mov / .webm), max 200 MB",

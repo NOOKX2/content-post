@@ -23,6 +23,7 @@ import { ScriptTable } from "@/app/create/_components/ScriptTable";
 import { TeamTable } from "@/app/create/_components/TeamTable";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { CreatableMultiSelect } from "@/components/ui/CreatableMultiSelect";
+import { FilmingEquipmentChecklist } from "@/app/create/_components/FilmingEquipmentChecklist";
 import { Input } from "@/components/ui/Input";
 import { PostingChannelSelect } from "@/app/create/_components/PostingChannelSelect";
 import type { PostingChannelOption } from "@/app/create/_components/PostingChannelSelect";
@@ -30,7 +31,6 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   CONTENT_OBJECTIVES,
-  FILMING_EQUIPMENT,
   LOCATIONS,
   PRODUCTS,
   TEAM_MEMBERS,
@@ -89,6 +89,7 @@ export function VideoContentFormFields({
         id: generateId(),
         startTime: "",
         endTime: "",
+        speaker: "",
         action: "",
         dialogue: "",
         notes: "",
@@ -341,13 +342,9 @@ export function VideoContentFormFields({
             onChange={(e) => update("itemsToPrepare", e.target.value)}
             placeholder="อื่นๆ..."
           />
-          <CreatableMultiSelect
-            label="อุปกรณ์ถ่าย"
-            options={FILMING_EQUIPMENT}
+          <FilmingEquipmentChecklist
             value={form.filmingEquipment}
             onChange={(items) => update("filmingEquipment", items)}
-            placeholder="เลือกอุปกรณ์..."
-            addPlaceholder="อื่นๆ..."
           />
         </div>
       </ContentFormSection>

@@ -424,6 +424,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
               <thead>
                 <tr className="border-b border-stone-100 text-xs text-stone-500">
                   <th className="pb-2 pr-4 font-medium">เวลา</th>
+                  <th className="pb-2 pr-4 font-medium">คนพูด</th>
                   <th className="pb-2 pr-4 font-medium">Action</th>
                   <th className="pb-2 pr-4 font-medium">Dialogue</th>
                   <th className="pb-2 pr-4 font-medium">หมายเหตุ</th>
@@ -435,6 +436,9 @@ export function ContentDetail({ content }: ContentDetailProps) {
                   <tr key={row.id} className="border-b border-stone-50">
                     <td className="py-2.5 pr-4 text-stone-700">
                       {formatScriptDuration(row) || "—"}
+                    </td>
+                    <td className="py-2.5 pr-4 text-stone-700">
+                      {row.speaker || "—"}
                     </td>
                     <td className="py-2.5 pr-4 text-stone-700">{row.action}</td>
                     <td className="py-2.5 pr-4 text-stone-700">

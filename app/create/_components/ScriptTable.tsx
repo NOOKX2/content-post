@@ -14,7 +14,13 @@ interface ScriptTableProps {
   hideAddButton?: boolean;
 }
 
-type ScriptField = "startTime" | "endTime" | "action" | "dialogue" | "notes";
+type ScriptField =
+  | "startTime"
+  | "endTime"
+  | "speaker"
+  | "action"
+  | "dialogue"
+  | "notes";
 
 export function ScriptTable({
   rows,
@@ -33,6 +39,7 @@ export function ScriptTable({
         id: generateId(),
         startTime: "",
         endTime: "",
+        speaker: "",
         action: "",
         dialogue: "",
         notes: "",
@@ -121,7 +128,7 @@ export function ScriptTable({
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-stone-200">
-          <table className="w-full min-w-[880px] text-sm">
+          <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="bg-stone-50 text-left">
                 <th className="w-36 px-3 py-2.5 font-medium text-stone-600">
@@ -129,6 +136,9 @@ export function ScriptTable({
                 </th>
                 <th className="w-36 px-3 py-2.5 font-medium text-stone-600">
                   เวลาสิ้นสุด
+                </th>
+                <th className="w-36 px-3 py-2.5 font-medium text-stone-600">
+                  คนพูด
                 </th>
                 <th className="px-3 py-2.5 font-medium text-stone-600">
                   Action
@@ -170,7 +180,9 @@ export function ScriptTable({
                       className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
                   </td>
-                  {(["action", "dialogue", "notes"] as const).map((field) => (
+                  {(
+                    ["speaker", "action", "dialogue", "notes"] as const
+                  ).map((field) => (
                     <td key={field} className="px-3 py-2">
                       <input
                         value={row[field]}
@@ -178,11 +190,13 @@ export function ScriptTable({
                           updateRow(row.id, field, e.target.value)
                         }
                         placeholder={
-                          field === "dialogue"
-                            ? "Dialogue"
-                            : field === "notes"
-                              ? "Notes"
-                              : "Action"
+                          field === "speaker"
+                            ? "คนพูด"
+                            : field === "dialogue"
+                              ? "Dialogue"
+                              : field === "notes"
+                                ? "Notes"
+                                : "Action"
                         }
                         className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
