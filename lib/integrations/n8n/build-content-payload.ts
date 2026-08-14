@@ -38,6 +38,9 @@ export async function buildN8nContentPayload(record: Content) {
   return {
     ...item,
     mediaUrl,
+    thumbnailUrl: item.coverImage
+      ? resolvePublicMediaUrl([item.coverImage], "image", appPublicUrl)
+      : null,
     bufferTargets,
   };
 }

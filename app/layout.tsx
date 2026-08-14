@@ -3,6 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { auth } from "@/auth";
 import { Providers } from "./providers";
 import { AppShell } from "@/components/layout/AppShell";
+import { getLocale } from "@/lib/i18n/server";
+import { getArchivePayload } from "@/lib/archive/data/queries";
+import type { ArchivePayload } from "@/lib/archive/types";
+import { getMyProfile } from "@/lib/profile/data";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,14 +30,45 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+  const locale = await getLocale();
+  let initialProfile = null;
+  let initialArchive: ArchivePayload | null = null;
+  let archiveError = "";
+
+  if (session?.user?.id) {
+    try {
+      initialProfile = await getMyProfile(session.user.id);
+    } catch (error) {
+      console.error("[layout] failed to load profile", error);
+    }
+
+    try {
+      initialArchive = await getArchivePayload();
+    } catch (error) {
+      console.error("[layout] failed to load archive", error);
+      const message = error instanceof Error ? error.message : String(error);
+      if (/does not exist|P2021|P2010|undefined/i.test(message)) {
+        archiveError =
+          "ฐานข้อมูลยังไม่มีตารางคลังข้อมูล กรุณารัน bunx prisma migrate deploy";
+      } else {
+        archiveError = `โหลดคลังข้อมูลไม่สำเร็จ — ${message}`;
+      }
+    }
+  }
 
   return (
     <html
-      lang="th"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
-        <Providers session={session}>
+        <Providers
+          session={session}
+          locale={locale}
+          initialProfile={initialProfile}
+          initialArchive={initialArchive}
+          archiveError={archiveError}
+        >
           <AppShell session={session}>{children}</AppShell>
         </Providers>
       </body>

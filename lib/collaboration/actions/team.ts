@@ -2,10 +2,18 @@
 
 import type { Role, TaskStatus } from "@prisma/client";
 import { auth } from "@/auth";
-import { TEAM_ROLES } from "@/lib/auth/domain/roles";
+import { hashPassword } from "@/lib/auth/domain/password";
+import {
+  TEAM_MEMBER_LIMIT,
+  TEAM_ROLES,
+  toAssignableRole,
+} from "@/lib/auth/domain/roles";
+import { prisma } from "@/lib/shared/prisma";
 import {
   createTask,
+  createTeamMember,
   deleteTask,
+  deleteTeamMember,
   listTasks,
   listTeamMembers,
   updateMemberRole,
@@ -47,7 +55,55 @@ export async function updateTeamMemberRole(
     throw new Error("ไม่สามารถลดบทบาทของตัวเองได้");
   }
 
-  return updateMemberRole(userId, role);
+  return updateMemberRole(userId, toAssignableRole(role));
+}
+
+export async function createAdminUser(input: {
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+}): Promise<TeamMemberItem> {
+  await requireAdmin();
+
+  const name = input.name.trim();
+  const email = input.email.toLowerCase().trim();
+  const role = toAssignableRole(input.role);
+
+  if (!name || !email || !input.password) {
+    throw new Error("กรุณากรอกข้อมูลให้ครบ");
+  }
+  if (input.password.length < 8) {
+    throw new Error("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
+  }
+  if (!TEAM_ROLES.includes(role)) {
+    throw new Error("ระดับผู้ใช้ไม่ถูกต้อง");
+  }
+
+  const count = await prisma.user.count();
+  if (count >= TEAM_MEMBER_LIMIT) {
+    throw new Error("จำนวนสมาชิกในแพ็กเกจเต็มแล้ว");
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    throw new Error("อีเมลนี้ถูกใช้งานแล้ว");
+  }
+
+  return createTeamMember({
+    name,
+    email,
+    passwordHash: await hashPassword(input.password),
+    role,
+  });
+}
+
+export async function removeAdminUser(userId: string): Promise<void> {
+  const admin = await requireAdmin();
+  if (userId === admin.id) {
+    throw new Error("ไม่สามารถลบบัญชีของตัวเองได้");
+  }
+  await deleteTeamMember(userId);
 }
 
 export async function fetchTeamTasks(options?: {

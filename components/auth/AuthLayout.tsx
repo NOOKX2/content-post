@@ -1,9 +1,20 @@
+"use client";
+
 import { BrandIcon } from "@/components/ui/BrandIcon";
+import { LanguageSwitch } from "@/components/layout/LanguageSwitch";
+import { useT } from "@/lib/i18n";
 
 interface AuthBrandPanelProps {
   headline: React.ReactNode;
   description: string;
   tag?: string;
+}
+
+function AuthBrandFooter() {
+  const { t } = useT();
+  return (
+    <p className="text-xs text-slate-500">{t("nav.tagline")}</p>
+  );
 }
 
 export function AuthBrandPanel({
@@ -50,9 +61,7 @@ export function AuthBrandPanel({
       </div>
 
       <div className="relative z-10">
-        <p className="text-xs text-slate-500">
-          Content Management System
-        </p>
+        <AuthBrandFooter />
       </div>
     </div>
   );
@@ -72,7 +81,10 @@ export function AuthFormPanel({
   footer,
 }: AuthFormPanelProps) {
   return (
-    <div className="flex flex-1 flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-24 bg-white">
+    <div className="relative flex flex-1 flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-24 bg-white">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <LanguageSwitch />
+      </div>
       <div className="mx-auto w-full max-w-md">
         {/* Mobile logo */}
         <div className="mb-8 flex items-center gap-2.5 lg:hidden">

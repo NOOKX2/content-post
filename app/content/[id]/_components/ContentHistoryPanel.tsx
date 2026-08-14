@@ -5,23 +5,34 @@ import useSWR from "swr";
 import { Check, Circle } from "lucide-react";
 import type { AuditLogItem } from "@/lib/collaboration/types/team";
 import { STATUS_LABELS } from "@/lib/constants";
-import { cn, formatThaiDate } from "@/lib/shared/utils";
+import { cn } from "@/lib/shared/utils";
 import type { ContentStatus } from "@/lib/types";
+import {
+  formatLocalizedDate,
+  statusLabel as localizedStatus,
+  useT,
+  type Locale,
+  type TFunction,
+} from "@/lib/i18n";
 
 async function fetchHistory(contentId: string) {
   const res = await fetch(`/api/content/${contentId}/history`);
   const data = (await res.json()) as { logs?: AuditLogItem[]; error?: string };
-  if (!res.ok) throw new Error(data.error || "โหลดประวัติไม่สำเร็จ");
+  if (!res.ok) throw new Error(data.error || "history-load-failed");
   return data.logs ?? [];
 }
 
-function formatActivityWhen(iso: string): string {
+function formatActivityWhen(
+  iso: string,
+  t: TFunction,
+  locale: Locale
+): string {
   const date = new Date(iso);
   const now = new Date();
-  const time = date.toLocaleTimeString("en-US", {
+  const time = date.toLocaleTimeString(locale === "en" ? "en-US" : "th-TH", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: locale === "en",
   });
 
   const startOfToday = new Date(
@@ -38,43 +49,43 @@ function formatActivityWhen(iso: string): string {
   );
 
   if (startOfEvent.getTime() === startOfToday.getTime()) {
-    return `Today, ${time}`;
+    return t("content.todayAt", { time });
   }
   if (startOfEvent.getTime() === startOfYesterday.getTime()) {
-    return `Yesterday, ${time}`;
+    return t("content.yesterdayAt", { time });
   }
-  return `${formatThaiDate(iso.slice(0, 10))} · ${time}`;
+  return `${formatLocalizedDate(iso.slice(0, 10), locale)} · ${time}`;
 }
 
-function statusLabel(value: unknown): string {
+function resolveStatusLabel(value: unknown, t: TFunction): string {
   if (typeof value !== "string") return String(value ?? "—");
   const known = STATUS_LABELS[value as ContentStatus];
-  return known?.label ?? value;
+  return known ? localizedStatus(t, value) : value;
 }
 
-function activityTitle(log: AuditLogItem): string {
+function activityTitle(log: AuditLogItem, t: TFunction): string {
   if (log.action === "status_changed") {
     const after = log.changes.find((c) => c.field === "สถานะ")?.after;
-    if (after === "posted") return "Content Published";
-    if (after === "post_failed") return "Post Failed";
-    if (after === "approved") return "Approved Content";
-    if (after === "scheduled") return "Content Scheduled";
-    if (after === "rejected") return "Content Rejected";
-    if (after === "pending") return "Submitted for Approval";
+    if (after === "posted") return t("content.published");
+    if (after === "post_failed") return t("content.postFailed");
+    if (after === "approved") return t("content.approved");
+    if (after === "scheduled") return t("content.scheduled");
+    if (after === "rejected") return t("content.rejected");
+    if (after === "pending") return t("content.submitted");
     if (typeof after === "string") {
-      return `Status → ${statusLabel(after)}`;
+      return t("content.statusTo", { status: resolveStatusLabel(after, t) });
     }
-    return "Status Updated";
+    return t("content.statusUpdated");
   }
-  if (log.action === "created") return "Project Created";
+  if (log.action === "created") return t("content.created");
   if (log.action === "updated") {
     const fields = log.changes.map((c) => c.field).filter(Boolean);
     if (fields.some((f) => /ไฟล์|attachment|รูป|วิดีโอ/i.test(f))) {
-      return "Final Draft Uploaded";
+      return t("content.finalDraft");
     }
-    return "Content Updated";
+    return t("content.updated");
   }
-  return "Activity";
+  return t("content.activity");
 }
 
 export function ContentHistoryPanel({
@@ -84,6 +95,7 @@ export function ContentHistoryPanel({
   contentId: string;
   variant?: "list" | "timeline";
 }) {
+  const { t, locale } = useT();
   const [showAll, setShowAll] = useState(false);
   const { data: logs = [], isLoading } = useSWR(
     `content-history:${contentId}`,
@@ -97,18 +109,18 @@ export function ContentHistoryPanel({
     <div className="space-y-3">
       {variant === "timeline" ? (
         <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-800 uppercase">
-          Activity Log
+          {t("content.activityLog")}
         </p>
       ) : (
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-stone-800">
-            ประวัติการแก้ไข
+            {t("content.history")}
           </h3>
         </div>
       )}
 
       {isLoading ? (
-        <p className="text-sm text-stone-400">กำลังโหลด...</p>
+        <p className="text-sm text-stone-400">{t("content.loadingHistory")}</p>
       ) : logs.length === 0 ? (
         <p
           className={cn(
@@ -118,7 +130,7 @@ export function ContentHistoryPanel({
               : "rounded-lg border border-dashed border-stone-200 py-6"
           )}
         >
-          ยังไม่มีประวัติการแก้ไข
+          {t("content.emptyHistory")}
         </p>
       ) : variant === "timeline" ? (
         <>
@@ -137,10 +149,10 @@ export function ContentHistoryPanel({
                     )}
                   </span>
                   <p className="text-sm font-semibold text-slate-900">
-                    {activityTitle(log)}
+                    {activityTitle(log, t)}
                   </p>
                   <p className="mt-0.5 text-xs text-stone-400">
-                    {formatActivityWhen(log.createdAt)} · {log.actorName}
+                    {formatActivityWhen(log.createdAt, t, locale)} · {log.actorName}
                   </p>
                 </li>
               );
@@ -152,7 +164,7 @@ export function ContentHistoryPanel({
               onClick={() => setShowAll((v) => !v)}
               className="w-full pt-1 text-center text-sm font-medium text-sky-700 hover:text-sky-800"
             >
-              {showAll ? "Show less" : "View Full Edit History"}
+              {showAll ? t("content.showLess") : t("content.viewFullHistory")}
             </button>
           )}
         </>
@@ -168,16 +180,12 @@ export function ContentHistoryPanel({
                   {log.actorName}{" "}
                   <span className="font-normal text-stone-500">
                     {log.action === "status_changed"
-                      ? "เปลี่ยนสถานะ"
-                      : "แก้ไขรายละเอียด"}
+                      ? t("content.changedStatus")
+                      : t("content.editedDetails")}
                   </span>
                 </p>
                 <p className="text-xs text-stone-400">
-                  {formatThaiDate(log.createdAt.slice(0, 10))} ·{" "}
-                  {new Date(log.createdAt).toLocaleTimeString("th-TH", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {formatActivityWhen(log.createdAt, t, locale)}
                 </p>
               </div>
               {log.changes.length > 0 && (

@@ -20,29 +20,36 @@ import {
 import { fetchTeamTasks, updateTeamTask } from "@/lib/collaboration/actions/team";
 import type { TaskStatus } from "@prisma/client";
 import { useDashboardNav } from "@/lib/navigation/client/dashboard-nav";
-import { cn, formatThaiDate } from "@/lib/shared/utils";
-
-const FILTER_TABS: { id: TaskStatus | "all" | "active"; label: string }[] = [
-  { id: "active", label: "กำลังทำ" },
-  { id: "all", label: "ทั้งหมด" },
-  { id: "todo", label: "ยังไม่เริ่ม" },
-  { id: "in_progress", label: "กำลังทำอยู่" },
-  { id: "done", label: "เสร็จแล้ว" },
-];
+import { cn } from "@/lib/shared/utils";
+import {
+  formatLocalizedDate,
+  taskStatusLabel,
+  useT,
+} from "@/lib/i18n";
 
 function todayIso() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function formatDueLabel(dueDate: string) {
-  if (!dueDate) return { label: "ไม่มีกำหนด", urgent: false };
+function formatDueLabel(
+  dueDate: string,
+  t: ReturnType<typeof useT>["t"],
+  locale: ReturnType<typeof useT>["locale"]
+) {
+  if (!dueDate) return { label: t("tasks.noDue"), urgent: false };
   const today = todayIso();
-  if (dueDate === today) return { label: "ครบกำหนด: วันนี้", urgent: true };
+  if (dueDate === today) return { label: t("tasks.dueToday"), urgent: true };
   if (dueDate < today) {
-    return { label: `เกินกำหนด · ${formatThaiDate(dueDate)}`, urgent: true };
+    return {
+      label: t("tasks.overdue", { date: formatLocalizedDate(dueDate, locale) }),
+      urgent: true,
+    };
   }
-  return { label: `ครบกำหนด: ${formatThaiDate(dueDate)}`, urgent: false };
+  return {
+    label: t("tasks.dueOn", { date: formatLocalizedDate(dueDate, locale) }),
+    urgent: false,
+  };
 }
 
 function statusBadgeClass(status: TaskStatus) {
@@ -58,6 +65,7 @@ function statusBadgeClass(status: TaskStatus) {
 
 export function MyTasksView() {
   const { data: session } = useSession();
+  const { t, locale } = useT();
   const { navigate } = useDashboardNav();
   const { data: tasks = [], mutate, isLoading } = useSWR(
     "my-tasks",
@@ -92,7 +100,7 @@ export function MyTasksView() {
       await updateTeamTask(id, { status });
       await mutate();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "อัปเดตสถานะไม่สำเร็จ");
+      alert(error instanceof Error ? error.message : t("tasks.updateFailed"));
     }
   };
 
@@ -100,13 +108,19 @@ export function MyTasksView() {
     <>
       <Header
         session={session}
-        title="งานที่ได้รับมอบหมาย"
-        description="ดูและอัปเดตงานที่มอบหมายให้คุณทั้งหมด"
+        title={t("tasks.title")}
+        description={t("tasks.description")}
       />
       <div className="space-y-5 px-6 py-6 lg:px-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Tabs
-            tabs={FILTER_TABS}
+            tabs={[
+              { id: "active", label: t("tasks.active") },
+              { id: "all", label: t("tasks.all") },
+              { id: "todo", label: t("tasks.todo") },
+              { id: "in_progress", label: t("tasks.inProgress") },
+              { id: "done", label: t("tasks.done") },
+            ]}
             activeTab={filter}
             onChange={(id) =>
               setFilter(id as TaskStatus | "all" | "active")
@@ -119,7 +133,7 @@ export function MyTasksView() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="ค้นหาชื่องาน / รหัส content..."
+              placeholder={t("calendar.searchPlaceholder")}
               className="pl-9"
             />
           </div>
@@ -152,7 +166,7 @@ export function MyTasksView() {
           ) : (
             <div className="space-y-2.5">
               {filtered.map((task) => {
-                const due = formatDueLabel(task.dueDate);
+                const due = formatDueLabel(task.dueDate, t, locale);
                 return (
                   <div
                     key={task.id}
@@ -189,7 +203,9 @@ export function MyTasksView() {
                             </button>
                           )}
                           {task.createdByName && (
-                            <span>มอบหมายโดย {task.createdByName}</span>
+                            <span>
+                              {t("tasks.assignedBy", { name: task.createdByName })}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -198,7 +214,7 @@ export function MyTasksView() {
                           Object.keys(TASK_STATUS_LABELS) as TaskStatus[]
                         ).map((status) => ({
                           value: status,
-                          label: TASK_STATUS_LABELS[status],
+                          label: taskStatusLabel(t, status),
                         }))}
                         value={task.status}
                         onChange={(e) =>

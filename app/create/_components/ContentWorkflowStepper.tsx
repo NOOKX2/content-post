@@ -39,12 +39,12 @@ export function ContentWorkflowStepper({
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors",
                     isComplete &&
-                      "border-blue-600 bg-blue-600 text-white",
+                    "border-blue-600 bg-blue-600 text-white",
                     isCurrent &&
-                      "border-blue-600 bg-white text-blue-600 ring-4 ring-blue-100",
+                    "border-blue-600 bg-white text-blue-600 ring-4 ring-blue-100",
                     !isComplete &&
-                      !isCurrent &&
-                      "border-stone-200 bg-white text-stone-400"
+                    !isCurrent &&
+                    "border-stone-200 bg-white text-stone-400"
                   )}
                 >
                   {isComplete ? (

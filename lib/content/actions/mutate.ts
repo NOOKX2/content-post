@@ -25,7 +25,6 @@ import {
   notifyContentDetailChanged,
 } from "@/lib/notifications/domain/events";
 import { writeContentUpdateAudit } from "@/lib/content/data/audit";
-import { isAdminRole } from "@/lib/auth/domain/roles";
 import {
   resolveNextContentIdForChannel,
 } from "@/lib/content/data/content-id";
@@ -79,10 +78,6 @@ export async function createContent(
   const session = await auth();
   if (!session?.user) {
     return { success: false, error: "Unauthorized" };
-  }
-
-  if (isAdminRole(session.user.role)) {
-    return { success: false, error: "Forbidden" };
   }
 
   const actor = await prisma.user.findUnique({

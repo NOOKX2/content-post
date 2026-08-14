@@ -14,6 +14,7 @@ import {
   type PostsViewGroup,
 } from "@/lib/content/client/posts-filters";
 import type { ContentItem, MediaType } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 function sortByNewest(contents: ContentItem[]): ContentItem[] {
   return [...contents].sort(
@@ -24,6 +25,7 @@ function sortByNewest(contents: ContentItem[]): ContentItem[] {
 
 export function PostsView() {
   const { data: session } = useSession();
+  const { t } = useT();
   const { contents } = useContents();
   const [group, setGroup] = useState<PostsViewGroup>("all");
   const [subFilter, setSubFilter] = useState<PostsSubFilter>("all");
@@ -66,8 +68,8 @@ export function PostsView() {
     <>
       <Header
         session={session}
-        title="รายการ post ทั้งหมด"
-        description="ดูและตรวจสอบ Content ทุกสถานะได้จากที่เดียว"
+        title={t("posts.title")}
+        description={t("posts.description")}
         compact
       />
       <div className="space-y-5 px-4 py-4 sm:px-6 md:px-8 md:py-6">
@@ -82,11 +84,13 @@ export function PostsView() {
           onQueryChange={setQuery}
         />
 
-        <p className="text-sm text-stone-500">พบ {filtered.length} รายการ</p>
+        <p className="text-sm text-stone-500">
+          {t("posts.found", { count: filtered.length })}
+        </p>
 
         {filtered.length === 0 ? (
           <Card className="py-12 text-center text-sm text-stone-400">
-            ไม่พบ post ตามเงื่อนไขที่เลือก
+            {t("posts.empty")}
           </Card>
         ) : (
           <div className="space-y-3">

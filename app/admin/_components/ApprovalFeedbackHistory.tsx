@@ -6,13 +6,14 @@ import {
   fetchContentComments,
   type ContentCommentItem,
 } from "@/lib/notifications/actions/fetch";
-import { formatThaiDateTime } from "@/lib/shared/utils";
+import { formatLocalizedDateTime, useT } from "@/lib/i18n";
 
 function FeedbackEntry({ comment }: { comment: ContentCommentItem }) {
+  const { locale } = useT();
   return (
     <div className="border-l-2 border-stone-200 pl-4">
       <p className="text-xs text-stone-500">
-        {formatThaiDateTime(comment.createdAt)}
+        {formatLocalizedDateTime(comment.createdAt, locale)}
       </p>
       <p className="mt-1 text-sm text-stone-800">
         <span className="font-semibold text-stone-900">
@@ -25,6 +26,7 @@ function FeedbackEntry({ comment }: { comment: ContentCommentItem }) {
 }
 
 export function ApprovalFeedbackHistory({ contentId }: { contentId: string }) {
+  const { t } = useT();
   const { data: comments = [], isLoading } = useSWR<ContentCommentItem[]>(
     `content-comments:${contentId}`,
     () => fetchContentComments(contentId),
@@ -34,11 +36,11 @@ export function ApprovalFeedbackHistory({ contentId }: { contentId: string }) {
   return (
     <section className="space-y-3">
       <h3 className="text-sm font-semibold text-stone-900">
-        ประวัติการแสดงความคิดเห็น (Feedback History)
+        {t("admin.feedbackHistory")}
       </h3>
 
       {isLoading ? (
-        <p className="text-sm text-stone-500">กำลังโหลด...</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : comments.length > 0 ? (
         <div className="space-y-4">
           {comments.map((comment) => (
@@ -48,7 +50,7 @@ export function ApprovalFeedbackHistory({ contentId }: { contentId: string }) {
       ) : (
         <div className="flex items-center gap-2 rounded-lg border border-dashed border-stone-200 px-4 py-6 text-sm text-stone-500">
           <MessageSquare className="h-4 w-4 shrink-0" />
-          ยังไม่มีความคิดเห็นสำหรับ Content นี้
+          {t("admin.noFeedback")}
         </div>
       )}
     </section>

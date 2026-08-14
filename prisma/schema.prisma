@@ -23,6 +23,7 @@ enum TaskStatus {
 enum MediaType {
   video
   image
+  graphic
 }
 
 enum ContentStatus {
@@ -43,6 +44,8 @@ enum Platform {
   instagram
   tiktok
   youtube
+  line
+  lemon8
 }
 
 enum NotificationType {
@@ -71,6 +74,14 @@ enum CollaborationMessageType {
 model User {
   id              String                  @id @default(cuid())
   name            String
+  firstName       String                  @default("")
+  lastName        String                  @default("")
+  displayName     String                  @default("")
+  phone           String                  @default("")
+  phoneCountry    String                  @default("+66")
+  position        String                  @default("")
+  imageUrl        String                  @default("")
+  busy            Boolean                 @default(false)
   email           String                  @unique
   password        String
   role            Role                    @default(USER)
@@ -226,6 +237,7 @@ model Content {
   filmingEquipment String[]    @default([])
   attachments         String[]
   exampleAttachments  String[]    @default([])
+  coverImage          String        @default("")
   script              Json          @default("[]")
   ideaCreator    String        @default("")
   photographer   String        @default("")
@@ -236,6 +248,8 @@ model Content {
   category       String        @default("")
   tags           String[]
   imageMeta      Json          @default("{}")
+  googleEventId       String   @default("")
+  googleCalendarLink  String   @default("")
   createdById    String?
   createdBy      User?         @relation(fields: [createdById], references: [id])
   notifications  Notification[]
@@ -279,4 +293,49 @@ model ContentAuditLog {
   createdAt DateTime @default(now())
 
   @@index([contentId, createdAt])
+}
+
+enum BrandAssetKind {
+  logo
+  color
+  font
+  product_image
+  graphic
+  icon
+}
+
+model BrandHistory {
+  id        String   @id @default("default")
+  title     String   @default("")
+  body      String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+model BrandAsset {
+  id         String         @id @default(cuid())
+  kind       BrandAssetKind
+  name       String
+  url        String         @default("")
+  hex        String         @default("")
+  fontFamily String         @default("")
+  notes      String         @default("")
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([kind, sortOrder])
+}
+
+model ArchiveProduct {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  imageUrl    String   @default("")
+  sku         String   @default("")
+  enabled     Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([enabled, sortOrder])
 }

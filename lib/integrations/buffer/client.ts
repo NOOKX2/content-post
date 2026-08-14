@@ -1,3 +1,5 @@
+import { readBufferEnv } from "@/lib/integrations/buffer/env";
+
 type BufferGraphqlResponse<T> = {
   data?: T;
   errors?: { message: string; extensions?: { code?: string; window?: string } }[];
@@ -54,7 +56,7 @@ export async function bufferGraphql<T>(
   query: string,
   variables?: Record<string, unknown>
 ): Promise<T> {
-  const apiKey = process.env.BUFFER_API_KEY;
+  const apiKey = readBufferEnv("BUFFER_API_KEY");
   if (!apiKey) {
     throw new Error("BUFFER_API_KEY is not configured");
   }
@@ -154,5 +156,5 @@ export async function fetchAccessibleBufferChannels(
 }
 
 export function isBufferConfigured(): boolean {
-  return Boolean(process.env.BUFFER_API_KEY && process.env.BUFFER_ORG_ID);
+  return Boolean(readBufferEnv("BUFFER_API_KEY") && readBufferEnv("BUFFER_ORG_ID"));
 }

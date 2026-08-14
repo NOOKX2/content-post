@@ -44,6 +44,7 @@ import {
 } from "@/app/collaboration/_components/PersonAvatar";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/shared/utils";
+import { translateStoredMessage, useT } from "@/lib/i18n";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("th-TH", {
@@ -62,6 +63,7 @@ export function CollaborationChatPanel({
   className?: string;
 }) {
   const { data: session } = useSession();
+  const { t } = useT();
   const bootstrap = useCollaborationBootstrap();
   const { mutate: mutateGlobal } = useSWRConfig();
   const [text, setText] = useState("");
@@ -150,10 +152,10 @@ export function CollaborationChatPanel({
 
   const scheduleHint =
     channel.kind === "dm"
-      ? "นัดประชุม 1:1"
+      ? t("team.schedule1on1")
       : channel.kind === "team"
-        ? "นัดประชุมทีม"
-        : "นัดประชุมกลุ่ม";
+        ? t("team.scheduleTeam")
+        : t("team.scheduleGroup");
 
   if (showChannelCalendar) {
     if (channel.kind === "dm" && channel.peerUserId) {
@@ -163,7 +165,7 @@ export function CollaborationChatPanel({
             userId={channel.peerUserId}
             memberName={channel.name}
             channelId={channel.id}
-            subtitle="ดูช่วงที่มีนัดร่วมกัน เพื่อเลือกเวลาที่ว่าง"
+            subtitle={t("team.calendarOverlap")}
             onBack={() => setShowChannelCalendar(false)}
           />
         </div>
@@ -192,40 +194,42 @@ export function CollaborationChatPanel({
               type="button"
               onClick={onLeave}
               className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100 md:hidden"
-              aria-label="กลับไปรายการแชท"
+              aria-label={t("team.backToChats")}
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
           ) : null}
           <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-sm font-semibold text-stone-900">
-              {channel.name}
-            </h2>
-            {channel.kind === "team" && (
-              <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700">
-                {memberCount} Members
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-sm font-semibold text-stone-900">
+                {channel.name}
+              </h2>
+              {channel.kind === "team" && (
+                <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700">
+                  {memberCount}
+                </span>
+              )}
+              {channel.kind === "group" && (
+                <button
+                  type="button"
+                  onClick={() => setShowMembers(true)}
+                  className="rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-semibold text-violet-700 transition-colors hover:bg-violet-100"
+                >
+                  {memberCount}
+                </button>
+              )}
+            </div>
+            {channel.contentCode && (
+              <p className="text-xs text-stone-500">#{channel.contentCode}</p>
             )}
-            {channel.kind === "group" && (
-              <button
-                type="button"
-                onClick={() => setShowMembers(true)}
-                className="rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-semibold text-violet-700 transition-colors hover:bg-violet-100"
-              >
-                {memberCount} สมาชิก
-              </button>
-            )}
-          </div>
-          {channel.contentCode && (
-            <p className="text-xs text-stone-500">#{channel.contentCode}</p>
-          )}
-          {channel.kind === "dm" && channel.peerEmail && (
-            <p className="truncate text-xs text-stone-500">{channel.peerEmail}</p>
-          )}
+            {channel.kind === "dm" && channel.peerEmail ? (
+              <p className="mt-0.5 block truncate text-xs text-stone-500">
+                {channel.peerEmail}
+              </p>
+            ) : null}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/60 p-1.5">
           {(channel.kind === "dm" && channel.peerUserId) ||
           channel.kind === "team" ||
           channel.kind === "group" ? (
@@ -235,13 +239,13 @@ export function CollaborationChatPanel({
               onClick={() => setShowChannelCalendar(true)}
               title={
                 channel.kind === "dm"
-                  ? `ดูปฏิทินและนัดประชุมกับ ${channel.name}`
-                  : `ดูปฏิทินและนัด${scheduleHint}ในห้องนี้`
+                  ? t("team.scheduleWith", { name: channel.name })
+                  : t("team.scheduleInRoom")
               }
-              className="px-2 sm:px-3"
+              className="bg-blue-600 px-3 text-white shadow-none hover:bg-blue-700"
             >
               <CalendarDays className="h-4 w-4" />
-              <span className="hidden sm:inline">นัดประชุม</span>
+              {t("team.scheduleMeeting")}
             </Button>
           ) : null}
           {channel.kind === "dm" ? (
@@ -251,7 +255,7 @@ export function CollaborationChatPanel({
               type="button"
               onClick={() => setShowMembers(true)}
               className="rounded-full transition hover:opacity-80"
-              title="ดูสมาชิกในกลุ่ม"
+              title={t("team.viewGroupMembers")}
             >
               <AvatarStack names={headerPeople} max={4} size="sm" />
             </button>
@@ -289,14 +293,16 @@ export function CollaborationChatPanel({
         {(loadingOlder || (loadingInitial && !displayMessages.length)) && (
           <div className="flex justify-center py-2">
             <span className="text-xs text-stone-400">
-              {loadingInitial ? "กำลังโหลดข้อความ..." : "กำลังโหลดข้อความเก่า..."}
+              {loadingInitial
+                ? t("team.loadingMessages")
+                : t("team.loadingOlder")}
             </span>
           </div>
         )}
         {!loadingInitial && hasMoreOlder && displayMessages.length > 0 && (
           <div className="flex justify-center pb-1">
             <span className="text-xs text-stone-400">
-              เลื่อนขึ้นเพื่อดูข้อความเก่า
+              {t("team.scrollOlder")}
             </span>
           </div>
         )}
@@ -326,22 +332,14 @@ export function CollaborationChatPanel({
         channel.kind === "group" ? (
           <p className="mb-2 hidden flex-wrap items-center gap-1 text-xs text-stone-500 sm:flex">
             <CalendarDays className="h-3.5 w-3.5 shrink-0 text-blue-600" />
-            <span>{scheduleHint} → กดปุ่ม</span>
-            <button
-              type="button"
-              onClick={() => setShowChannelCalendar(true)}
-              className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-            >
-              นัดประชุม
-            </button>
-            <span>ด้านบนขวา เพื่อดูปฏิทินและเลือกเวลา</span>
+            <span>{t("team.scheduleHint", { kind: scheduleHint })}</span>
           </p>
         ) : null}
         <form onSubmit={handleSend} className="flex gap-2">
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="พิมพ์ข้อความ..."
+            placeholder={t("team.typeMessage")}
             className="min-w-0 flex-1 rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
           <Button type="submit" size="sm" disabled={!text.trim()}>
@@ -366,6 +364,7 @@ function MessageBubble({
   onRetry?: () => void;
   onChanged: () => void;
 }) {
+  const { t } = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.body);
   const [busy, setBusy] = useState(false);
@@ -421,7 +420,7 @@ function MessageBubble({
     return (
       <div className="flex justify-center">
         <p className="max-w-2xl rounded-full bg-stone-200/80 px-4 py-1.5 text-center text-xs text-stone-600">
-          {message.body}
+          {translateStoredMessage(message.body, t)}
         </p>
       </div>
     );
@@ -438,7 +437,7 @@ function MessageBubble({
       setEditing(false);
       onChanged();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "แก้ไขไม่สำเร็จ");
+      alert(error instanceof Error ? error.message : t("team.editFailed"));
     } finally {
       setBusy(false);
     }
@@ -446,13 +445,13 @@ function MessageBubble({
 
   const handleDelete = async () => {
     if (busy) return;
-    if (!confirm("ลบข้อความนี้?")) return;
+    if (!confirm(t("team.confirmDeleteMessage"))) return;
     setBusy(true);
     try {
       await deleteChannelMessage(message.id);
       onChanged();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "ลบไม่สำเร็จ");
+      alert(error instanceof Error ? error.message : t("team.deleteFailed"));
     } finally {
       setBusy(false);
     }
@@ -506,7 +505,7 @@ function MessageBubble({
                   setDraft(message.body);
                 }}
                 className="rounded-md bg-white/20 p-1.5 hover:bg-white/30"
-                aria-label="ยกเลิกการแก้ไข"
+                aria-label={t("common.cancel")}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -515,7 +514,7 @@ function MessageBubble({
                 onClick={() => void handleSaveEdit()}
                 disabled={busy || !draft.trim()}
                 className="rounded-md bg-white p-1.5 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
-                aria-label="บันทึก"
+                aria-label={t("common.save")}
               >
                 <Check className="h-3.5 w-3.5" />
               </button>
@@ -537,10 +536,10 @@ function MessageBubble({
                   onClick={onRetry}
                   className="font-medium underline underline-offset-2"
                 >
-                  ส่งอีกครั้ง
+                  {t("common.retry")}
                 </button>
               ) : null}
-              {message.editedAt && <span>· แก้ไขแล้ว</span>}
+              {message.editedAt && <span>· {t("team.edited")}</span>}
             </div>
           </>
         )}
@@ -565,7 +564,7 @@ function MessageBubble({
               }}
             >
               <Pencil className="h-3.5 w-3.5" />
-              แก้ไข
+              {t("common.edit")}
             </button>
             <button
               type="button"
@@ -577,7 +576,7 @@ function MessageBubble({
               }}
             >
               <Trash2 className="h-3.5 w-3.5" />
-              ลบ
+              {t("common.delete")}
             </button>
           </div>,
           document.body

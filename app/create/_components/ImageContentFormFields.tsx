@@ -55,7 +55,9 @@ export function ImageContentFormFields({
   ) => void;
   onChannelsChange: (slugs: string[]) => void;
 }) {
-  const config = MEDIA_FORM_CONFIG.image;
+  const config = MEDIA_FORM_CONFIG[form.mediaType === "graphic" ? "graphic" : "image"];
+  const accentBorder =
+    form.mediaType === "graphic" ? "border-pink-100" : "border-emerald-100";
   const previewImage =
     form.attachments.find((url) => url.trim() && isImageAttachment(url)) ?? "";
 
@@ -87,7 +89,7 @@ export function ImageContentFormFields({
             />
             <div>
               <PostingChannelSelect
-                label="ช่องที่ลง *"
+                label="ช่องทาง *"
                 options={channelOptions}
                 placeholder="เลือกช่อง..."
                 value={channelTargetSlugs}
@@ -135,7 +137,7 @@ export function ImageContentFormFields({
           title="ตัวอย่างรูปภาพ"
           description="อัปโหลดรูป reference หรือแนบลิงก์ภาพตัวอย่าง"
           icon={ImageIcon}
-          className="border-pink-100"
+          className={accentBorder}
         >
           <ImageAttachmentLinks
             links={form.attachments}
@@ -144,7 +146,7 @@ export function ImageContentFormFields({
           />
         </ContentFormSection>
 
-        <Card padding="none" className="border-pink-100">
+        <Card padding="none" className={accentBorder}>
           <div className="flex items-center gap-2.5 border-b border-stone-200 px-6 py-4">
             <ImageIcon
               className="h-5 w-5 shrink-0 text-stone-900"
@@ -281,7 +283,7 @@ export function ImageContentFormFields({
       </div>
 
       <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-        <Card padding="none" className="border-pink-100">
+        <Card padding="none" className={accentBorder}>
           <div className="flex items-center gap-2.5 border-b border-stone-200 px-6 py-4">
             <Calendar
               className="h-5 w-5 shrink-0 text-stone-900"

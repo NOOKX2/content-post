@@ -31,7 +31,7 @@ export function PlatformSelect({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium text-stone-700">แพลตฟอร์ม</span>
+      <span className="text-sm font-medium text-stone-700">แพลตฟอร์มที่ลง</span>
       {locked && selected.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {selected.map((platform) => {

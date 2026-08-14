@@ -5,6 +5,7 @@ import { PlatformBadgeGroup } from "@/components/ui/PlatformIcon";
 import { Badge } from "@/components/ui/Badge";
 import { STATUS_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/shared/utils";
+import { statusLabel, useT } from "@/lib/i18n";
 
 interface ContentCardProps {
   content: ContentItem;
@@ -13,6 +14,7 @@ interface ContentCardProps {
 }
 
 export function ContentCard({ content, compact, onClick }: ContentCardProps) {
+  const { t } = useT();
   const status = STATUS_LABELS[content.status];
 
   return (
@@ -44,7 +46,9 @@ export function ContentCard({ content, compact, onClick }: ContentCardProps) {
         </p>
       )}
       <div className="mt-2 flex items-center gap-2">
-        <Badge className={status.color}>{status.label}</Badge>
+        <Badge className={status.color}>
+          {statusLabel(t, content.status)}
+        </Badge>
         {content.scheduledTime && (
           <span className="text-xs text-stone-400">
             {content.scheduledTime}

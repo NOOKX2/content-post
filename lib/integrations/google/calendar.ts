@@ -38,27 +38,34 @@ export type CreatedCalendarMeeting = {
   meetUrl: string;
 };
 
-/**
- * Creates a Google Calendar event on the organizer's primary calendar,
- * invites all attendees (Google emails each of them so it lands on their
- * own calendars), and — unless a manual link is supplied — provisions a
- * Google Meet link automatically.
- */
-export async function createCalendarMeeting(params: {
+export type CreateCalendarEventParams = {
   title: string;
   description?: string;
   startsAt: string;
   endsAt: string;
-  attendees: CalendarAttendee[];
+  attendees?: CalendarAttendee[];
+  /** When true (default for meetings), provisions a Google Meet link unless manualMeetUrl is set. */
+  withMeet?: boolean;
   manualMeetUrl?: string;
   timeZone?: string;
-}): Promise<CreatedCalendarMeeting> {
+  /** If set, updates this event instead of creating a new one. */
+  eventId?: string;
+};
+
+/**
+ * Creates or updates a Google Calendar event on the organizer's primary calendar.
+ * Optionally invites attendees and provisions a Google Meet link.
+ */
+export async function createCalendarEvent(
+  params: CreateCalendarEventParams
+): Promise<CreatedCalendarMeeting> {
   const auth = getOAuthClient();
   const calendar = google.calendar({ version: "v3", auth });
   const timeZone = params.timeZone ?? DEFAULT_TIME_ZONE;
-  const shouldCreateMeet = !params.manualMeetUrl?.trim();
+  const withMeet = params.withMeet ?? false;
+  const shouldCreateMeet = withMeet && !params.manualMeetUrl?.trim();
 
-  const attendees = params.attendees
+  const attendees = (params.attendees ?? [])
     .filter((attendee) => Boolean(attendee.email))
     .map((attendee) => ({
       email: attendee.email,
@@ -66,29 +73,38 @@ export async function createCalendarMeeting(params: {
     }));
 
   const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
-
-  const res = await calendar.events.insert({
-    calendarId,
-    sendUpdates: "all",
-    conferenceDataVersion: shouldCreateMeet ? 1 : 0,
-    requestBody: {
-      summary: params.title,
-      description: params.description,
-      start: { dateTime: params.startsAt, timeZone },
-      end: { dateTime: params.endsAt, timeZone },
-      attendees,
-      ...(shouldCreateMeet
-        ? {
-            conferenceData: {
-              createRequest: {
-                requestId: randomUUID(),
-                conferenceSolutionKey: { type: "hangoutsMeet" },
-              },
+  const requestBody = {
+    summary: params.title,
+    description: params.description,
+    start: { dateTime: params.startsAt, timeZone },
+    end: { dateTime: params.endsAt, timeZone },
+    ...(attendees.length > 0 ? { attendees } : {}),
+    ...(shouldCreateMeet
+      ? {
+          conferenceData: {
+            createRequest: {
+              requestId: randomUUID(),
+              conferenceSolutionKey: { type: "hangoutsMeet" as const },
             },
-          }
-        : {}),
-    },
-  });
+          },
+        }
+      : {}),
+  };
+
+  const res = params.eventId
+    ? await calendar.events.patch({
+        calendarId,
+        eventId: params.eventId,
+        sendUpdates: attendees.length > 0 ? "all" : "none",
+        conferenceDataVersion: shouldCreateMeet ? 1 : 0,
+        requestBody,
+      })
+    : await calendar.events.insert({
+        calendarId,
+        sendUpdates: attendees.length > 0 ? "all" : "none",
+        conferenceDataVersion: shouldCreateMeet ? 1 : 0,
+        requestBody,
+      });
 
   const event = res.data;
   const generatedMeetUrl =
@@ -99,8 +115,27 @@ export async function createCalendarMeeting(params: {
     "";
 
   return {
-    eventId: event.id ?? "",
+    eventId: event.id ?? params.eventId ?? "",
     htmlLink: event.htmlLink ?? "",
     meetUrl: params.manualMeetUrl?.trim() || generatedMeetUrl,
   };
+}
+
+/**
+ * Creates a Google Calendar event with attendees and a Google Meet link
+ * (unless a manual Meet URL is supplied).
+ */
+export async function createCalendarMeeting(params: {
+  title: string;
+  description?: string;
+  startsAt: string;
+  endsAt: string;
+  attendees: CalendarAttendee[];
+  manualMeetUrl?: string;
+  timeZone?: string;
+}): Promise<CreatedCalendarMeeting> {
+  return createCalendarEvent({
+    ...params,
+    withMeet: true,
+  });
 }

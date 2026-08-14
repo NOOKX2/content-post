@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { MeetingItem } from "@/lib/collaboration/types";
 import { cn } from "@/lib/shared/utils";
+import { useT } from "@/lib/i18n";
+import { dateLocale } from "@/lib/i18n/config";
 
 const HOUR_HEIGHT = 48;
 const SLOT_HEIGHT = HOUR_HEIGHT / 2;
@@ -12,7 +14,15 @@ const SLOT_MINUTES = 30;
 const SLOTS_PER_DAY = (24 * 60) / SLOT_MINUTES;
 const DAY_START_HOUR = 0;
 const DAY_END_HOUR = 24;
-const WEEKDAY_LABELS = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
+const WEEKDAY_KEYS = [
+  "team.weekdayMon",
+  "team.weekdayTue",
+  "team.weekdayWed",
+  "team.weekdayThu",
+  "team.weekdayFri",
+  "team.weekdaySat",
+  "team.weekdaySun",
+] as const;
 
 type PositionedMeeting = {
   meeting: MeetingItem;
@@ -45,8 +55,8 @@ function sameDay(a: Date, b: Date) {
   );
 }
 
-function timeLabel(iso: string) {
-  return new Date(iso).toLocaleTimeString("th-TH", {
+function timeLabel(iso: string, locale: string) {
+  return new Date(iso).toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -130,6 +140,7 @@ export function MeetingsWeekCalendar({
   headerLeading?: React.ReactNode;
   className?: string;
 }) {
+  const { t, locale } = useT();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const scrollRef = useRef<HTMLDivElement>(null);
   const now = new Date();
@@ -270,17 +281,18 @@ export function MeetingsWeekCalendar({
 
   const rangeLabel = useMemo(() => {
     const end = addDays(weekStart, 6);
-    const startStr = weekStart.toLocaleDateString("th-TH", {
+    const loc = dateLocale(locale);
+    const startStr = weekStart.toLocaleDateString(loc, {
       day: "numeric",
       month: "short",
     });
-    const endStr = end.toLocaleDateString("th-TH", {
+    const endStr = end.toLocaleDateString(loc, {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
     return `${startStr} – ${endStr}`;
-  }, [weekStart]);
+  }, [weekStart, locale]);
 
   const hours = Array.from(
     { length: DAY_END_HOUR - DAY_START_HOUR },
@@ -304,18 +316,18 @@ export function MeetingsWeekCalendar({
         <div className="flex items-center gap-1">
           {onSchedule && selectionRange && (
             <span className="mr-1 hidden text-xs font-medium text-blue-600 sm:inline">
-              {selectionRange.start.toLocaleDateString("th-TH", {
+              {selectionRange.start.toLocaleDateString(dateLocale(locale), {
                 day: "numeric",
                 month: "short",
               })}{" "}
-              {timeLabel(selectionRange.start.toISOString())}–
-              {timeLabel(selectionRange.end.toISOString())}
+              {timeLabel(selectionRange.start.toISOString(), dateLocale(locale))}–
+              {timeLabel(selectionRange.end.toISOString(), dateLocale(locale))}
             </span>
           )}
           {onSchedule && (
             <Button size="sm" className="mr-1" onClick={handleScheduleClick}>
               <Plus className="h-4 w-4" />
-              นัดประชุม
+              {t("team.scheduleMeeting")}
             </Button>
           )}
           <Button
@@ -323,7 +335,7 @@ export function MeetingsWeekCalendar({
             size="sm"
             onClick={() => goToWeek(startOfWeek(new Date()))}
           >
-            วันนี้
+            {t("common.today")}
           </Button>
           <Button
             variant="ghost"
@@ -355,7 +367,7 @@ export function MeetingsWeekCalendar({
               )}
             >
               <p className="text-[11px] font-medium text-stone-500">
-                {WEEKDAY_LABELS[index]}
+                {t(WEEKDAY_KEYS[index])}
               </p>
               <p
                 className={cn(
@@ -373,7 +385,9 @@ export function MeetingsWeekCalendar({
       </div>
 
       {isLoading ? (
-        <p className="py-16 text-center text-sm text-stone-400">กำลังโหลด...</p>
+        <p className="py-16 text-center text-sm text-stone-400">
+          {t("common.loading")}
+        </p>
       ) : (
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
           <div className="grid grid-cols-[56px_repeat(7,1fr)]">
@@ -441,7 +455,7 @@ export function MeetingsWeekCalendar({
                         </p>
                         <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] opacity-80">
                           <Clock className="h-2.5 w-2.5 shrink-0" />
-                          {timeLabel(item.meeting.startsAt)}
+                          {timeLabel(item.meeting.startsAt, dateLocale(locale))}
                         </p>
                         {item.height > 54 && item.meeting.channelName && (
                           <p className="mt-0.5 truncate text-[10px] opacity-70">
@@ -469,7 +483,7 @@ export function MeetingsWeekCalendar({
                         target="_blank"
                         rel="noopener noreferrer"
                         onPointerDown={(e) => e.stopPropagation()}
-                        title={`${item.meeting.title} · ${timeLabel(item.meeting.startsAt)}–${timeLabel(item.meeting.endsAt)}`}
+                        title={`${item.meeting.title} · ${timeLabel(item.meeting.startsAt, dateLocale(locale))}–${timeLabel(item.meeting.endsAt, dateLocale(locale))}`}
                         className={className}
                         style={style}
                       >
@@ -479,7 +493,7 @@ export function MeetingsWeekCalendar({
                       <div
                         key={item.meeting.id}
                         onPointerDown={(e) => e.stopPropagation()}
-                        title={`${item.meeting.title} · ${timeLabel(item.meeting.startsAt)}–${timeLabel(item.meeting.endsAt)}`}
+                        title={`${item.meeting.title} · ${timeLabel(item.meeting.startsAt, dateLocale(locale))}–${timeLabel(item.meeting.endsAt, dateLocale(locale))}`}
                         className={className}
                         style={style}
                       >

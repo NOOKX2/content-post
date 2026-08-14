@@ -1,7 +1,8 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { CalendarDays, Search, Video } from "lucide-react";
 import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { CalendarDateRangeFilter } from "@/app/calendar/_components/CalendarDateRangeFilter";
 import { cn } from "@/lib/shared/utils";
@@ -12,6 +13,7 @@ import type {
   PostStatusFilter,
 } from "@/lib/calendar/domain/filters";
 import { POST_STATUS_FILTERS } from "@/lib/calendar/domain/filters";
+import { useT } from "@/lib/i18n";
 
 interface CalendarToolbarProps {
   mode: CalendarMode;
@@ -32,12 +34,12 @@ interface CalendarToolbarProps {
   view: string;
   onViewChange: (view: string) => void;
   viewTabs: { id: string; label: string }[];
+  showMeetings: boolean;
+  onShowMeetingsChange: (value: boolean) => void;
+  googleConfigured: boolean;
+  syncingGoogle: boolean;
+  onSyncGoogle: () => void;
 }
-
-const MODE_TABS = [
-  { id: "post", label: "Post" },
-  { id: "prepost", label: "Pre Post" },
-] as const;
 
 export function CalendarToolbar({
   mode,
@@ -58,24 +60,65 @@ export function CalendarToolbar({
   view,
   onViewChange,
   viewTabs,
+  showMeetings,
+  onShowMeetingsChange,
+  googleConfigured,
+  syncingGoogle,
+  onSyncGoogle,
 }: CalendarToolbarProps) {
+  const { t } = useT();
+
   return (
     <div className="space-y-2 rounded-xl border border-stone-200 bg-white px-3 py-2 shadow-sm">
       <div className="flex flex-col gap-1.5 lg:flex-row lg:items-center lg:justify-between">
         <Tabs
-          tabs={[...MODE_TABS]}
+          tabs={[
+            { id: "post", label: t("calendar.postMode") },
+            { id: "prepost", label: t("calendar.prepostMode") },
+          ]}
           activeTab={mode}
           onChange={(id) => onModeChange(id as CalendarMode)}
           className="w-auto shrink-0"
           compact
         />
-        <Tabs
-          tabs={viewTabs}
-          activeTab={view}
-          onChange={onViewChange}
-          className="w-auto shrink-0"
-          compact
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Tabs
+            tabs={viewTabs}
+            activeTab={view}
+            onChange={onViewChange}
+            className="w-auto shrink-0"
+            compact
+          />
+          <button
+            type="button"
+            onClick={() => onShowMeetingsChange(!showMeetings)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+              showMeetings
+                ? "border-emerald-500 bg-emerald-50 font-medium text-emerald-800"
+                : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
+            )}
+          >
+            <Video className="h-3.5 w-3.5" />
+            {t("calendar.showMeetings")}
+          </button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={syncingGoogle || !googleConfigured}
+            onClick={onSyncGoogle}
+            title={
+              googleConfigured
+                ? t("calendar.syncGoogle")
+                : t("calendar.syncGoogleNotConfigured")
+            }
+            className="h-8 gap-1.5 text-xs"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            {syncingGoogle ? t("calendar.syncingGoogle") : t("calendar.syncGoogle")}
+          </Button>
+        </div>
       </div>
 
       {mode === "post" && (
@@ -94,7 +137,15 @@ export function CalendarToolbar({
                     : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
                 )}
               >
-                {filter.label}
+                {t(
+                  filter.id === "all"
+                    ? "calendar.allJobs"
+                    : filter.id === "waiting"
+                      ? "calendar.waiting"
+                      : filter.id === "posted"
+                        ? "calendar.posted"
+                        : "calendar.needsEdit"
+                )}
               </button>
             );
           })}
@@ -107,7 +158,7 @@ export function CalendarToolbar({
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="ค้นหารหัสหรือชื่อคอนเทนต์..."
+            placeholder={t("calendar.searchPlaceholder")}
             className="h-8 pl-8 text-sm"
           />
         </div>

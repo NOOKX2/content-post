@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     "@node-rs/argon2",
     "pdfkit",
     "@aws-sdk/client-s3",
+    "@aws-sdk/s3-request-presigner",
   ],
   // Allow larger video uploads through the App Router (self-hosted / Docker).
   experimental: {

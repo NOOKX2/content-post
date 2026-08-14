@@ -1,6 +1,8 @@
 import type { Role } from "@prisma/client";
-import { isAdminRole } from "@/lib/auth/domain/roles";
+import { isAdminRole, isViewerRole } from "@/lib/auth/domain/roles";
 
 export function getDefaultPathForRole(role: Role | string | undefined) {
-  return isAdminRole(role) ? "/admin" : "/create";
+  if (isAdminRole(role)) return "/admin";
+  if (isViewerRole(role)) return "/dashboard";
+  return "/create";
 }

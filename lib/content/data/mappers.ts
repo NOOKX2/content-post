@@ -59,6 +59,7 @@ export function toContentItem(record: PrismaContent): ContentItem {
     filmingEquipment: toStringArray(record.filmingEquipment),
     attachments: toStringArray(record.attachments),
     exampleAttachments: toStringArray(record.exampleAttachments),
+    coverImage: record.coverImage ?? "",
     script: (Array.isArray(record.script) ? record.script : []).map((row) =>
       normalizeScriptRow(row as unknown as ScriptRow)
     ),
@@ -71,6 +72,8 @@ export function toContentItem(record: PrismaContent): ContentItem {
     category: record.category,
     tags: record.tags,
     imageMeta: parseImageMeta(record.imageMeta),
+    googleEventId: record.googleEventId || undefined,
+    googleCalendarLink: record.googleCalendarLink || undefined,
     createdById: record.createdById,
     createdAt: record.createdAt.toISOString(),
   };
@@ -97,6 +100,7 @@ export function contentItemToFormData(content: ContentItem): ContentFormData {
     filmingEquipment: toStringArray(content.filmingEquipment),
     attachments: toStringArray(content.attachments),
     exampleAttachments: toStringArray(content.exampleAttachments),
+    coverImage: content.coverImage ?? "",
     script: content.script.map(normalizeScriptRow),
     ideaCreator: content.ideaCreator,
     photographer: content.photographer,
@@ -130,6 +134,7 @@ export function formDataToUpdateInput(
     filmingEquipment: data.filmingEquipment,
     attachments: data.attachments,
     exampleAttachments: data.exampleAttachments,
+    coverImage: data.coverImage?.trim() ?? "",
     script: data.script as unknown as Prisma.InputJsonValue,
     ideaCreator: data.ideaCreator,
     photographer: data.photographer,
@@ -166,6 +171,7 @@ export function formDataToCreateInput(
     filmingEquipment: data.filmingEquipment,
     attachments: data.attachments,
     exampleAttachments: data.exampleAttachments,
+    coverImage: data.coverImage?.trim() ?? "",
     script: data.script as unknown as Prisma.InputJsonValue,
     ideaCreator: data.ideaCreator,
     photographer: data.photographer,

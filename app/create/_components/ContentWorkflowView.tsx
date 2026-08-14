@@ -96,12 +96,12 @@ export function ContentWorkflowView() {
     !activeContent || step === 1 || step === 3;
   const workflowPhase =
     activeContent &&
-    activeContent.mediaType === "video" &&
-    step === 3
+      activeContent.mediaType === "video" &&
+      step === 3
       ? "produce"
       : activeContent &&
-          activeContent.mediaType === "video" &&
-          step === 1
+        activeContent.mediaType === "video" &&
+        step === 1
         ? "plan"
         : undefined;
 

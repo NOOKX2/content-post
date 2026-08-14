@@ -17,6 +17,7 @@ import {
   getAttachmentFilename,
   isUploadedAttachment,
 } from "@/lib/content/domain/attachments";
+import { uploadBrowserFile } from "@/lib/shared/storage/upload-browser";
 
 interface ImageAttachmentLinksProps {
   links: string[];
@@ -27,6 +28,11 @@ interface ImageAttachmentLinksProps {
   hideToolbar?: boolean;
   /** Card layout with title, description, and toolbar in the header row */
   layout?: "default" | "section";
+  maxFiles?: number;
+  allowLinks?: boolean;
+  selectLabel?: string;
+  emptyTitle?: string;
+  emptyHint?: string;
 }
 
 function isImageAttachment(value: string) {
@@ -39,6 +45,11 @@ export function ImageAttachmentLinks({
   hideHeader = false,
   hideToolbar = false,
   layout = "default",
+  maxFiles,
+  allowLinks = true,
+  selectLabel = "เลือกรูปภาพ",
+  emptyTitle = "คลิกเพื่อเลือกรูปจากเครื่อง",
+  emptyHint,
 }: ImageAttachmentLinksProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -64,25 +75,19 @@ export function ImageAttachmentLinks({
     try {
       const uploaded: string[] = [];
 
-      for (const file of fileList) {
-        const formData = new FormData();
-        formData.append("file", file);
+      const limited =
+        maxFiles && maxFiles > 0 ? fileList.slice(0, maxFiles) : fileList;
 
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = (await res.json()) as { url?: string; error?: string };
-
-        if (!res.ok || !data.url) {
-          throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
-        }
-
-        uploaded.push(data.url);
+      for (const file of limited) {
+        uploaded.push(await uploadBrowserFile(file));
       }
 
-      onChange([...links.filter((link) => link.trim()), ...uploaded]);
+      if (maxFiles === 1) {
+        onChange(uploaded);
+      } else {
+        const next = [...links.filter((link) => link.trim()), ...uploaded];
+        onChange(maxFiles ? next.slice(0, maxFiles) : next);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "อัปโหลดไม่สำเร็จ");
     } finally {
@@ -120,10 +125,12 @@ export function ImageAttachmentLinks({
 
   const toolbar = (
     <>
-      <Button type="button" variant="ghost" size="sm" onClick={addLink}>
-        <Plus className="h-4 w-4" />
-        เพิ่มลิงก์
-      </Button>
+      {allowLinks && (
+        <Button type="button" variant="ghost" size="sm" onClick={addLink}>
+          <Plus className="h-4 w-4" />
+          เพิ่มลิงก์
+        </Button>
+      )}
       <Button
         type="button"
         variant="ghost"
@@ -143,7 +150,7 @@ export function ImageAttachmentLinks({
 
   const body = (
     <>
-      {layout === "default" && (
+      {layout === "default" && maxFiles !== 1 && (
         <p className="text-xs text-stone-500">
           แนบได้มากกว่า 1 รายการ — วางลิงก์ reference หรืออัปโหลดรูปภาพ (สูงสุด
           10 MB)
@@ -154,7 +161,7 @@ export function ImageAttachmentLinks({
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
-        multiple
+        multiple={maxFiles !== 1}
         className="hidden"
         onChange={handleFileChange}
       />
@@ -188,11 +195,13 @@ export function ImageAttachmentLinks({
           </div>
           <div className="space-y-1">
             <p className="text-base font-medium text-stone-700">
-              {uploading ? "กำลังอัปโหลด..." : "คลิกเพื่อเลือกรูปจากเครื่อง"}
+              {uploading ? "กำลังอัปโหลด..." : emptyTitle}
             </p>
             <p className="text-sm text-stone-500">
-              หรือลากรูปมาวางที่นี่
-              {!hideToolbar ? ' · กด "เพิ่มลิงก์" สำหรับ URL' : ""}
+              {emptyHint ??
+                (allowLinks && !hideToolbar
+                  ? 'หรือลากรูปมาวางที่นี่ · กด "เพิ่มลิงก์" สำหรับ URL'
+                  : "หรือลากรูปมาวางที่นี่")}
             </p>
           </div>
         </div>
@@ -214,12 +223,14 @@ export function ImageAttachmentLinks({
               ) : (
                 <FileUp className="h-4 w-4" />
               )}
-              เลือกรูปภาพ
+              {selectLabel}
             </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={addLink}>
-              <Plus className="h-4 w-4" />
-              เพิ่มลิงก์
-            </Button>
+            {allowLinks && (
+              <Button type="button" variant="ghost" size="sm" onClick={addLink}>
+                <Plus className="h-4 w-4" />
+                เพิ่มลิงก์
+              </Button>
+            )}
           </div>
         )}
       </div>

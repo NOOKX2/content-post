@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import type { ApprovalCardMetadata } from "@/lib/collaboration/types";
 import { resolveApproval } from "@/lib/collaboration/actions/fetch";
-import { cn, formatThaiDateTime } from "@/lib/shared/utils";
+import { cn } from "@/lib/shared/utils";
 import { useSession } from "next-auth/react";
 import {
   Bot,
@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { formatLocalizedDateTime, useT } from "@/lib/i18n";
 
 export function ApprovalCardMessage({
   messageId,
@@ -29,6 +30,7 @@ export function ApprovalCardMessage({
   onResolved?: () => void;
 }) {
   const { data: session } = useSession();
+  const { t, locale } = useT();
   const isAdmin = session?.user?.role === "ADMIN";
   const isPending = metadata.status === "pending";
   const requestedAt = createdAt;
@@ -39,7 +41,14 @@ export function ApprovalCardMessage({
 
   const handleApprove = async () => {
     if (busy || !isPending) return;
-    if (!confirm(`อนุมัติ ${metadata.contentCode} — ${metadata.contentName}?`)) {
+    if (
+      !confirm(
+        t("team.confirmApprove", {
+          id: metadata.contentCode,
+          name: metadata.contentName,
+        })
+      )
+    ) {
       return;
     }
     setBusy(true);
@@ -47,7 +56,7 @@ export function ApprovalCardMessage({
       await resolveApproval(messageId, "approve");
       onResolved?.();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "อนุมัติไม่สำเร็จ");
+      alert(error instanceof Error ? error.message : t("team.approveFailed"));
     } finally {
       setBusy(false);
     }
@@ -57,7 +66,7 @@ export function ApprovalCardMessage({
     if (busy || !isPending) return;
     const reason = rejectReason.trim();
     if (!reason) {
-      alert("กรุณาระบุเหตุผลที่ส่งกลับแก้ไข");
+      alert(t("team.rejectReasonRequired"));
       return;
     }
     setBusy(true);
@@ -67,7 +76,7 @@ export function ApprovalCardMessage({
       setRejectReason("");
       onResolved?.();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "ส่งกลับแก้ไขไม่สำเร็จ");
+      alert(error instanceof Error ? error.message : t("team.rejectFailed"));
     } finally {
       setBusy(false);
     }
@@ -83,33 +92,37 @@ export function ApprovalCardMessage({
           </span>
         </div>
         <span className="text-xs text-orange-700/80">
-          {formatThaiDateTime(requestedAt)}
+          {formatLocalizedDateTime(requestedAt, locale)}
         </span>
       </div>
       <div className="space-y-3 px-3 py-3 text-sm">
         <p className="font-semibold text-stone-900">
           {metadata.approvalRound === 2
-            ? "คำขออนุมัติคลิป (รอบ 2)"
-            : "คำขออนุมัติแนวคิด (รอบ 1)"}
+            ? t("team.approvalClip")
+            : t("team.approvalIdea")}
         </p>
         <div className="grid gap-1.5 text-xs text-stone-600">
-          <Row label="ผู้ส่ง" value={metadata.requesterName} />
-          <Row label="รหัส" value={metadata.contentCode} />
-          <Row label="ชื่อ" value={metadata.contentName} />
-          <Row label="ช่องที่ลง" value={metadata.channel} />
-          <Row label="รายละเอียด" value={metadata.remarks} />
+          <Row label={t("team.sender")} value={metadata.requesterName} />
+          <Row label={t("team.code")} value={metadata.contentCode} />
+          <Row label={t("team.contentName")} value={metadata.contentName} />
+          <Row label={t("team.channel")} value={metadata.channel} />
+          <Row label={t("team.details")} value={metadata.remarks} />
           <Row
-            label="ส่งคำขอ"
-            value={formatThaiDateTime(requestedAt)}
+            label={t("team.requestedAt")}
+            value={formatLocalizedDateTime(requestedAt, locale)}
             icon={<Clock3 className="h-3 w-3 text-stone-400" />}
           />
           {!isPending && metadata.resolvedAt && (
             <Row
               label={
-                metadata.status === "approved" ? "อนุมัติเมื่อ" : "ส่งกลับเมื่อ"
+                metadata.status === "approved"
+                  ? t("team.approvedAt")
+                  : t("team.rejectedAt")
               }
-              value={`${formatThaiDateTime(metadata.resolvedAt)}${
-                metadata.resolvedBy ? ` โดย ${metadata.resolvedBy}` : ""
+              value={`${formatLocalizedDateTime(metadata.resolvedAt, locale)}${
+                metadata.resolvedBy
+                  ? ` ${t("team.byName", { name: metadata.resolvedBy })}`
+                  : ""
               }`}
               icon={
                 metadata.status === "approved" ? (
@@ -136,10 +149,12 @@ export function ApprovalCardMessage({
             ) : (
               <XCircle className="h-3.5 w-3.5" />
             )}
-            {metadata.status === "approved" ? "อนุมัติแล้ว" : "ส่งกลับแก้ไข"}
+            {metadata.status === "approved"
+              ? t("team.approved")
+              : t("team.sentBack")}
             {metadata.rejectReason && (
               <span className="block font-normal">
-                เหตุผล: {metadata.rejectReason}
+                {t("team.reason", { reason: metadata.rejectReason })}
               </span>
             )}
           </div>
@@ -150,12 +165,12 @@ export function ApprovalCardMessage({
             {showRejectForm ? (
               <div className="space-y-2">
                 <label className="text-xs font-medium text-stone-700">
-                  เหตุผลที่ส่งกลับแก้ไข *
+                  {t("team.rejectReason")}
                 </label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="ระบุสิ่งที่ต้องแก้ไข..."
+                  placeholder={t("team.rejectReasonPlaceholder")}
                   rows={3}
                   disabled={busy}
                   className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60"
@@ -173,7 +188,7 @@ export function ApprovalCardMessage({
                     ) : (
                       <XCircle className="h-4 w-4" />
                     )}
-                    ยืนยันส่งกลับแก้ไข
+                    {t("team.confirmReject")}
                   </Button>
                   <Button
                     type="button"
@@ -185,7 +200,7 @@ export function ApprovalCardMessage({
                       setRejectReason("");
                     }}
                   >
-                    ยกเลิก
+                    {t("common.cancel")}
                   </Button>
                 </div>
               </div>
@@ -204,7 +219,7 @@ export function ApprovalCardMessage({
                   ) : (
                     <CheckCircle2 className="h-4 w-4" />
                   )}
-                  อนุมัติ
+                  {t("admin.approve")}
                 </Button>
                 <Button
                   type="button"
@@ -215,13 +230,13 @@ export function ApprovalCardMessage({
                   onClick={() => setShowRejectForm(true)}
                 >
                   <XCircle className="h-4 w-4" />
-                  ส่งกลับแก้ไข
+                  {t("team.sentBack")}
                 </Button>
                 <Link
                   href={`/content/${metadata.contentId}`}
                   className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-stone-500 hover:text-blue-600"
                 >
-                  ดูรายละเอียด
+                  {t("create.viewDetail")}
                   <ExternalLink className="h-3 w-3" />
                 </Link>
               </div>
@@ -230,7 +245,7 @@ export function ApprovalCardMessage({
         )}
 
         {isPending && !isAdmin && (
-          <p className="text-xs text-stone-500">รอ Admin อนุมัติ</p>
+          <p className="text-xs text-stone-500">{t("team.waitingAdmin")}</p>
         )}
       </div>
     </div>

@@ -12,6 +12,8 @@ export const PLATFORMS: {
   { id: "facebook", label: "Facebook", shortLabel: "FB", color: "#1877F2" },
   { id: "instagram", label: "Instagram", shortLabel: "IG", color: "#E4405F" },
   { id: "tiktok", label: "TikTok", shortLabel: "TT", color: "#000000" },
+  { id: "line", label: "LINE", shortLabel: "LINE", color: "#06C755" },
+  { id: "lemon8", label: "Lemon8", shortLabel: "L8", color: "#FFC700" },
   { id: "youtube", label: "YouTube", shortLabel: "YT", color: "#FF0000" },
 ];
 

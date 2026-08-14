@@ -12,9 +12,11 @@ import {
   AuthFormPanel,
 } from "@/components/auth/AuthLayout";
 import { AuthField } from "@/components/auth/AuthField";
+import { useT } from "@/lib/i18n";
 
 export function RegisterForm() {
   const router = useRouter();
+  const { t } = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +29,7 @@ export function RegisterForm() {
     setError("");
 
     if (password !== confirmPassword) {
-      setError("รหัสผ่านไม่ตรงกัน");
+      setError(t("auth.passwordMismatch"));
       return;
     }
 
@@ -56,7 +58,7 @@ export function RegisterForm() {
           email,
           signInError: signInResult.error,
         });
-        setError("สมัครสำเร็จแล้ว แต่เข้าสู่ระบบไม่ได้ กรุณา login ด้วยตนเอง");
+        setError(t("auth.registerThenLoginFailed"));
         return;
       }
 
@@ -66,7 +68,7 @@ export function RegisterForm() {
       const msg =
         err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : { err };
       console.error("[register] unexpected error", { email, ...msg });
-      setError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่");
+      setError(t("auth.serverError"));
     } finally {
       setLoading(false);
     }
@@ -79,26 +81,29 @@ export function RegisterForm() {
           tag="PLAN · CREATE · PUBLISH"
           headline={
             <>
-              Start Your
+              {t("auth.registerHeadline1")}
               <br />
-              <span className="text-blue-400">Content</span> Journey.
+              <span className="text-blue-400">
+                {t("auth.registerHeadlineAccent")}
+              </span>{" "}
+              {t("auth.registerHeadline2")}
             </>
           }
-          description="เข้าร่วมทีม content creator — ส่งไอเดีย รออนุมัติ และขึ้นปฏิทินโพสต์อัตโนมัติ"
+          description={t("auth.registerDescription")}
         />
       }
       form={
         <AuthFormPanel
-          title="Create account"
-          subtitle="กรอกข้อมูลเพื่อเริ่มใช้งาน"
+          title={t("auth.registerTitle")}
+          subtitle={t("auth.registerSubtitle")}
           footer={
             <p className="text-center text-sm text-slate-500">
-              มีบัญชีแล้ว?{" "}
+              {t("auth.hasAccount")}{" "}
               <Link
                 href="/login"
                 className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
               >
-                เข้าสู่ระบบ
+                {t("auth.signIn")}
               </Link>
             </p>
           }
@@ -111,17 +116,17 @@ export function RegisterForm() {
             )}
 
             <AuthField
-              label="Name"
+              label={t("auth.name")}
               value={name}
               onChange={setName}
-              placeholder="ชื่อของคุณ"
+              placeholder={t("auth.namePlaceholder")}
               required
               autoComplete="name"
               icon={<User className="h-4 w-4" />}
             />
 
             <AuthField
-              label="Email"
+              label={t("auth.email")}
               type="email"
               value={email}
               onChange={setEmail}
@@ -132,11 +137,11 @@ export function RegisterForm() {
             />
 
             <AuthField
-              label="Password"
+              label={t("auth.password")}
               type="password"
               value={password}
               onChange={setPassword}
-              placeholder="อย่างน้อย 8 ตัวอักษร"
+              placeholder={t("auth.passwordMinHint")}
               required
               minLength={8}
               autoComplete="new-password"
@@ -144,7 +149,7 @@ export function RegisterForm() {
             />
 
             <AuthField
-              label="Confirm Password"
+              label={t("auth.confirmPassword")}
               type="password"
               value={confirmPassword}
               onChange={setConfirmPassword}
@@ -162,10 +167,10 @@ export function RegisterForm() {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  กำลังสมัคร...
+                  {t("auth.creatingAccount")}
                 </>
               ) : (
-                "Sign up free"
+                t("auth.createAccount")
               )}
             </button>
           </form>

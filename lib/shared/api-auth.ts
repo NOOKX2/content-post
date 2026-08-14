@@ -97,10 +97,10 @@ export async function requireCreator(
         ),
       };
     }
-    if (!isCreatorRole(user.role)) {
+    if (!isCreatorRole(user.role) && !isAdminRole(user.role)) {
       return {
         error: NextResponse.json(
-          { error: "Admin ไม่สามารถสร้าง Content ได้" },
+          { error: "บัญชีนี้ไม่มีสิทธิ์สร้าง Content" },
           { status: 403 }
         ),
       };
@@ -110,11 +110,6 @@ export async function requireCreator(
 
   const result = await requireSession();
   if ("error" in result) return { error: result.error };
-  if (isAdminRole(result.session.user.role)) {
-    return {
-      error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
-    };
-  }
   return {
     user: {
       id: result.session.user.id,

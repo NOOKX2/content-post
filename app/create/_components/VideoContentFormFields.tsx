@@ -40,6 +40,7 @@ import { showFinalClipSection } from "@/lib/content/domain/workflow";
 import { isImageMediaUrl, isVideoAttachmentUrl, isVideoMediaUrl } from "@/lib/content/domain/media-url";
 import type { ContentFormData, ContentStatus, Platform } from "@/lib/types";
 import { generateId } from "@/lib/shared/utils";
+import { useT } from "@/lib/i18n";
 
 type ChannelOption = PostingChannelOption;
 
@@ -73,6 +74,7 @@ export function VideoContentFormFields({
   ) => void;
   onChannelsChange: (slugs: string[]) => void;
 }) {
+  const { t } = useT();
   const addTeamRow = () => {
     update("team", [
       ...form.team,
@@ -95,15 +97,22 @@ export function VideoContentFormFields({
     ]);
   };
 
-  const previewAttachment =
+  const previewVideo =
     form.attachments.find((url) => url.trim() && isVideoAttachmentUrl(url)) ??
+    "";
+  const previewCover = form.coverImage.trim();
+  const previewFallbackImage =
     form.exampleAttachments.find((url) => url.trim() && isImageMediaUrl(url)) ??
     form.script.find((row) => row.imageUrl?.trim())?.imageUrl ??
     "";
-  const previewIsDirectVideo =
-    previewAttachment && isVideoMediaUrl(previewAttachment);
-  const previewIsImage =
-    previewAttachment && isImageMediaUrl(previewAttachment);
+  const previewIsDirectVideo = Boolean(
+    previewVideo && isVideoMediaUrl(previewVideo)
+  );
+  const previewImage =
+    previewCover ||
+    (previewFallbackImage && isImageMediaUrl(previewFallbackImage)
+      ? previewFallbackImage
+      : "");
   const isProducePhase = workflowPhase === "produce";
   const showClipUpload = isProducePhase
     ? true
@@ -112,15 +121,15 @@ export function VideoContentFormFields({
       : showFinalClipSection(isEdit, contentStatus);
 
   const briefSummary = (
-    <ContentFormSection title="ข้อมูลคอนเทนต์" icon={Info}>
+    <ContentFormSection title={t("create.contentInfo")} icon={Info}>
       <div className="space-y-3 rounded-xl border border-stone-200 bg-stone-50/80 p-4 text-sm">
         <div>
-          <p className="text-xs text-stone-500">หัวข้อคอนเทนต์</p>
+          <p className="text-xs text-stone-500">{t("create.contentName")}</p>
           <p className="font-semibold text-stone-900">{form.name || "—"}</p>
         </div>
         {form.details && (
           <div>
-            <p className="text-xs text-stone-500">รายละเอียด</p>
+            <p className="text-xs text-stone-500">{t("create.details")}</p>
             <p className="text-stone-700 whitespace-pre-wrap">{form.details}</p>
           </div>
         )}
@@ -141,8 +150,8 @@ export function VideoContentFormFields({
         <>
           {briefSummary}
           <ContentFormSection
-            title="อัปโหลดวิดีโอที่ตัดต่อแล้ว"
-            description="อัปโหลดคลิปวิดีโอ (.mp4 / .mov / .webm) สูงสุด 200 MB"
+            title={t("create.uploadEditedVideo")}
+            description={t("create.videoFileHint")}
             icon={Video}
             className="border-amber-100"
           >
@@ -152,31 +161,50 @@ export function VideoContentFormFields({
               hideHeader
               hideToolbar
             />
+            <div className="space-y-2 border-t border-stone-100 pt-4">
+              <p className="text-sm font-medium text-stone-800">
+                {t("create.cover")}
+              </p>
+              <p className="text-xs text-stone-500">{t("create.coverHint")}</p>
+              <ImageAttachmentLinks
+                links={form.coverImage ? [form.coverImage] : []}
+                onChange={(links) =>
+                  update("coverImage", links.find((link) => link.trim()) ?? "")
+                }
+                hideHeader
+                hideToolbar
+                maxFiles={1}
+                allowLinks={false}
+                selectLabel={t("create.coverSelect")}
+                emptyTitle={t("create.coverEmpty")}
+                emptyHint="หรือลากรูปมาวางที่นี่"
+              />
+            </div>
           </ContentFormSection>
         </>
       ) : (
         <>
-      <ContentFormSection title="ข้อมูลคอนเทนต์" icon={Info}>
+      <ContentFormSection title={t("create.contentInfo")} icon={Info}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="ชื่อคอนเทนต์ *"
+            label={`${t("create.contentName")} *`}
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
             placeholder="เช่น Hero Serum Launch Video"
             required
           />
           <Input
-            label="รหัสคอนเทนต์"
+            label={t("create.contentCode")}
             value={contentId}
             readOnly
-            placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
+            placeholder={isEdit ? "" : t("create.autoCode")}
             className="bg-stone-50 font-mono"
           />
           <div>
             <PostingChannelSelect
-              label="ช่องที่ลง *"
+              label={`${t("create.channel")} *`}
               options={channelOptions}
-              placeholder="เลือกช่อง..."
+              placeholder={t("create.channelPlaceholder")}
               value={channelTargetSlugs}
               onChange={onChannelsChange}
               required={!isEdit}
@@ -189,9 +217,9 @@ export function VideoContentFormFields({
             />
           </div>
           <Select
-            label="วัตถุประสงค์"
+            label={t("create.purpose")}
             options={CONTENT_OBJECTIVES}
-            placeholder="เลือกวัตถุประสงค์..."
+            placeholder={t("create.purposePlaceholder")}
             value={form.category}
             onChange={(e) => update("category", e.target.value)}
           />
@@ -208,10 +236,10 @@ export function VideoContentFormFields({
         )}
         <div className="mt-4">
           <Textarea
-            label="รายละเอียด"
+            label={t("create.details")}
             value={form.details}
             onChange={(e) => update("details", e.target.value)}
-            placeholder="อธิบาย concept, mood, หรือ brief..."
+            placeholder={t("create.detailsPlaceholder")}
             rows={3}
           />
         </div>
@@ -230,8 +258,8 @@ export function VideoContentFormFields({
 
       {showClipUpload && (
         <ContentFormSection
-          title="คลิปวิดีโอ (หลังตัดต่อ)"
-          description="อัปโหลดคลิปที่ตัดต่อเสร็จแล้วเพื่อส่งอนุมัติรอบสอง"
+          title={t("create.finalClip")}
+          description={t("create.finalClipHint")}
           icon={Video}
           className="border-amber-100"
         >
@@ -241,12 +269,31 @@ export function VideoContentFormFields({
             hideHeader
             hideToolbar
           />
+          <div className="space-y-2 border-t border-stone-100 pt-4">
+            <p className="text-sm font-medium text-stone-800">
+                {t("create.cover")}
+              </p>
+              <p className="text-xs text-stone-500">{t("create.coverHint")}</p>
+            <ImageAttachmentLinks
+              links={form.coverImage ? [form.coverImage] : []}
+              onChange={(links) =>
+                update("coverImage", links.find((link) => link.trim()) ?? "")
+              }
+              hideHeader
+              hideToolbar
+              maxFiles={1}
+              allowLinks={false}
+              selectLabel="เลือกปกคลิป"
+              emptyTitle="คลิกเพื่อเลือกปกคลิปจากเครื่อง"
+              emptyHint="หรือลากรูปมาวางที่นี่"
+            />
+          </div>
         </ContentFormSection>
       )}
 
-      <ContentFormSection title="นัดวันถ่าย" icon={CalendarRange} className="border-amber-100">
+      <ContentFormSection title={t("create.shootDate")} icon={CalendarRange} className="border-amber-100">
         <Input
-          label="นัดวันถ่าย"
+          label={t("create.shootDate")}
           type="date"
           value={form.shootDate}
           onChange={(e) => update("shootDate", e.target.value)}
@@ -254,7 +301,7 @@ export function VideoContentFormFields({
       </ContentFormSection>
 
       <ContentFormSection
-        title="ผู้เข้าร่วม & หน้าที่รับผิดชอบ"
+        title={t("create.participants")}
         icon={Users}
         actions={
           <ContentFormSectionAction onClick={addTeamRow}>
@@ -269,7 +316,7 @@ export function VideoContentFormFields({
         />
       </ContentFormSection>
 
-      <ContentFormSection title="สิ่งที่ต้องเตรียม" icon={Package}>
+      <ContentFormSection title={t("create.prep")} icon={Package}>
         <div className="space-y-4">
           <CreatableMultiSelect
             label="เลือกสถานที่..."
@@ -306,8 +353,8 @@ export function VideoContentFormFields({
       </ContentFormSection>
 
       <ContentFormSection
-        title="สคริป"
-        description="เวลาเริ่มต้น, เวลาสิ้นสุด, Action, บทพูด, หมายเหตุ, เพิ่มรูปภาพ"
+        title={t("create.script")}
+        description={t("create.scriptHint")}
         icon={Clapperboard}
         className="border-amber-100"
         actions={
@@ -323,10 +370,10 @@ export function VideoContentFormFields({
         />
       </ContentFormSection>
 
-      <ContentFormSection title="ผู้สร้างคอนเทนต์" icon={UserRound}>
+      <ContentFormSection title={t("create.creators")} icon={UserRound}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
-            label="ผู้คิดไอเดีย"
+            label={t("create.ideaPerson")}
             options={TEAM_MEMBERS}
             placeholder="เลือก..."
             value={form.ideaCreator}
@@ -341,7 +388,7 @@ export function VideoContentFormFields({
           />
           {config.showEditor && (
             <Select
-              label="ผู้ตัดต่อ"
+              label={t("media.editor")}
               options={TEAM_MEMBERS}
               placeholder="เลือก..."
               value={form.editor}
@@ -349,10 +396,10 @@ export function VideoContentFormFields({
             />
           )}
           <Input
-            label="ผู้อนุมัติ"
+            label={t("create.approver")}
             value=""
             readOnly
-            placeholder="— กำหนดเมื่อ Admin อนุมัติ —"
+            placeholder={t("create.approverPlaceholder")}
             className="bg-stone-50"
           />
         </div>
@@ -363,20 +410,20 @@ export function VideoContentFormFields({
 
       <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
         <ContentFormSection
-          title="วันที่โพสต์คอนเทนต์"
+          title={t("create.postDateTitle")}
           icon={Calendar}
           className="border-amber-100"
           bodyClassName="space-y-3"
         >
           <Input
-            label="วันที่โพสต์"
+            label={t("create.postDate")}
             type="date"
             value={form.scheduledDate}
             onChange={(e) => update("scheduledDate", e.target.value)}
             required
           />
           <Input
-            label="เวลา"
+            label={t("create.postTime")}
             type="time"
             value={form.scheduledTime}
             onChange={(e) => update("scheduledTime", e.target.value)}
@@ -394,34 +441,35 @@ export function VideoContentFormFields({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Eye className="h-4 w-4 text-stone-500" />
-              พรีวิว
+              {t("create.preview")}
             </CardTitle>
           </CardHeader>
           <div className="overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
             <div className="relative aspect-video w-full bg-stone-900">
               {previewIsDirectVideo ? (
                 <video
-                  src={previewAttachment}
+                  src={previewVideo}
+                  poster={previewCover || undefined}
                   controls
                   className="h-full w-full object-contain"
                   preload="metadata"
                 />
-              ) : previewIsImage ? (
+              ) : previewImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={previewAttachment}
-                  alt="ตัวอย่าง"
+                  src={previewImage}
+                  alt={t("create.cover")}
                   className="h-full w-full object-contain"
                 />
-              ) : previewAttachment ? (
+              ) : previewVideo ? (
                 <a
-                  href={previewAttachment}
+                  href={previewVideo}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-sm text-amber-100 hover:text-white"
                 >
                   <ExternalLink className="h-8 w-8 text-amber-400" />
-                  <span className="line-clamp-2 break-all">{previewAttachment}</span>
+                  <span className="line-clamp-2 break-all">{previewVideo}</span>
                   <span className="text-xs text-amber-200/80">เปิดลิงก์วิดีโอ</span>
                 </a>
               ) : (
@@ -429,8 +477,8 @@ export function VideoContentFormFields({
                   <Video className="h-8 w-8 text-stone-500" />
                   <span>
                     {showClipUpload
-                      ? "ยังไม่มีคลิปวิดีโอ"
-                      : "ยังไม่มีรูปตัวอย่าง"}
+                      ? t("create.noClip")
+                      : t("create.noSample")}
                   </span>
                 </div>
               )}

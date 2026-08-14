@@ -11,7 +11,7 @@ import {
   Pencil,
   XCircle,
 } from "lucide-react";
-import { cn, formatThaiDate } from "@/lib/shared/utils";
+import { cn } from "@/lib/shared/utils";
 import {
   fetchNotifications,
   markAllNotificationsRead,
@@ -19,6 +19,12 @@ import {
   type NotificationItem,
 } from "@/lib/notifications/actions/fetch";
 import { useDashboardNav } from "@/lib/navigation/client/dashboard-nav";
+import {
+  formatLocalizedDate,
+  useT,
+  type TFunction,
+  type Locale,
+} from "@/lib/i18n";
 
 const NOTIFICATIONS_KEY = "notifications";
 
@@ -48,22 +54,27 @@ function NotificationIcon({ type }: { type: string }) {
   }
 }
 
-function formatRelativeTime(iso: string): string {
+function formatRelativeTime(
+  iso: string,
+  t: TFunction,
+  locale: Locale
+): string {
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "เมื่อสักครู่";
-  if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
+  if (minutes < 1) return t("time.justNow");
+  if (minutes < 60) return t("time.minutesAgo", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} ชม.ที่แล้ว`;
+  if (hours < 24) return t("time.hoursAgo", { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} วันที่แล้ว`;
-  return formatThaiDate(iso.slice(0, 10));
+  if (days < 7) return t("time.daysAgo", { count: days });
+  return formatLocalizedDate(iso.slice(0, 10), locale);
 }
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { navigate } = useDashboardNav();
+  const { t, locale } = useT();
 
   const { data, mutate } = useSWR(NOTIFICATIONS_KEY, fetchNotifications, {
     refreshInterval: 30000,
@@ -108,7 +119,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={handleOpen}
-        aria-label="การแจ้งเตือน"
+        aria-label={t("notifications.label")}
         className={cn(
           "relative flex h-10 w-10 items-center justify-center rounded-xl border border-stone-200 bg-white transition-colors hover:bg-stone-50",
           open && "bg-stone-50 ring-2 ring-blue-500/20"
@@ -127,9 +138,13 @@ export function NotificationBell() {
         <div className="absolute top-full right-0 z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg">
           <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
             <div>
-              <p className="text-sm font-semibold text-stone-900">การแจ้งเตือน</p>
+              <p className="text-sm font-semibold text-stone-900">
+                {t("notifications.title")}
+              </p>
               {unreadCount > 0 && (
-                <p className="text-xs text-stone-500">{unreadCount} รายการใหม่</p>
+                <p className="text-xs text-stone-500">
+                  {t("notifications.newCount", { count: unreadCount })}
+                </p>
               )}
             </div>
             {unreadCount > 0 && (
@@ -138,7 +153,7 @@ export function NotificationBell() {
                 onClick={handleMarkAllRead}
                 className="text-xs font-medium text-blue-600 hover:text-blue-700"
               >
-                อ่านทั้งหมด
+                {t("notifications.markAll")}
               </button>
             )}
           </div>
@@ -146,7 +161,7 @@ export function NotificationBell() {
           <div className="max-h-[min(24rem,60vh)] overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-stone-500">
-                ยังไม่มีการแจ้งเตือน
+                {t("notifications.empty")}
               </div>
             ) : (
               <ul className="divide-y divide-stone-100">
@@ -171,7 +186,7 @@ export function NotificationBell() {
                           {item.message}
                         </p>
                         <p className="mt-1 text-[11px] text-stone-400">
-                          {formatRelativeTime(item.createdAt)}
+                          {formatRelativeTime(item.createdAt, t, locale)}
                         </p>
                       </div>
                       {!item.readAt && (

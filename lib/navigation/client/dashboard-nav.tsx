@@ -33,7 +33,7 @@ function shouldSyncRouter(href: string, previousHref: string): boolean {
     return true;
   }
 
-  if (route.view === "content-detail") {
+  if (route.view === "content-detail" || route.view === "archive-product-form") {
     return true;
   }
 
@@ -129,9 +129,13 @@ export type DashboardRoute =
   | { view: "collaboration" }
   | { view: "calendar" }
   | { view: "admin" }
+  | { view: "admin-settings" }
   | { view: "create" }
   | { view: "posts" }
   | { view: "my-tasks" }
+  | { view: "archive" }
+  | { view: "archive-product-form"; productId: string | null }
+  | { view: "settings" }
   | { view: "content-detail"; id: string }
   | null;
 
@@ -145,6 +149,9 @@ export function parseDashboardRoute(path: string): DashboardRoute {
   if (path === "/calendar" || path === "/content-calendar") {
     return { view: "calendar" };
   }
+  if (path === "/admin/settings") {
+    return { view: "admin-settings" };
+  }
   if (path === "/admin") {
     return { view: "admin" };
   }
@@ -156,6 +163,21 @@ export function parseDashboardRoute(path: string): DashboardRoute {
   }
   if (path === "/my-tasks") {
     return { view: "my-tasks" };
+  }
+  if (path === "/settings") {
+    return { view: "settings" };
+  }
+  if (path === "/archive/products/new") {
+    return { view: "archive-product-form", productId: null };
+  }
+
+  const productEdit = path.match(/^\/archive\/products\/([^/]+)\/edit$/);
+  if (productEdit) {
+    return { view: "archive-product-form", productId: productEdit[1] };
+  }
+
+  if (path === "/archive" || path.startsWith("/archive/")) {
+    return { view: "archive" };
   }
 
   const match = path.match(/^\/content\/([^/]+)$/);

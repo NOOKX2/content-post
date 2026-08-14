@@ -1,4 +1,4 @@
-export type MediaType = "video" | "image";
+export type MediaType = "video" | "image" | "graphic";
 
 export type ContentStatus =
   | "draft"
@@ -16,7 +16,9 @@ export type Platform =
   | "facebook"
   | "instagram"
   | "tiktok"
-  | "youtube";
+  | "youtube"
+  | "line"
+  | "lemon8";
 
 export type PostingTarget = {
   bufferChannelId: string;
@@ -83,6 +85,7 @@ export interface ContentItem {
   filmingEquipment: string[];
   attachments: string[];
   exampleAttachments: string[];
+  coverImage: string;
   script: ScriptRow[];
   ideaCreator: string;
   photographer: string;
@@ -93,6 +96,8 @@ export interface ContentItem {
   category: string;
   tags: string[];
   imageMeta?: ImageMeta;
+  googleEventId?: string;
+  googleCalendarLink?: string;
   createdById?: string | null;
   createdAt: string;
 }
@@ -117,6 +122,7 @@ export interface ContentFormData {
   filmingEquipment: string[];
   attachments: string[];
   exampleAttachments: string[];
+  coverImage: string;
   script: ScriptRow[];
   ideaCreator: string;
   photographer: string;

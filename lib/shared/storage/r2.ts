@@ -1,4 +1,5 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export type R2Config = {
   accountId: string;
@@ -45,6 +46,9 @@ function getR2Client(config: R2Config): S3Client {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
       },
+      // AWS SDK default CRC32 checksums break R2 presigned browser PUTs.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     });
   }
 
@@ -77,6 +81,32 @@ export async function uploadToR2(input: {
   );
 
   return buildR2PublicUrl(input.key, config);
+}
+
+export async function createPresignedUpload(input: {
+  key: string;
+  contentType: string;
+  expiresIn?: number;
+}): Promise<{ uploadUrl: string; publicUrl: string }> {
+  const config = getR2Config();
+  if (!config) {
+    throw new Error("Cloudflare R2 is not configured");
+  }
+
+  const uploadUrl = await getSignedUrl(
+    getR2Client(config),
+    new PutObjectCommand({
+      Bucket: config.bucketName,
+      Key: input.key,
+      ContentType: input.contentType,
+    }),
+    { expiresIn: input.expiresIn ?? 60 * 5 }
+  );
+
+  return {
+    uploadUrl,
+    publicUrl: buildR2PublicUrl(input.key, config),
+  };
 }
 
 export function isR2Configured(): boolean {

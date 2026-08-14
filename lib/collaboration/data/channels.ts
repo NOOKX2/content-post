@@ -264,7 +264,14 @@ export async function listChannels(userId: string) {
       },
       members: {
         include: {
-          user: { select: { id: true, name: true, email: true } },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              displayName: true,
+              email: true,
+            },
+          },
         },
       },
     },
@@ -284,7 +291,7 @@ export async function listChannels(userId: string) {
   const partners = dmPartnerIds.length
     ? await prisma.user.findMany({
         where: { id: { in: [...new Set(dmPartnerIds)] } },
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, displayName: true, email: true },
       })
     : [];
   const partnerById = new Map(
@@ -329,12 +336,17 @@ export async function listChannels(userId: string) {
           : ("team" as const);
       const partnerId = peerIdFromDmSlug(channel.slug, userId);
       const partner = partnerId ? partnerById.get(partnerId) : undefined;
-      const memberNames = channel.members.map((member) => member.user.name);
+      const memberNames = channel.members.map(
+        (member) => member.user.displayName || member.user.name
+      );
+      const partnerLabel = partner
+        ? partner.displayName || partner.name
+        : null;
 
       return {
         id: channel.id,
         slug: channel.slug,
-        name: kind === "dm" && partner ? partner.name : channel.name,
+        name: kind === "dm" && partnerLabel ? partnerLabel : channel.name,
         kind,
         contentId: null,
         contentCode: undefined,

@@ -7,18 +7,43 @@ import type {
 } from "@/lib/collaboration/types/team";
 import { createNotifications } from "@/lib/notifications/data/service";
 
+const memberSelect = {
+  id: true,
+  name: true,
+  displayName: true,
+  email: true,
+  phone: true,
+  phoneCountry: true,
+  role: true,
+  position: true,
+  imageUrl: true,
+  busy: true,
+  createdAt: true,
+} as const;
+
 function toMember(user: {
   id: string;
   name: string;
+  displayName: string;
   email: string;
+  phone: string;
+  phoneCountry: string;
   role: Role;
+  position: string;
+  imageUrl: string;
+  busy: boolean;
   createdAt: Date;
 }): TeamMemberItem {
   return {
     id: user.id,
-    name: user.name,
+    name: user.displayName || user.name,
     email: user.email,
+    phone: user.phone,
+    phoneCountry: user.phoneCountry,
     role: user.role,
+    position: user.position,
+    imageUrl: user.imageUrl,
+    busy: user.busy,
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -57,15 +82,32 @@ function toTask(task: {
 export async function listTeamMembers(): Promise<TeamMemberItem[]> {
   const users = await prisma.user.findMany({
     orderBy: [{ role: "asc" }, { name: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-    },
+    select: memberSelect,
   });
   return users.map(toMember);
+}
+
+export async function createTeamMember(input: {
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: Role;
+}): Promise<TeamMemberItem> {
+  const user = await prisma.user.create({
+    data: {
+      name: input.name,
+      displayName: input.name,
+      email: input.email,
+      password: input.passwordHash,
+      role: input.role,
+    },
+    select: memberSelect,
+  });
+  return toMember(user);
+}
+
+export async function deleteTeamMember(userId: string): Promise<void> {
+  await prisma.user.delete({ where: { id: userId } });
 }
 
 export async function updateMemberRole(
@@ -75,13 +117,7 @@ export async function updateMemberRole(
   const user = await prisma.user.update({
     where: { id: userId },
     data: { role },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-    },
+    select: memberSelect,
   });
   return toMember(user);
 }
@@ -107,6 +143,18 @@ export async function listTasks(options?: {
   return tasks.map(toTask);
 }
 
+async function assertAssigneeAvailable(assigneeId?: string | null) {
+  if (!assigneeId) return;
+  const assignee = await prisma.user.findUnique({
+    where: { id: assigneeId },
+    select: { busy: true, name: true, displayName: true },
+  });
+  if (assignee?.busy) {
+    const label = assignee.displayName || assignee.name;
+    throw new Error(`${label} ตั้งสถานะไม่ว่าง จึงยังไม่สามารถมอบหมายงานได้`);
+  }
+}
+
 export async function createTask(input: {
   title: string;
   contentId?: string | null;
@@ -115,6 +163,7 @@ export async function createTask(input: {
   createdById: string;
   createdByName: string;
 }): Promise<TaskItem> {
+  await assertAssigneeAvailable(input.assigneeId);
   const task = await prisma.task.create({
     data: {
       title: input.title.trim(),
@@ -153,6 +202,13 @@ export async function updateTask(
   const before = await prisma.task.findUnique({ where: { id: taskId } });
   if (!before) {
     throw new Error("ไม่พบงาน");
+  }
+
+  if (
+    input.assigneeId &&
+    input.assigneeId !== before.assigneeId
+  ) {
+    await assertAssigneeAvailable(input.assigneeId);
   }
 
   const task = await prisma.task.update({

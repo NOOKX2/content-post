@@ -4,7 +4,12 @@ export type TeamMemberItem = {
   id: string;
   name: string;
   email: string;
+  phone: string;
+  phoneCountry: string;
   role: "USER" | "EDITOR" | "DESIGNER" | "ADMIN";
+  position: string;
+  imageUrl: string;
+  busy: boolean;
   createdAt: string;
 };
 

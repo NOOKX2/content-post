@@ -4,6 +4,7 @@ import {
   getBufferChannelIdsForPlatform,
   isBufferConfigured,
 } from "@/lib/integrations/buffer/client";
+import { readBufferEnv } from "@/lib/integrations/buffer/env";
 import type {
   SocialAnalyticsDebug,
   SocialAnalyticsResponse,
@@ -266,7 +267,7 @@ export async function fetchSocialAnalytics(options: {
     });
   }
 
-  const organizationId = process.env.BUFFER_ORG_ID!;
+  const organizationId = readBufferEnv("BUFFER_ORG_ID");
   const mappedChannelIds =
     (await getBufferChannelIdsForPlatform(options.platform)) ?? [];
   const { startDateTime, endDateTime } = {

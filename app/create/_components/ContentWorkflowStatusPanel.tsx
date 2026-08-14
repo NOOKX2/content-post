@@ -25,11 +25,13 @@ import {
   type PublishWorkflowTone,
 } from "@/lib/content/domain/workflow";
 import { isImageMediaUrl, isVideoMediaUrl } from "@/lib/content/domain/media-url";
+import { isStillMedia } from "@/lib/content/domain/media-type";
 import { useContents } from "@/lib/content/client/contents-provider";
 import { STATUS_LABELS } from "@/lib/constants";
 import type { ContentItem } from "@/lib/types";
 import { formatThaiDate } from "@/lib/shared/utils";
 import { cn } from "@/lib/shared/utils";
+import { statusLabel, useT } from "@/lib/i18n";
 import { ContentWorkflowStepper } from "./ContentWorkflowStepper";
 
 const PUBLISH_BANNER_STYLES: Record<
@@ -78,8 +80,9 @@ function PublishStatusBanner({ content }: { content: ContentItem }) {
 
 function ExampleImageGrid({ content }: { content: ContentItem }) {
   const images = [
+    ...(content.coverImage ? [content.coverImage] : []),
     ...content.exampleAttachments,
-    ...(content.mediaType === "image" ? content.attachments : []),
+    ...(isStillMedia(content.mediaType) ? content.attachments : []),
     ...content.script
       .map((row) => row.imageUrl)
       .filter((url): url is string => Boolean(url?.trim())),
@@ -130,6 +133,8 @@ function VideoPreview({ content }: { content: ContentItem }) {
 }
 
 function ContentSummary({ content }: { content: ContentItem }) {
+  const { t } = useT();
+
   return (
     <Card className="space-y-4 p-5">
       <div className="flex flex-wrap items-center gap-2">
@@ -137,7 +142,7 @@ function ContentSummary({ content }: { content: ContentItem }) {
           #{content.contentId}
         </span>
         <Badge className={STATUS_LABELS[content.status].color}>
-          {STATUS_LABELS[content.status].label}
+          {statusLabel(t, content.status)}
         </Badge>
       </div>
       <div>
@@ -305,7 +310,7 @@ export function ContentWorkflowStatusPanel({
   const publishState = getPublishWorkflowState(content);
   const isWaiting = step === 2 || step === 4;
   const isPublishedStep = step === 5;
-  const isImage = content.mediaType === "image";
+  const isImage = isStillMedia(content.mediaType);
 
   const handleUpdated = async (item: ContentItem) => {
     await mutateContents(

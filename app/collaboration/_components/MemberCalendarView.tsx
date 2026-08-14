@@ -15,13 +15,14 @@ import {
   type MeetingDraft,
 } from "@/app/collaboration/_components/ScheduleMeetingDialog";
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/lib/i18n";
 
 export function MemberCalendarView({
   userId,
   memberName,
   onBack,
   channelId,
-  subtitle = "นัดประชุมที่มีร่วมกับคุณ",
+  subtitle,
 }: {
   userId: string;
   memberName: string;
@@ -29,7 +30,9 @@ export function MemberCalendarView({
   channelId?: string;
   subtitle?: string;
 }) {
+  const { t } = useT();
   const { mutate: mutateGlobal } = useSWRConfig();
+  const calendarSubtitle = subtitle ?? t("team.sharedMeetings");
   const {
     data: meetings = [],
     isLoading,
@@ -69,7 +72,7 @@ export function MemberCalendarView({
         void mutateGlobal(`collab-messages:${channelId}`);
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : "นัดประชุมไม่สำเร็จ");
+      alert(error instanceof Error ? error.message : t("team.scheduleFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -92,15 +95,15 @@ export function MemberCalendarView({
                 onClick={onBack}
               >
                 <ArrowLeft className="h-4 w-4" />
-                กลับ
+                {t("common.back")}
               </Button>
               <PersonAvatar name={memberName} size="sm" />
               <div className="min-w-0">
                 <span className="block truncate text-sm font-semibold text-stone-900">
-                  ปฏิทินของ {memberName}
+                  {t("team.viewCalendarOf", { name: memberName })}
                 </span>
                 <span className="block truncate text-[11px] font-normal text-stone-500">
-                  {subtitle}
+                  {calendarSubtitle}
                 </span>
               </div>
             </>

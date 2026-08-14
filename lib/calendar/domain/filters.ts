@@ -1,4 +1,4 @@
-import type { ContentItem, ContentStatus } from "@/lib/types";
+import type { ContentItem, ContentStatus, MediaType } from "@/lib/types";
 import { getCalendarContents } from "@/lib/calendar/data/content";
 import { formatDateKey } from "@/lib/calendar/data/content";
 
@@ -93,6 +93,32 @@ export function getPostStatusDotClass(status: ContentStatus): string {
   if (isNeedsEdit(status)) return "bg-red-500";
   if (isWaitingToPost(status)) return "bg-orange-500";
   return "bg-stone-300";
+}
+
+export function getMediaTypeDotClass(mediaType: MediaType): string {
+  if (mediaType === "video") return "bg-orange-500";
+  if (mediaType === "graphic") return "bg-pink-500";
+  return "bg-emerald-500";
+}
+
+export function getMediaTypeCardClass(mediaType: MediaType): string {
+  if (mediaType === "video") {
+    return "border border-orange-500 bg-white hover:border-orange-600";
+  }
+  if (mediaType === "graphic") {
+    return "border border-pink-500 bg-white hover:border-pink-600";
+  }
+  return "border border-emerald-500 bg-white hover:border-emerald-600";
+}
+
+export function getMediaTypeEventClass(mediaType: MediaType): string {
+  if (mediaType === "video") {
+    return "bg-orange-100 text-orange-900 hover:bg-orange-200";
+  }
+  if (mediaType === "graphic") {
+    return "bg-pink-100 text-pink-900 hover:bg-pink-200";
+  }
+  return "bg-emerald-100 text-emerald-900 hover:bg-emerald-200";
 }
 
 export function getDateRangeForPreset(

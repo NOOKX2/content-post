@@ -17,6 +17,7 @@ const FIELD_LABELS: Record<string, string> = {
   productsNeeded: "สินค้า",
   itemsToPrepare: "อุปกรณ์ประกอบฉาก",
   filmingEquipment: "อุปกรณ์ถ่าย",
+  coverImage: "ปกคลิป",
   category: "วัตถุประสงค์",
   status: "สถานะ",
 };

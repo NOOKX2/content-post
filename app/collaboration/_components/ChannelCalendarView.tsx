@@ -13,6 +13,7 @@ import {
   type MeetingDraft,
 } from "@/app/collaboration/_components/ScheduleMeetingDialog";
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/lib/i18n";
 
 export function ChannelCalendarView({
   channelId,
@@ -25,6 +26,7 @@ export function ChannelCalendarView({
   channelKind: "team" | "group";
   onBack: () => void;
 }) {
+  const { t } = useT();
   const { mutate: mutateGlobal } = useSWRConfig();
   const {
     data: meetings = [],
@@ -44,12 +46,12 @@ export function ChannelCalendarView({
 
   const title =
     channelKind === "team"
-      ? `ปฏิทิน${channelName}`
-      : `ปฏิทินกลุ่ม ${channelName}`;
+      ? t("team.channelCalendar", { name: channelName })
+      : t("team.groupCalendar", { name: channelName });
   const subtitle =
     channelKind === "team"
-      ? "นัดประชุมทีมในห้องนี้ — เลือกช่วงเวลาที่ว่าง"
-      : "นัดประชุมกลุ่มในห้องนี้ — เลือกช่วงเวลาที่ว่าง";
+      ? t("team.teamMeetingHint")
+      : t("team.groupMeetingHint");
 
   const handleSchedule = (next: { start: Date; end: Date }) => {
     setPrefill(next);
@@ -71,7 +73,7 @@ export function ChannelCalendarView({
       void mutateGlobal("collab-channels");
       void mutateGlobal(`collab-messages:${channelId}`);
     } catch (error) {
-      alert(error instanceof Error ? error.message : "นัดประชุมไม่สำเร็จ");
+      alert(error instanceof Error ? error.message : t("team.scheduleFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -94,7 +96,7 @@ export function ChannelCalendarView({
                 onClick={onBack}
               >
                 <ArrowLeft className="h-4 w-4" />
-                กลับ
+                {t("common.back")}
               </Button>
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
                 <Users className="h-4 w-4" />

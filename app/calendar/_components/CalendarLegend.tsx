@@ -1,7 +1,9 @@
-import { STATUS_LABELS } from "@/lib/constants";
+"use client";
+
 import type { ContentStatus } from "@/lib/types";
 import { CALENDAR_CELL_STYLES } from "@/lib/calendar/data/content";
 import { cn } from "@/lib/shared/utils";
+import { statusLabel, useT } from "@/lib/i18n";
 
 const LEGEND_STATUSES: ContentStatus[] = [
   "pending",
@@ -14,9 +16,13 @@ const LEGEND_STATUSES: ContentStatus[] = [
 ];
 
 export function CalendarLegend({ className }: { className?: string }) {
+  const { t } = useT();
+
   return (
     <div className={cn("flex flex-wrap items-center gap-3", className)}>
-      <span className="text-xs font-medium text-stone-500">สถานะ:</span>
+      <span className="text-xs font-medium text-stone-500">
+        {t("calendar.statusLabel")}:
+      </span>
       {LEGEND_STATUSES.map((status) => (
         <span
           key={status}
@@ -25,7 +31,7 @@ export function CalendarLegend({ className }: { className?: string }) {
             CALENDAR_CELL_STYLES[status]
           )}
         >
-          {STATUS_LABELS[status].label}
+          {statusLabel(t, status)}
         </span>
       ))}
     </div>

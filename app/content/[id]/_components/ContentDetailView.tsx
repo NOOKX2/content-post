@@ -8,6 +8,7 @@ import { ContentComments } from "@/app/content/[id]/_components/ContentComments"
 import { TeamTasksPanel } from "@/app/collaboration/_components/TeamTasksPanel";
 import { ContentForm } from "@/app/create/_components/ContentForm";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { NavBreadcrumb } from "@/components/layout/NavBreadcrumb";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Button } from "@/components/ui/Button";
 import { downloadContentPdf } from "@/lib/content/pdf/export-client";
@@ -56,11 +57,9 @@ function ContentDetailSubNav({
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-stone-800">
-              รายละเอียด Content
-            </p>
-            <p className="text-[11px] text-stone-400">
-              Content Hub / ดูรายละเอียด
+            <NavBreadcrumb />
+            <p className="mt-0.5 text-[11px] text-stone-400">
+              ดูรายละเอียดคอนเทนต์
             </p>
           </div>
         </div>

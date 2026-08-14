@@ -28,6 +28,22 @@ import {
 import type { TaskStatus } from "@prisma/client";
 import { useDashboardNav } from "@/lib/navigation/client/dashboard-nav";
 import { cn, formatThaiDate } from "@/lib/shared/utils";
+import { useT } from "@/lib/i18n";
+
+function assigneeOptions(
+  members: TeamMemberItem[],
+  unavailableLabel: string,
+  keepId?: string | null
+) {
+  return members
+    .filter((member) => !member.busy || member.id === keepId)
+    .map((member) => ({
+      value: member.id,
+      label: member.busy
+        ? `${member.name} (${unavailableLabel})`
+        : member.name,
+    }));
+}
 
 function todayIso() {
   const d = new Date();
@@ -82,6 +98,8 @@ export function TeamTasksPanel({
   compact = false,
 }: TeamTasksPanelProps) {
   const { navigate } = useDashboardNav();
+  const { t } = useT();
+  const unavailable = t("profile.unavailable");
   const tasksKey = contentId
     ? `team-tasks:content:${contentId}`
     : "team-tasks:all";
@@ -259,10 +277,7 @@ export function TeamTasksPanel({
                         ผู้รับผิดชอบ
                       </label>
                       <Select
-                        options={members.map((m) => ({
-                          value: m.id,
-                          label: m.name,
-                        }))}
+                        options={assigneeOptions(members, unavailable)}
                         placeholder="เลือกสมาชิก..."
                         value={assigneeId}
                         onChange={(e) => setAssigneeId(e.target.value)}
@@ -386,10 +401,11 @@ export function TeamTasksPanel({
                         </div>
                         <div className="mt-3">
                           <Select
-                            options={members.map((m) => ({
-                              value: m.id,
-                              label: m.name,
-                            }))}
+                            options={assigneeOptions(
+                              members,
+                              unavailable,
+                              task.assigneeId
+                            )}
                             placeholder="เปลี่ยนผู้รับผิดชอบ..."
                             value={task.assigneeId ?? ""}
                             onChange={(e) =>
@@ -451,6 +467,8 @@ function CompactTasksView({
   contentId?: string;
   navigate: (href: string) => void;
 }) {
+  const { t } = useT();
+  const unavailable = t("profile.unavailable");
   const [showForm, setShowForm] = useState(false);
 
   const handleCreate = async () => {
@@ -487,10 +505,7 @@ function CompactTasksView({
                 ผู้รับผิดชอบ
               </label>
               <Select
-                options={members.map((m) => ({
-                  value: m.id,
-                  label: m.name,
-                }))}
+                options={assigneeOptions(members, unavailable)}
                 placeholder="เลือกสมาชิก..."
                 value={assigneeId}
                 onChange={(e) => setAssigneeId(e.target.value)}
@@ -597,10 +612,11 @@ function CompactTasksView({
                   className="h-9"
                 />
                 <Select
-                  options={members.map((m) => ({
-                    value: m.id,
-                    label: m.name,
-                  }))}
+                  options={assigneeOptions(
+                    members,
+                    unavailable,
+                    task.assigneeId
+                  )}
                   placeholder="มอบหมายให้..."
                   value={task.assigneeId ?? ""}
                   onChange={(e) =>

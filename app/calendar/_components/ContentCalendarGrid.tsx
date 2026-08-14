@@ -2,27 +2,91 @@
 
 import { useEffect, useState } from "react";
 import { DashboardLink } from "@/components/layout/DashboardLink";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import type { ContentItem } from "@/lib/types";
+import type { MeetingItem } from "@/lib/collaboration/types";
 import { PlatformBadgeGroup } from "@/components/ui/PlatformIcon";
 import { PLATFORMS } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 import { CalendarPostLegend } from "@/app/calendar/_components/CalendarPostLegend";
-import {
-  getPostStatusDotClass,
-  type CalendarDateField,
-} from "@/lib/calendar/domain/filters";
-import { getContentCalendarDate } from "@/lib/calendar/domain/filters";
+import { ContentSummaryCard } from "@/components/content/ContentSummaryCard";
+import { type CalendarDateField } from "@/lib/calendar/domain/filters";
+import { getContentCalendarDate, getMediaTypeCardClass } from "@/lib/calendar/domain/filters";
 import { cn, getDaysInMonth, getWeekNumber } from "@/lib/shared/utils";
+import { useT } from "@/lib/i18n";
 
 interface ContentCalendarGridProps {
   contents: ContentItem[];
   dateField: CalendarDateField;
+  meetings?: MeetingItem[];
+  showMeetings?: boolean;
 }
 
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const WEEKDAYS_MOBILE = ["M", "T", "W", "T", "F", "S", "S"];
 const MOBILE_VISIBLE_EVENTS = 2;
+
+function meetingDateKey(iso: string) {
+  const date = new Date(iso);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function MeetingEventCard({
+  meeting,
+  compact = false,
+}: {
+  meeting: MeetingItem;
+  compact?: boolean;
+}) {
+  const start = new Date(meeting.startsAt).toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const href = meeting.meetUrl || meeting.calendarLink || "#";
+
+  if (compact) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 transition-colors hover:border-emerald-300"
+        title={meeting.title}
+      >
+        <Video className="h-3 w-3 shrink-0 text-emerald-700" />
+        <span className="truncate text-[10px] font-semibold text-emerald-800">
+          {meeting.title}
+        </span>
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="block rounded border border-emerald-200 bg-emerald-50 p-1.5 transition-shadow hover:border-emerald-300 hover:shadow-md sm:rounded-md sm:p-1.5"
+      title={meeting.title}
+    >
+      <div className="flex items-start gap-1">
+        <Video className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 text-xs font-bold leading-snug text-emerald-900 sm:text-[11px]">
+            {meeting.title}
+          </p>
+          <p className="mt-0.5 truncate text-[10px] text-emerald-700">
+            {start}
+            {meeting.meetUrl ? " · Meet" : ""}
+          </p>
+        </div>
+      </div>
+    </a>
+  );
+}
 
 function CalendarEventCard({
   content,
@@ -31,56 +95,17 @@ function CalendarEventCard({
   content: ContentItem;
   compact?: boolean;
 }) {
-  if (compact) {
-    return (
-      <DashboardLink
-        href={`/content/${content.id}`}
-        className="flex items-center gap-1 rounded border border-stone-200 bg-white px-1 py-0.5 transition-colors hover:border-stone-300"
-        title={`${content.name} (#${content.contentId})`}
-      >
-        <span
-          className={cn(
-            "h-1.5 w-1.5 shrink-0 rounded-full",
-            getPostStatusDotClass(content.status)
-          )}
-        />
-        <span className="truncate text-[10px] font-semibold text-stone-700">
-          #{content.contentId}
-        </span>
-      </DashboardLink>
-    );
-  }
-
   return (
     <DashboardLink
       href={`/content/${content.id}`}
-      className="block rounded border border-stone-200 bg-white p-1.5 transition-shadow hover:border-stone-300 hover:shadow-md sm:rounded-md sm:p-1.5"
+      className={cn(
+        "block rounded transition-shadow hover:shadow-md",
+        getMediaTypeCardClass(content.mediaType),
+        compact ? "px-1 py-0.5" : "p-1.5 sm:rounded-md sm:p-1.5"
+      )}
       title={`${content.name} (#${content.contentId})`}
     >
-      <div className="flex items-start gap-1">
-        <span
-          className={cn(
-            "mt-1 h-2 w-2 shrink-0 rounded-full sm:mt-1 sm:h-2 sm:w-2",
-            getPostStatusDotClass(content.status)
-          )}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-xs font-bold leading-snug text-stone-800 sm:text-[11px]">
-            {content.name}
-          </p>
-          {content.channel ? (
-            <p className="mt-0.5 truncate text-[10px] leading-snug text-stone-500 sm:text-[10px]">
-              {content.channel}
-            </p>
-          ) : null}
-          <p className="mt-0.5 truncate text-[10px] leading-snug text-stone-400 sm:text-[10px]">
-            #{content.contentId}
-          </p>
-          <div className="mt-1 hidden sm:block">
-            <PlatformBadgeGroup platforms={content.platforms} size="sm" />
-          </div>
-        </div>
-      </div>
+      <ContentSummaryCard content={content} compact />
     </DashboardLink>
   );
 }
@@ -90,62 +115,51 @@ function MobileSelectedDayPanel({
   month,
   year,
   contents,
+  meetings,
 }: {
   day: number;
   month: number;
   year: number;
   contents: ContentItem[];
+  meetings: MeetingItem[];
 }) {
-  const dateLabel = new Date(year, month, day).toLocaleDateString("th-TH", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const { t, locale } = useT();
+  const dateLabel = new Date(year, month, day).toLocaleDateString(
+    locale === "en" ? "en-US" : "th-TH",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }
+  );
 
   return (
     <div className="mt-3 space-y-2 border-t border-stone-200 pt-3 sm:hidden">
       <h3 className="text-sm font-semibold text-stone-900">{dateLabel}</h3>
-      {contents.length === 0 ? (
-        <p className="text-sm text-stone-400">ไม่มีงานในวันนี้</p>
+      {contents.length === 0 && meetings.length === 0 ? (
+        <p className="text-sm text-stone-400">{t("calendar.noJobsToday")}</p>
       ) : (
         <div className="space-y-2">
           {contents.map((content) => (
             <div
               key={content.id}
-              className="rounded-lg border border-stone-200 bg-stone-50/60 p-3"
+              className={cn(
+                "rounded-lg p-3",
+                getMediaTypeCardClass(content.mediaType)
+              )}
             >
-              <div className="flex items-start gap-2">
-                <span
-                  className={cn(
-                    "mt-1 h-2.5 w-2.5 shrink-0 rounded-full",
-                    getPostStatusDotClass(content.status)
-                  )}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold leading-snug text-stone-900">
-                    {content.name}
-                  </p>
-                  {content.channel ? (
-                    <p className="mt-1 text-xs text-stone-500">
-                      {content.channel}
-                    </p>
-                  ) : null}
-                  <p className="mt-1 text-xs text-stone-400">
-                    #{content.contentId}
-                  </p>
-                  <div className="mt-2">
-                    <PlatformBadgeGroup platforms={content.platforms} size="sm" />
-                  </div>
-                  <DashboardLink
-                    href={`/content/${content.id}`}
-                    className="mt-3 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700"
-                  >
-                    ดูรายละเอียด
-                  </DashboardLink>
-                </div>
-              </div>
+              <ContentSummaryCard content={content} />
+              <DashboardLink
+                href={`/content/${content.id}`}
+                className="mt-3 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700"
+              >
+                {t("workflow.viewDetail")}
+              </DashboardLink>
             </div>
+          ))}
+          {meetings.map((meeting) => (
+            <MeetingEventCard key={meeting.id} meeting={meeting} />
           ))}
         </div>
       )}
@@ -156,7 +170,10 @@ function MobileSelectedDayPanel({
 export function ContentCalendarGrid({
   contents,
   dateField,
+  meetings = [],
+  showMeetings = true,
 }: ContentCalendarGridProps) {
+  const { t } = useT();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -192,6 +209,14 @@ export function ContentCalendarGrid({
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return contents.filter(
       (content) => getContentCalendarDate(content, dateField) === dateStr
+    );
+  };
+
+  const getMeetingsForDay = (day: number) => {
+    if (!showMeetings) return [];
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return meetings.filter(
+      (meeting) => meetingDateKey(meeting.startsAt) === dateStr
     );
   };
 
@@ -273,6 +298,8 @@ export function ContentCalendarGrid({
                   </div>
                   {week.map((day, dayIndex) => {
                     const dayContents = day ? getContentsForDay(day) : [];
+                    const dayMeetings = day ? getMeetingsForDay(day) : [];
+                    const dayEventCount = dayContents.length + dayMeetings.length;
                     const todayFlag = day ? isToday(day) : false;
                     const isSelected = day === selectedDay;
 
@@ -320,13 +347,31 @@ export function ContentCalendarGrid({
                                       compact
                                     />
                                   ))}
-                                {dayContents.length > MOBILE_VISIBLE_EVENTS ? (
+                                {dayMeetings
+                                  .slice(
+                                    0,
+                                    Math.max(
+                                      0,
+                                      MOBILE_VISIBLE_EVENTS - dayContents.length
+                                    )
+                                  )
+                                  .map((meeting) => (
+                                    <MeetingEventCard
+                                      key={meeting.id}
+                                      meeting={meeting}
+                                      compact
+                                    />
+                                  ))}
+                                {dayEventCount > MOBILE_VISIBLE_EVENTS ? (
                                   <button
                                     type="button"
                                     onClick={() => setSelectedDay(day)}
                                     className="text-[10px] font-medium text-blue-600"
                                   >
-                                    +{dayContents.length - MOBILE_VISIBLE_EVENTS} งาน
+                                    {t("calendar.moreJobs", {
+                                      count:
+                                        dayEventCount - MOBILE_VISIBLE_EVENTS,
+                                    })}
                                   </button>
                                 ) : null}
                               </div>
@@ -335,6 +380,12 @@ export function ContentCalendarGrid({
                                   <CalendarEventCard
                                     key={content.id}
                                     content={content}
+                                  />
+                                ))}
+                                {dayMeetings.map((meeting) => (
+                                  <MeetingEventCard
+                                    key={meeting.id}
+                                    meeting={meeting}
                                   />
                                 ))}
                               </div>
@@ -356,12 +407,21 @@ export function ContentCalendarGrid({
             month={month}
             year={year}
             contents={getContentsForDay(selectedDay)}
+            meetings={getMeetingsForDay(selectedDay)}
           />
         ) : null}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-200 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
-        <CalendarPostLegend />
+        <div className="flex flex-wrap items-center gap-3">
+          <CalendarPostLegend />
+          {showMeetings ? (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-700">
+              <Video className="h-3.5 w-3.5" />
+              {t("calendar.meetingsLegend")}
+            </span>
+          ) : null}
+        </div>
         <div className="hidden flex-wrap items-center gap-4 sm:flex">
           <span className="text-xs font-medium text-stone-500">Platform:</span>
           {PLATFORMS.map((platform) => (

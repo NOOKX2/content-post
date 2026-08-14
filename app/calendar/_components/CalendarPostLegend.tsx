@@ -1,12 +1,19 @@
+"use client";
+
 import { cn } from "@/lib/shared/utils";
+import { useT } from "@/lib/i18n";
 
 export function CalendarPostLegend({ className }: { className?: string }) {
+  const { t } = useT();
+
   return (
     <div className={cn("flex flex-wrap items-center gap-2 sm:gap-4", className)}>
-      <span className="text-xs font-medium text-stone-500 sm:text-xs">สถานะโพส:</span>
-      <LegendItem color="bg-orange-500" label="คอนเทนต์ที่รอโพส" />
-      <LegendItem color="bg-emerald-500" label="คอนเทนต์ที่โพสแล้ว" />
-      <LegendItem color="bg-red-500" label="คอนเทนต์รอแก้ไข" />
+      <span className="text-xs font-medium text-stone-500 sm:text-xs">
+        {t("calendar.statusLabel")}:
+      </span>
+      <LegendItem color="bg-orange-500" label={t("calendar.waitingPost")} />
+      <LegendItem color="bg-emerald-500" label={t("calendar.postedContent")} />
+      <LegendItem color="bg-red-500" label={t("calendar.needsEditContent")} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { bufferGraphql } from "@/lib/integrations/buffer/client";
+import { readBufferEnv } from "@/lib/integrations/buffer/env";
 
 export type BufferChannelInfo = {
   id: string;
@@ -8,7 +9,7 @@ export type BufferChannelInfo = {
 };
 
 export async function listBufferChannels(): Promise<BufferChannelInfo[]> {
-  const organizationId = process.env.BUFFER_ORG_ID;
+  const organizationId = readBufferEnv("BUFFER_ORG_ID");
   if (!organizationId) {
     throw new Error("BUFFER_ORG_ID is not configured");
   }

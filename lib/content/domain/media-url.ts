@@ -1,3 +1,6 @@
+import type { MediaType } from "@/lib/types";
+import { isStillMedia } from "@/lib/content/domain/media-type";
+
 const VIDEO_EXT = /\.(mp4|mov|webm|m4v)$/i;
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
 
@@ -42,7 +45,7 @@ export function toAbsolutePublicUrl(
 
 export function resolvePublicMediaUrl(
   attachments: string[],
-  mediaType: "video" | "image",
+  mediaType: MediaType,
   baseUrl: string
 ): string | null {
   const absoluteUrls = attachments
@@ -59,6 +62,10 @@ export function resolvePublicMediaUrl(
     if (matched) return matched;
     const link = absoluteUrls.find((url) => isVideoAttachmentUrl(url));
     return link ?? null;
+  }
+
+  if (isStillMedia(mediaType)) {
+    return matched ?? absoluteUrls[0];
   }
 
   return matched ?? absoluteUrls[0];

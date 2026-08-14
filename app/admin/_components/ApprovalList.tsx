@@ -15,23 +15,10 @@ import {
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import type { ContentItem } from "@/lib/types";
 import { cn } from "@/lib/shared/utils";
+import { useT } from "@/lib/i18n";
 
-const MAIN_TABS: { id: AdminApprovalView; label: string }[] = [
-  { id: "pending", label: "รอดำเนินการ" },
-  { id: "completed", label: "เสร็จสิ้น" },
-  { id: "rejected", label: "ไม่ผ่าน" },
-];
-
-const STAGE_TABS: { id: AdminApprovalStage; label: string }[] = [
-  { id: "concept", label: "อนุมัติแนวคิด" },
-  { id: "clip", label: "อนุมัติคลิป" },
-];
-
-const LIST_HEADERS: Record<AdminApprovalView, string> = {
-  pending: "รายการรออนุมัติ",
-  completed: "รายการที่อนุมัติแล้ว",
-  rejected: "รายการที่ไม่ผ่าน",
-};
+const MAIN_TABS: AdminApprovalView[] = ["pending", "completed", "rejected"];
+const STAGE_TABS: AdminApprovalStage[] = ["concept", "clip"];
 
 function replaceContentItem(
   contents: ContentItem[],
@@ -50,6 +37,7 @@ function sortByNewest(contents: ContentItem[]): ContentItem[] {
 }
 
 export function ApprovalList() {
+  const { t } = useT();
   const isMobile = useIsMobile();
   const [view, setView] = useState<AdminApprovalView>("pending");
   const [stage, setStage] = useState<AdminApprovalStage>("clip");
@@ -116,7 +104,14 @@ export function ApprovalList() {
     const content = contents.find((item) => item.id === id);
     if (!content) return;
 
-    if (!confirm(`อนุมัติ ${content.contentId} — ${content.name}?`)) {
+    if (
+      !confirm(
+        t("admin.confirmApprove", {
+          id: content.contentId,
+          name: content.name,
+        })
+      )
+    ) {
       return;
     }
 
@@ -161,36 +156,37 @@ export function ApprovalList() {
     <div className="space-y-5">
       <div className="overflow-x-auto">
         <div className="flex min-w-max gap-6 border-b border-stone-200 px-1 sm:gap-8">
-        {MAIN_TABS.map((tab) => {
-          const count = countAdminApprovalView(contents, tab.id);
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setView(tab.id)}
-              className={cn(
-                "-mb-px border-b-2 pb-3 text-sm font-medium transition-colors",
-                view === tab.id
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-stone-500 hover:text-stone-700"
-              )}
-            >
-              {tab.label}
-              {count > 0 && (
-                <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-xs text-white">
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+          {MAIN_TABS.map((tab) => {
+            const count = countAdminApprovalView(contents, tab);
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setView(tab)}
+                className={cn(
+                  "-mb-px border-b-2 pb-3 text-sm font-medium transition-colors",
+                  view === tab
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-stone-500 hover:text-stone-700"
+                )}
+              >
+                {t(`admin.${tab}`)}
+                {count > 0 && (
+                  <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-xs text-white">
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <Tabs
         tabs={STAGE_TABS.map((tab) => ({
-          ...tab,
-          count: countAdminApprovalView(contents, view, tab.id),
+          id: tab,
+          label: t(`admin.${tab}`),
+          count: countAdminApprovalView(contents, view, tab),
         }))}
         activeTab={stage}
         onChange={(id) => setStage(id as AdminApprovalStage)}
@@ -208,13 +204,20 @@ export function ApprovalList() {
           >
             <div className="border-b border-stone-100 px-4 py-3">
               <h2 className="text-sm font-semibold text-stone-900">
-                {LIST_HEADERS[view]} ({filtered.length})
+                {t(
+                  view === "pending"
+                    ? "admin.pendingList"
+                    : view === "completed"
+                      ? "admin.completedList"
+                      : "admin.rejectedList"
+                )}{" "}
+                ({filtered.length})
               </h2>
             </div>
 
             {filtered.length === 0 ? (
               <div className="px-4 py-16 text-center text-sm text-stone-500">
-                ไม่มี Content ในหมวดนี้
+                {t("admin.empty")}
               </div>
             ) : (
               <div className="max-h-[32rem] overflow-y-auto">

@@ -6,20 +6,21 @@ import { ApprovalFeedbackHistory } from "./ApprovalFeedbackHistory";
 import {
   canAdminApproveContent,
   canAdminRejectContent,
-  getAdminApproveLabel,
-  getAdminRejectionLabel,
   getContentThumbnailUrl,
+  hasFinalVideoClip,
   isPublishPipelineStatus,
   isRejectedAtClipStage,
   type AdminApprovalStage,
   type AdminApprovalView,
 } from "@/lib/content/domain/workflow";
+import { isStillMedia } from "@/lib/content/domain/media-type";
 import { isVideoMediaUrl } from "@/lib/content/domain/media-url";
 import type { ContentItem } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { STATUS_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/shared/utils";
+import { statusLabel, useT } from "@/lib/i18n";
 
 interface ApprovalDetailPanelProps {
   content: ContentItem | null;
@@ -58,9 +59,10 @@ function ApprovalMediaPreview({ content }: { content: ContentItem }) {
     );
   }
 
+  const { t } = useT();
   return (
     <div className="flex aspect-video w-full items-center justify-center rounded-xl border border-dashed border-stone-200 bg-stone-50 text-sm text-stone-500">
-      ไม่มีตัวอย่างสื่อ
+      {t("admin.noPreview")}
     </div>
   );
 }
@@ -75,6 +77,7 @@ export function ApprovalDetailPanel({
   onReject,
   onBack,
 }: ApprovalDetailPanelProps) {
+  const { t } = useT();
   const [rejectNote, setRejectNote] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
 
@@ -86,19 +89,34 @@ export function ApprovalDetailPanel({
           className
         )}
       >
-        เลือกรายการจากด้านซ้ายเพื่อดูรายละเอียด
+        {t("admin.pickFromList")}
       </div>
     );
   }
 
-  const status = STATUS_LABELS[content.status];
-  const rejectionLabel =
-    content.status === "rejected" ? getAdminRejectionLabel(content) : null;
   const canApprove = view === "pending" && canAdminApproveContent(content);
   const canReject = view === "pending" && canAdminRejectContent(content);
-  const approveLabel = getAdminApproveLabel(content);
+  const approveLabel = (() => {
+    if (isStillMedia(content.mediaType)) return t("admin.approve");
+    if (content.status === "clip_pending") return t("admin.approveClip");
+    if (content.status === "idea_approved" && hasFinalVideoClip(content)) {
+      return t("admin.approveClip");
+    }
+    if (content.status === "pending" && hasFinalVideoClip(content)) {
+      return t("admin.approveAndPost");
+    }
+    return t("admin.approveIdea");
+  })();
+  const rejectionLabel =
+    content.status === "rejected"
+      ? isRejectedAtClipStage(content)
+        ? t("admin.rejectClip")
+        : t("admin.rejectIdea")
+      : null;
   const roundLabel =
-    stage === "clip" || isRejectedAtClipStage(content) ? "รอบที่ 2" : null;
+    stage === "clip" || isRejectedAtClipStage(content)
+      ? t("admin.round2")
+      : null;
 
   const handleReject = () => {
     const note = rejectNote.trim();
@@ -118,7 +136,7 @@ export function ApprovalDetailPanel({
             className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 lg:hidden"
           >
             <ArrowLeft className="h-4 w-4" />
-            กลับไปรายการ
+            {t("admin.backToList")}
           </button>
         ) : null}
 
@@ -126,8 +144,8 @@ export function ApprovalDetailPanel({
 
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge className={status.color}>
-              {rejectionLabel ?? status.label}
+            <Badge className={STATUS_LABELS[content.status].color}>
+              {rejectionLabel ?? statusLabel(t, content.status)}
             </Badge>
             {roundLabel && (
               <Badge className="bg-stone-100 text-stone-700">{roundLabel}</Badge>
@@ -148,14 +166,18 @@ export function ApprovalDetailPanel({
         {view === "completed" && isPublishPipelineStatus(content.status) && (
           <p className="text-sm text-blue-600">
             {content.mediaType === "video"
-              ? `อนุมัติคลิปโดย ${content.approver ?? "Admin"}`
-              : `อนุมัติ Content โดย ${content.approver ?? "Admin"}`}
+              ? t("admin.approvedClipBy", {
+                  name: content.approver ?? "Admin",
+                })
+              : t("admin.approvedBy", {
+                  name: content.approver ?? "Admin",
+                })}
           </p>
         )}
 
         {view === "rejected" && (
           <p className="text-sm text-red-600">
-            {rejectionLabel ?? "ไม่อนุมัติ"}
+            {rejectionLabel ?? t("admin.rejected")}
           </p>
         )}
       </div>
@@ -167,7 +189,7 @@ export function ApprovalDetailPanel({
               <textarea
                 value={rejectNote}
                 onChange={(event) => setRejectNote(event.target.value)}
-                placeholder="ระบุเหตุผลที่ส่งกลับแก้ไข..."
+                placeholder={t("admin.rejectReasonPlaceholder")}
                 rows={3}
                 className="w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 autoFocus
@@ -183,7 +205,7 @@ export function ApprovalDetailPanel({
                     setRejectNote("");
                   }}
                 >
-                  ยกเลิก
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   type="button"
@@ -192,7 +214,7 @@ export function ApprovalDetailPanel({
                   disabled={isProcessing || !rejectNote.trim()}
                   onClick={handleReject}
                 >
-                  {isProcessing ? "กำลังดำเนินการ..." : "ยืนยันไม่อนุมัติ"}
+                  {isProcessing ? t("admin.processing") : t("admin.confirmReject")}
                 </Button>
               </div>
             </div>
@@ -208,7 +230,7 @@ export function ApprovalDetailPanel({
                   onClick={() => setShowRejectForm(true)}
                 >
                   <X className="h-4 w-4" />
-                  ไม่อนุมัติ
+                  {t("admin.rejectContent")}
                 </Button>
               )}
               <Button
@@ -219,7 +241,7 @@ export function ApprovalDetailPanel({
                 onClick={() => onApprove(content.id)}
               >
                 <Check className="h-4 w-4" />
-                {isProcessing ? "กำลังอนุมัติ..." : approveLabel}
+                {isProcessing ? t("admin.approving") : approveLabel}
               </Button>
             </div>
           )}

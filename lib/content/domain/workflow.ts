@@ -2,6 +2,7 @@ import {
   isImageMediaUrl,
   isVideoAttachmentUrl,
 } from "@/lib/content/domain/media-url";
+import { isStillMedia } from "@/lib/content/domain/media-type";
 import type { ContentFormData, ContentItem, ContentStatus, MediaType } from "@/lib/types";
 
 export function isAwaitingAdminApproval(status: ContentStatus): boolean {
@@ -57,7 +58,7 @@ export function matchesAdminApprovalView(
 
   if (view === "completed") {
     return stage === "concept"
-      ? content.mediaType === "image" && isPublishPipelineStatus(content.status)
+      ? isStillMedia(content.mediaType) && isPublishPipelineStatus(content.status)
       : content.mediaType === "video" && isPublishPipelineStatus(content.status);
   }
 
@@ -110,7 +111,7 @@ export function getAdminRejectionLabel(content: ContentItem): string {
   if (isRejectedAtClipStage(content)) {
     return "ไม่อนุมัติคลิป";
   }
-  return content.mediaType === "image" ? "ไม่อนุมัติ Content" : "ไม่อนุมัติแนวคิด";
+  return isStillMedia(content.mediaType) ? "ไม่อนุมัติ Content" : "ไม่อนุมัติแนวคิด";
 }
 
 export function matchesAdminApprovalFilter(
@@ -120,7 +121,7 @@ export function matchesAdminApprovalFilter(
   if (filter === "all") return true;
   if (filter === "content_approved") {
     return (
-      content.mediaType === "image" && isPublishPipelineStatus(content.status)
+      isStillMedia(content.mediaType) && isPublishPipelineStatus(content.status)
     );
   }
   if (filter === "clip_approved") {
@@ -164,7 +165,7 @@ export function canAdminApproveContent(content: ContentItem): boolean {
 }
 
 export function getAdminApproveLabel(content: ContentItem): string {
-  if (content.mediaType === "image") {
+  if (isStillMedia(content.mediaType)) {
     return "อนุมัติ";
   }
 
@@ -303,7 +304,7 @@ export function getVideoWorkflowHeader(step: VideoWorkflowStep): {
   switch (step) {
     case 1:
       return {
-        title: "วางแผนคอนเทนต์และส่งอนุมัติ",
+        title: "วางแผนคอนเทนต์",
         description: "กรอกข้อมูลและแนบรูปตัวอย่างเพื่อส่งอนุมัติ",
       };
     case 2:
@@ -333,11 +334,11 @@ export function getContentWorkflowHeader(
   mediaType: MediaType,
   step: VideoWorkflowStep
 ): { title: string; description: string } {
-  if (mediaType === "image") {
+  if (isStillMedia(mediaType)) {
     switch (step) {
       case 1:
         return {
-          title: "วางแผน Content & ส่งอนุมัติ",
+          title: "วางแผนคอนเทนต์",
           description:
             "กรอก brief งานออกแบบภาพและแนบตัวอย่างเพื่อส่งให้ Admin",
         };
@@ -473,7 +474,8 @@ export function getCreateResumeHref(contentId: string): string {
 export function parseCreateMediaType(
   value: string | null | undefined
 ): MediaType {
-  return value === "image" ? "image" : "video";
+  if (value === "image" || value === "graphic") return value;
+  return "video";
 }
 
 export function getCreateNewHref(mediaType: MediaType = "video"): string {
@@ -524,7 +526,7 @@ export const WORKFLOW_BOARD_COLUMNS = [
 ] as const;
 
 export function getContentWorkflowStep(content: ContentItem): VideoWorkflowStep {
-  if (content.mediaType === "image") {
+  if (isStillMedia(content.mediaType)) {
     switch (content.status) {
       case "pending":
         return 2;
@@ -564,6 +566,9 @@ export function getWorkflowCardAction(content: ContentItem): {
 }
 
 export function getContentThumbnailUrl(content: ContentItem): string | null {
+  if (content.coverImage?.trim() && isImageMediaUrl(content.coverImage)) {
+    return content.coverImage;
+  }
   for (const url of content.exampleAttachments) {
     if (url.trim() && isImageMediaUrl(url)) return url;
   }

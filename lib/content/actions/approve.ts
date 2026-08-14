@@ -7,6 +7,8 @@ import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/data/ser
 import { dispatchApprovedContentToN8n } from "@/lib/integrations/n8n/dispatch-approved-content";
 import { notifyApprovalApproved, notifyIdeaApproved } from "@/lib/notifications/domain/events";
 import { isVideoAttachmentUrl } from "@/lib/content/domain/media-url";
+import { syncContentToGoogleCalendar } from "@/lib/content/data/google-calendar-sync";
+import { isGoogleCalendarConfigured } from "@/lib/integrations/google/calendar";
 
 function logContentApproved(
   step: string,
@@ -159,6 +161,16 @@ async function finalizeApprovalRecord(
     });
     invalidateContentsCache(scheduled.id);
     updateTag(CONTENTS_CACHE_TAG);
+
+    if (isGoogleCalendarConfigured()) {
+      const googleSync = await syncContentToGoogleCalendar(scheduled);
+      logContentApproved("app/approve", "google calendar sync", {
+        id: scheduled.id,
+        synced: googleSync.synced,
+        error: googleSync.error,
+      });
+    }
+
     return scheduled;
   }
 

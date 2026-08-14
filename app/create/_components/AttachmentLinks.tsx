@@ -17,6 +17,7 @@ import {
   isUploadedAttachment,
 } from "@/lib/content/domain/attachments";
 import { isVideoMediaUrl } from "@/lib/content/domain/media-url";
+import { uploadBrowserFile } from "@/lib/shared/storage/upload-browser";
 
 const VIDEO_ACCEPT = "video/mp4,video/quicktime,video/webm";
 const VIDEO_MIME = new Set([
@@ -90,22 +91,7 @@ export function AttachmentLinks({
       const uploaded: string[] = [];
 
       for (const file of fileList) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("kind", "video");
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = (await res.json()) as { url?: string; error?: string };
-
-        if (!res.ok || !data.url) {
-          throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
-        }
-
-        uploaded.push(data.url);
+        uploaded.push(await uploadBrowserFile(file, "video"));
       }
 
       onChange([...links.filter((link) => link.trim()), ...uploaded]);

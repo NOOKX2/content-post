@@ -1,6 +1,7 @@
 import { PrismaClient, Role } from "@prisma/client";
 import { hashPassword } from "../lib/auth/domain/password";
 import { seedDefaultPostingChannels } from "../lib/content/posting/posting-channels";
+import { PRODUCTS } from "../lib/constants";
 
 const prisma = new PrismaClient();
 
@@ -94,6 +95,7 @@ const SEED_CONTENT = [
 async function main() {
   const adminPassword = await hashPassword("admin1234");
   const userPassword = await hashPassword("user1234");
+  const viewerPassword = await hashPassword("viewer1234");
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@idea.local" },
@@ -108,11 +110,22 @@ async function main() {
 
   const creator = await prisma.user.upsert({
     where: { email: "creator@idea.local" },
-    update: {},
+    update: { role: Role.EDITOR },
     create: {
       name: "Creator Demo",
       email: "creator@idea.local",
       password: userPassword,
+      role: Role.EDITOR,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "viewer@idea.local" },
+    update: {},
+    create: {
+      name: "Viewer Demo",
+      email: "viewer@idea.local",
+      password: viewerPassword,
       role: Role.USER,
     },
   });
@@ -130,6 +143,26 @@ async function main() {
   }
 
   await seedDefaultPostingChannels();
+
+  const existingProducts = await prisma.archiveProduct.count();
+  if (existingProducts === 0) {
+    await prisma.archiveProduct.createMany({
+      data: PRODUCTS.map((name, index) => ({
+        name,
+        sortOrder: index,
+      })),
+    });
+  }
+
+  await prisma.brandHistory.upsert({
+    where: { id: "default" },
+    update: {},
+    create: {
+      id: "default",
+      title: "ประวัติความเป็นมา",
+      body: "",
+    },
+  });
 
   console.log("Seed completed:");
   console.log("  Admin:   admin@idea.local / admin1234");

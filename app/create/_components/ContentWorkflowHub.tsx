@@ -1,20 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ImageIcon, Plus, Video } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ContentSummaryCard } from "@/components/content/ContentSummaryCard";
+import { CalendarPostLegend } from "@/app/calendar/_components/CalendarPostLegend";
 import {
   countContentsByWorkflowStep,
-  getContentThumbnailUrl,
-  getWorkflowCardAction,
   groupContentsByWorkflowStep,
   needsCreatorAction,
   WORKFLOW_BOARD_COLUMNS,
   type VideoWorkflowStep,
 } from "@/lib/content/domain/workflow";
-import { STATUS_LABELS } from "@/lib/constants";
-import type { ContentItem } from "@/lib/types";
+import { getMediaTypeCardClass } from "@/lib/calendar/domain/filters";
 import { cn } from "@/lib/shared/utils";
+import {
+  useT,
+  workflowStepHint,
+  workflowStepLabel,
+} from "@/lib/i18n";
 
 type WorkflowHubFilter = VideoWorkflowStep;
 
@@ -27,9 +31,10 @@ function WorkflowFilterTabs({
   counts: Record<VideoWorkflowStep, number>;
   onChange: (filter: WorkflowHubFilter) => void;
 }) {
+  const { t } = useT();
   const tabs = WORKFLOW_BOARD_COLUMNS.map((column) => ({
     id: column.step,
-    label: column.shortTitle,
+    label: workflowStepLabel(t, column.step, true),
     count: counts[column.step],
   }));
 
@@ -77,30 +82,22 @@ function FeaturedWorkflowCard({
   content: ContentItem;
   onSelect: (content: ContentItem) => void;
 }) {
-  const status = STATUS_LABELS[content.status];
+  const { t } = useT();
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-      <h3 className="text-lg font-bold leading-snug text-stone-900">
-        {content.name}
-      </h3>
-      <p className="mt-1 font-mono text-sm text-stone-400">
-        #{content.contentId}
-      </p>
-      <span
-        className={cn(
-          "mt-2 inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
-          status.color
-        )}
-      >
-        {status.label}
-      </span>
+    <div
+      className={cn(
+        "rounded-xl p-4 shadow-sm",
+        getMediaTypeCardClass(content.mediaType)
+      )}
+    >
+      <ContentSummaryCard content={content} />
       <Button
         type="button"
         className="mt-4 w-full"
         onClick={() => onSelect(content)}
       >
-        ดูรายละเอียด
+        {t("workflow.viewDetail")}
       </Button>
     </div>
   );
@@ -113,25 +110,17 @@ function CompactWorkflowCard({
   content: ContentItem;
   onSelect: (content: ContentItem) => void;
 }) {
-  const status = STATUS_LABELS[content.status];
+  const { t } = useT();
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-xl p-4 shadow-sm",
+        getMediaTypeCardClass(content.mediaType)
+      )}
+    >
       <div className="min-w-0 flex-1">
-        <h3 className="truncate text-base font-semibold text-stone-900">
-          {content.name}
-        </h3>
-        <p className="mt-0.5 font-mono text-sm text-stone-400">
-          #{content.contentId}
-        </p>
-        <span
-          className={cn(
-            "mt-1.5 inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
-            status.color
-          )}
-        >
-          {status.label}
-        </span>
+        <ContentSummaryCard content={content} />
       </div>
       <Button
         type="button"
@@ -139,7 +128,7 @@ function CompactWorkflowCard({
         className="shrink-0"
         onClick={() => onSelect(content)}
       >
-        ดูรายละเอียด
+        {t("workflow.viewDetail")}
       </Button>
     </div>
   );
@@ -152,53 +141,16 @@ function WorkflowBoardCard({
   content: ContentItem;
   onSelect: (content: ContentItem) => void;
 }) {
-  const thumbnail = getContentThumbnailUrl(content);
-  const action = getWorkflowCardAction(content);
-  const status = STATUS_LABELS[content.status];
-
   return (
     <button
       type="button"
       onClick={() => onSelect(content)}
       className={cn(
-        "w-full rounded-lg border bg-white p-2 text-left shadow-sm transition hover:shadow-md",
-        action.urgent
-          ? "border-blue-300 hover:border-blue-400"
-          : "border-stone-200 hover:border-blue-200"
+        "w-full rounded-lg p-2 text-left shadow-sm transition hover:shadow-md",
+        getMediaTypeCardClass(content.mediaType)
       )}
     >
-      <div className="flex gap-2">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-stone-100">
-          {thumbnail ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={thumbnail}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : content.mediaType === "video" ? (
-            <Video className="h-4 w-4 text-stone-400" />
-          ) : (
-            <ImageIcon className="h-4 w-4 text-stone-400" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-xs font-semibold leading-snug text-stone-900">
-            {content.name}
-          </p>
-          <p className="mt-0.5 truncate font-mono text-[10px] text-stone-400">
-            #{content.contentId}
-          </p>
-          <span
-            className={cn(
-              "mt-1 inline-flex max-w-full truncate rounded px-1 py-0.5 text-[9px] font-medium leading-tight",
-              status.color
-            )}
-          >
-            {status.label}
-          </span>
-        </div>
-      </div>
+      <ContentSummaryCard content={content} compact />
     </button>
   );
 }
@@ -216,6 +168,8 @@ function WorkflowDesktopBoard({
   onCreateNew: () => void;
   onSelectContent: (content: ContentItem) => void;
 }) {
+  const { t } = useT();
+
   return (
     <div className="hidden min-w-0 grid-cols-5 gap-2 md:grid">
       {columnsWithItems.map((column) => (
@@ -226,14 +180,14 @@ function WorkflowDesktopBoard({
           <div className="border-b border-stone-200 px-2.5 py-2.5">
             <div className="flex items-start justify-between gap-1.5">
               <h3 className="text-sm font-semibold leading-tight text-stone-800">
-                {column.title}
+                {workflowStepLabel(t, column.step)}
               </h3>
               <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-stone-500 shadow-sm">
                 {column.items.length}
               </span>
             </div>
             <p className="mt-0.5 truncate text-xs text-stone-500">
-              {column.hint}
+              {workflowStepHint(t, column.step)}
             </p>
           </div>
 
@@ -245,13 +199,13 @@ function WorkflowDesktopBoard({
                 className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-stone-300 bg-white px-2 py-3 text-[10px] font-medium leading-tight text-stone-600 transition hover:border-blue-300 hover:bg-blue-50/40 hover:text-blue-700"
               >
                 <Plus className="h-3.5 w-3.5" />
-                สร้างใหม่
+                {t("workflow.createNew")}
               </button>
             )}
 
             {column.items.length === 0 && column.step !== 1 ? (
               <p className="px-1 py-4 text-center text-[10px] text-stone-400">
-                ยังไม่มีงาน
+                {t("workflow.emptyColumn")}
               </p>
             ) : (
               column.items.map((item) => (
@@ -278,6 +232,7 @@ export function ContentWorkflowHub({
   onCreateNew: () => void;
   onSelectContent: (content: ContentItem) => void;
 }) {
+  const { t } = useT();
   const [activeFilter, setActiveFilter] = useState<WorkflowHubFilter>(1);
   const grouped = groupContentsByWorkflowStep(contents);
   const counts = countContentsByWorkflowStep(contents);
@@ -287,12 +242,12 @@ export function ContentWorkflowHub({
     items:
       column.step === 5
         ? [...grouped[column.step]]
-            .sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
-            )
-            .slice(0, 10)
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() -
+              new Date(a.createdAt).getTime()
+          )
+          .slice(0, 10)
         : sortWorkflowItems(grouped[column.step]),
   }));
 
@@ -311,16 +266,19 @@ export function ContentWorkflowHub({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-stone-900">
-              งานที่กำลังดำเนินการ
+              {t("workflow.activeWork")}
             </h2>
             <p className="mt-1 text-sm text-stone-500">
-              ติดตามสถานะและจัดการงานคอนเทนต์ของคุณ
+              {t("workflow.activeWorkHint")}
             </p>
           </div>
           <Button type="button" onClick={onCreateNew}>
             <Plus className="h-4 w-4" />
-            สร้างคอนเทนต์ใหม่
+            {t("workflow.createContent")}
           </Button>
+        </div>
+        <div className="mt-3">
+          <CalendarPostLegend />
         </div>
       </div>
 
@@ -333,13 +291,15 @@ export function ContentWorkflowHub({
 
         <Button type="button" onClick={onCreateNew} className="w-full">
           <Plus className="h-4 w-4" />
-          สร้างคอนเทนต์ใหม่
+          {t("workflow.createContent")}
         </Button>
+
+        <CalendarPostLegend />
 
         <div className="space-y-3">
           {filteredItems.length === 0 ? (
             <p className="py-8 text-center text-sm text-stone-400">
-              ยังไม่มีงานในหมวดนี้
+              {t("workflow.emptyCategory")}
             </p>
           ) : (
             <>

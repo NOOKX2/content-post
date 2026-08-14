@@ -14,8 +14,18 @@ import { Button } from "@/components/ui/Button";
 import { fetchMeetings } from "@/lib/collaboration/actions/fetch";
 import type { MeetingItem } from "@/lib/collaboration/types";
 import { cn, getDaysInMonth } from "@/lib/shared/utils";
+import { dateLocale } from "@/lib/i18n/config";
+import { useT } from "@/lib/i18n";
 
-const WEEKDAYS = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
+const WEEKDAY_KEYS = [
+  "team.weekdayMon",
+  "team.weekdayTue",
+  "team.weekdayWed",
+  "team.weekdayThu",
+  "team.weekdayFri",
+  "team.weekdaySat",
+  "team.weekdaySun",
+] as const;
 
 function toLocalDateKey(iso: string) {
   const d = new Date(iso);
@@ -24,8 +34,8 @@ function toLocalDateKey(iso: string) {
   ).padStart(2, "0")}`;
 }
 
-function timeLabel(iso: string) {
-  return new Date(iso).toLocaleTimeString("th-TH", {
+function timeLabel(iso: string, locale: string) {
+  return new Date(iso).toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -36,6 +46,8 @@ function dayKey(year: number, month: number, day: number) {
 }
 
 export function MeetingsCalendarPanel() {
+  const { t, locale } = useT();
+  const loc = dateLocale(locale);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -72,7 +84,7 @@ export function MeetingsCalendarPanel() {
   const firstDayOfWeek = new Date(year, month, 1).getDay();
   const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
 
-  const monthLabel = new Date(year, month).toLocaleDateString("th-TH", {
+  const monthLabel = new Date(year, month).toLocaleDateString(loc, {
     month: "long",
     year: "numeric",
   });
@@ -109,7 +121,7 @@ export function MeetingsCalendarPanel() {
           <div className="flex items-center gap-2">
             <CalendarCheck className="h-4 w-4 text-blue-600" />
             <h2 className="text-sm font-semibold text-stone-900">
-              ปฏิทินการประชุม
+              {t("team.meetingsCalendar")}
             </h2>
           </div>
           <div className="flex items-center gap-1">
@@ -127,12 +139,12 @@ export function MeetingsCalendarPanel() {
 
         <div className="overflow-x-auto p-3">
           <div className="grid grid-cols-7 gap-px rounded-lg bg-stone-200">
-            {WEEKDAYS.map((day) => (
+            {WEEKDAY_KEYS.map((day) => (
               <div
                 key={day}
                 className="bg-stone-100 px-2 py-2 text-center text-xs font-bold tracking-wide text-stone-600"
               >
-                {day}
+                {t(day)}
               </div>
             ))}
 
@@ -162,7 +174,7 @@ export function MeetingsCalendarPanel() {
                         </span>
                         {todayFlag && (
                           <span className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                            วันนี้
+                            {t("common.today")}
                           </span>
                         )}
                       </div>
@@ -173,12 +185,12 @@ export function MeetingsCalendarPanel() {
                             href={meeting.meetUrl || meeting.calendarLink || undefined}
                             target="_blank"
                             rel="noopener noreferrer"
-                            title={`${meeting.title} · ${timeLabel(meeting.startsAt)}`}
+                            title={`${meeting.title} · ${timeLabel(meeting.startsAt, loc)}`}
                             className="block rounded-md border border-blue-200 bg-blue-50 px-1.5 py-1 transition-colors hover:bg-blue-100"
                           >
                             <span className="flex items-center gap-1 text-[10px] font-semibold text-blue-700">
                               <Clock className="h-2.5 w-2.5 shrink-0" />
-                              {timeLabel(meeting.startsAt)}
+                              {timeLabel(meeting.startsAt, loc)}
                             </span>
                             <span className="mt-0.5 block truncate text-[11px] font-medium text-stone-800">
                               {meeting.title}
@@ -197,14 +209,18 @@ export function MeetingsCalendarPanel() {
 
       <div className="flex shrink-0 flex-col rounded-xl border border-stone-200/80 bg-white shadow-sm lg:w-80">
         <div className="border-b border-stone-200 px-4 py-2.5">
-          <h3 className="text-sm font-semibold text-stone-900">การประชุมที่กำลังจะถึง</h3>
+          <h3 className="text-sm font-semibold text-stone-900">
+            {t("team.upcomingMeetings")}
+          </h3>
         </div>
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
           {isLoading ? (
-            <p className="py-8 text-center text-sm text-stone-400">กำลังโหลด...</p>
+            <p className="py-8 text-center text-sm text-stone-400">
+              {t("common.loading")}
+            </p>
           ) : upcoming.length === 0 ? (
             <p className="py-8 text-center text-sm text-stone-400">
-              ยังไม่มีการประชุมที่กำลังจะถึง
+              {t("team.noUpcoming")}
             </p>
           ) : (
             upcoming.map((meeting) => (
@@ -217,11 +233,12 @@ export function MeetingsCalendarPanel() {
                 </p>
                 <p className="mt-1 flex items-center gap-1.5 text-xs text-stone-500">
                   <Clock className="h-3.5 w-3.5" />
-                  {new Date(meeting.startsAt).toLocaleDateString("th-TH", {
+                  {new Date(meeting.startsAt).toLocaleDateString(loc, {
                     day: "numeric",
                     month: "short",
                   })}{" "}
-                  {timeLabel(meeting.startsAt)} – {timeLabel(meeting.endsAt)}
+                  {timeLabel(meeting.startsAt, loc)} –{" "}
+                  {timeLabel(meeting.endsAt, loc)}
                 </p>
                 <p className="mt-0.5 truncate text-xs text-stone-400">
                   {meeting.channelName || meeting.authorName}
@@ -240,7 +257,7 @@ export function MeetingsCalendarPanel() {
                     className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700"
                   >
                     <Video className="h-3.5 w-3.5" />
-                    เข้า Meet
+                    {t("team.joinMeetShort")}
                   </a>
                 )}
               </div>

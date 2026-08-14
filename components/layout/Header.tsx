@@ -5,7 +5,12 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { UserMenu } from "./UserMenu";
+import { NavBreadcrumb } from "./NavBreadcrumb";
+import { LanguageSwitch } from "./LanguageSwitch";
+import { useT } from "@/lib/i18n";
 import { useAppSession } from "@/lib/auth/client/app-session";
+import { useDashboardNav } from "@/lib/navigation/client/dashboard-nav";
+import { isDashboardHomePath } from "@/lib/navigation/domain/nav-items";
 import { cn } from "@/lib/shared/utils";
 import type { Session } from "next-auth";
 
@@ -31,6 +36,9 @@ export function Header({
   const appSession = useAppSession();
   const { data: clientSession } = useSession();
   const session = sessionProp ?? clientSession ?? appSession;
+  const { activePath } = useDashboardNav();
+  const { t } = useT();
+  const showBreadcrumb = !isDashboardHomePath(activePath);
 
   return (
     <header
@@ -40,14 +48,21 @@ export function Header({
       )}
     >
       <div className="min-w-0">
-        <h1
-          className={cn(
-            "font-bold text-stone-900",
-            compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"
-          )}
-        >
-          {title}
-        </h1>
+        {showBreadcrumb ? (
+          <>
+            <NavBreadcrumb />
+            <span className="sr-only">{title}</span>
+          </>
+        ) : (
+          <h1
+            className={cn(
+              "font-bold text-stone-900",
+              compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"
+            )}
+          >
+            {title}
+          </h1>
+        )}
         {description && (
           <p
             className={cn(
@@ -63,10 +78,11 @@ export function Header({
         {showExport && (
           <Button variant="outline" size="sm" onClick={onExport}>
             <FileDown className="h-4 w-4" />
-            Export PDF
+            {t("common.exportPdf")}
           </Button>
         )}
         {actions}
+        <LanguageSwitch />
         {session?.user && <NotificationBell />}
         <UserMenu session={session} />
       </div>

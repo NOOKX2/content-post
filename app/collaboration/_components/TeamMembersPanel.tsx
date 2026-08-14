@@ -11,7 +11,12 @@ import {
   fetchTeamMembers,
   updateTeamMemberRole,
 } from "@/lib/collaboration/actions/team";
-import { ROLE_LABELS, TEAM_ROLES, isAdminRole } from "@/lib/auth/domain/roles";
+import {
+  TEAM_ROLES,
+  isAdminRole,
+  toAssignableRole,
+} from "@/lib/auth/domain/roles";
+import { useT } from "@/lib/i18n";
 import type { TeamMemberItem } from "@/lib/collaboration/types/team";
 import type { Role } from "@prisma/client";
 
@@ -21,7 +26,17 @@ export function TeamMembersPanel() {
     "team-members",
     fetchTeamMembers
   );
+  const { t } = useT();
   const canEditRoles = isAdminRole(session?.user?.role);
+  const roleOptions = TEAM_ROLES.map((role) => ({
+    value: role,
+    label:
+      role === "ADMIN"
+        ? t("admin.roleAdmin")
+        : role === "EDITOR"
+          ? t("admin.roleEditor")
+          : t("admin.roleViewer"),
+  }));
   const [calendarMember, setCalendarMember] = useState<TeamMemberItem | null>(
     null
   );
@@ -31,7 +46,7 @@ export function TeamMembersPanel() {
       await updateTeamMemberRole(userId, role);
       await mutate();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "อัปเดตบทบาทไม่สำเร็จ");
+      alert(error instanceof Error ? error.message : t("team.updateRoleFailed"));
     }
   };
 
@@ -52,30 +67,32 @@ export function TeamMembersPanel() {
       <div className="border-b border-stone-200 px-5 py-4">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-stone-500" />
-          <h2 className="text-sm font-semibold text-stone-900">รายชื่อสมาชิก</h2>
+          <h2 className="text-sm font-semibold text-stone-900">
+            {t("team.memberList")}
+          </h2>
         </div>
         <p className="mt-1 text-xs text-stone-500">
-          กำหนดบทบาท Admin, Editor, Designer หรือ Creator
-          {canEditRoles ? "" : " — เฉพาะ Admin ที่เปลี่ยนบทบาทได้"}
+          {t("team.memberListHint")}
+          {canEditRoles ? "" : t("team.memberListHintReadonly")}
         </p>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {isLoading ? (
-          <p className="text-sm text-stone-400">กำลังโหลด...</p>
+          <p className="text-sm text-stone-400">{t("common.loading")}</p>
         ) : members.length === 0 ? (
           <p className="rounded-lg border border-dashed border-stone-200 py-8 text-center text-sm text-stone-400">
-            ยังไม่มีสมาชิก
+            {t("team.noMembers")}
           </p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-stone-200">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-stone-50 text-left text-stone-600">
-                  <th className="px-4 py-3 font-medium">ชื่อ</th>
-                  <th className="px-4 py-3 font-medium">อีเมล</th>
-                  <th className="px-4 py-3 font-medium">บทบาท</th>
-                  <th className="px-4 py-3 font-medium">ปฏิทิน</th>
+                  <th className="px-4 py-3 font-medium">{t("common.name")}</th>
+                  <th className="px-4 py-3 font-medium">{t("common.email")}</th>
+                  <th className="px-4 py-3 font-medium">{t("common.role")}</th>
+                  <th className="px-4 py-3 font-medium">{t("team.viewCalendar")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -86,7 +103,7 @@ export function TeamMembersPanel() {
                         type="button"
                         onClick={() => setCalendarMember(member)}
                         className="flex items-center gap-3 text-left transition-colors hover:text-blue-700"
-                        title={`ดูปฏิทินของ ${member.name}`}
+                        title={t("team.viewCalendarOf", { name: member.name })}
                       >
                         <PersonAvatar name={member.name} size="md" />
                         <span className="font-medium text-stone-900">
@@ -98,19 +115,18 @@ export function TeamMembersPanel() {
                     <td className="px-4 py-3">
                       {canEditRoles ? (
                         <Select
-                          options={TEAM_ROLES.map((role) => ({
-                            value: role,
-                            label: ROLE_LABELS[role],
-                          }))}
-                          value={member.role}
+                          options={roleOptions}
+                          value={toAssignableRole(member.role)}
                           onChange={(e) =>
                             void updateRole(member.id, e.target.value as Role)
                           }
-                          className="h-9 max-w-[160px]"
+                          className="h-9 max-w-40"
                         />
                       ) : (
                         <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">
-                          {ROLE_LABELS[member.role]}
+                          {roleOptions.find(
+                            (item) => item.value === toAssignableRole(member.role)
+                          )?.label}
                         </span>
                       )}
                     </td>
@@ -121,7 +137,7 @@ export function TeamMembersPanel() {
                         className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:bg-stone-50 hover:text-blue-700"
                       >
                         <CalendarDays className="h-3.5 w-3.5" />
-                        ดูปฏิทิน
+                        {t("team.viewCalendar")}
                       </button>
                     </td>
                   </tr>

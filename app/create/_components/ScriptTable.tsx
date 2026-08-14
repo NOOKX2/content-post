@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import type { ScriptRow } from "@/lib/types";
 import { generateId } from "@/lib/shared/utils";
 import { toTimeInputValue } from "@/lib/content/domain/script";
+import { uploadBrowserFile } from "@/lib/shared/storage/upload-browser";
 
 interface ScriptTableProps {
   rows: ScriptRow[];
@@ -75,20 +76,8 @@ export function ScriptTable({
     setUploadError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = (await res.json()) as { url?: string; error?: string };
-
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || "อัปโหลดรูปไม่สำเร็จ");
-      }
-
-      updateRowImage(rowId, data.url);
+      const url = await uploadBrowserFile(file);
+      updateRowImage(rowId, url);
     } catch (error) {
       setUploadError(
         error instanceof Error ? error.message : "อัปโหลดรูปไม่สำเร็จ"

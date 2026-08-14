@@ -16,16 +16,15 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
 import { TEAM_MEMBERS } from "@/lib/constants";
-import {
-  CALENDAR_EVENT_STYLES,
-  formatDateKey,
-} from "@/lib/calendar/data/content";
+import { ContentSummaryCard } from "@/components/content/ContentSummaryCard";
+import { formatDateKey } from "@/lib/calendar/data/content";
 import {
   getContentCalendarDate,
-  getPostStatusDotClass,
+  getMediaTypeCardClass,
   type CalendarDateField,
 } from "@/lib/calendar/domain/filters";
 import { cn, formatLocations } from "@/lib/shared/utils";
+import { useT } from "@/lib/i18n";
 
 interface EventModalProps {
   open: boolean;
@@ -183,12 +182,20 @@ interface CalendarViewProps {
 }
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8);
-const DAYS = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
-
 export function CalendarView({
   contents,
   dateField = "post",
 }: CalendarViewProps) {
+  const { t } = useT();
+  const days = [
+    t("calendar.dayMon"),
+    t("calendar.dayTue"),
+    t("calendar.dayWed"),
+    t("calendar.dayThu"),
+    t("calendar.dayFri"),
+    t("calendar.daySat"),
+    t("calendar.daySun"),
+  ];
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(
@@ -262,7 +269,7 @@ export function CalendarView({
                 )}
               >
                 <div className="text-[11px] text-stone-500 sm:text-xs">
-                  {DAYS[i]}
+                  {days[i]}
                 </div>
                 <div
                   className={cn(
@@ -305,11 +312,11 @@ export function CalendarView({
                           key={event.id}
                           href={`/content/${event.id}`}
                           className={cn(
-                            "mb-0.5 block w-full rounded px-1 py-0.5 text-left text-[10px] font-medium transition-colors line-clamp-2 hover:opacity-90 sm:mb-1 sm:rounded-md sm:px-2 sm:py-1 sm:text-xs",
-                            CALENDAR_EVENT_STYLES[event.status]
+                            "mb-0.5 block w-full rounded px-1 py-0.5 text-left transition-shadow hover:shadow-sm sm:mb-1 sm:rounded-md sm:px-1.5 sm:py-1",
+                            getMediaTypeCardClass(event.mediaType)
                           )}
                         >
-                          {event.name}
+                          <ContentSummaryCard content={event} compact />
                         </DashboardLink>
                       ))}
                     </div>

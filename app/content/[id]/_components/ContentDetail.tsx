@@ -97,6 +97,7 @@ function HeroMedia({ content }: { content: ContentItem }) {
         {heroIsVideo ? (
           <video
             src={heroUrl}
+            poster={content.coverImage || undefined}
             controls
             className="h-full w-full bg-black object-contain"
             preload="metadata"

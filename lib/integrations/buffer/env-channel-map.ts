@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/shared/prisma";
+import { readBufferEnv } from "@/lib/integrations/buffer/env";
 import type { Platform } from "@/lib/types";
 
 const ENV_PLATFORMS: Platform[] = [
@@ -6,6 +7,8 @@ const ENV_PLATFORMS: Platform[] = [
   "tiktok",
   "facebook",
   "youtube",
+  "line",
+  "lemon8",
 ];
 
 export type EnvBufferChannelLink = {
@@ -17,17 +20,6 @@ export type EnvBufferChannelLink = {
 
 function isPlatform(value: string): value is Platform {
   return ENV_PLATFORMS.includes(value as Platform);
-}
-
-function stripEnvQuotes(value: string) {
-  const trimmed = value.trim();
-  if (
-    (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
-    (trimmed.startsWith('"') && trimmed.endsWith('"'))
-  ) {
-    return trimmed.slice(1, -1);
-  }
-  return trimmed;
 }
 
 function parseChannelMapJson(raw: string): EnvBufferChannelLink[] {
@@ -73,10 +65,10 @@ function parseChannelMapJson(raw: string): EnvBufferChannelLink[] {
 
 function legacyEnvLinks(): EnvBufferChannelLink[] {
   const pairs: Array<[Platform, string | undefined]> = [
-    ["instagram", process.env.BUFFER_IG_CHANNEL_ID],
-    ["tiktok", process.env.BUFFER_TIKTOK_CHANNEL_ID],
-    ["facebook", process.env.BUFFER_FB_CHANNEL_ID],
-    ["youtube", process.env.BUFFER_YOUTUBE_CHANNEL_ID],
+    ["instagram", readBufferEnv("BUFFER_IG_CHANNEL_ID")],
+    ["tiktok", readBufferEnv("BUFFER_TIKTOK_CHANNEL_ID")],
+    ["facebook", readBufferEnv("BUFFER_FB_CHANNEL_ID")],
+    ["youtube", readBufferEnv("BUFFER_YOUTUBE_CHANNEL_ID")],
   ];
 
   return pairs.flatMap(([platform, id]) => {
@@ -94,9 +86,7 @@ function legacyEnvLinks(): EnvBufferChannelLink[] {
 }
 
 export function parseBufferChannelMapFromEnv(): EnvBufferChannelLink[] {
-  const raw = process.env.BUFFER_CHANNEL_MAP
-    ? stripEnvQuotes(process.env.BUFFER_CHANNEL_MAP)
-    : "";
+  const raw = readBufferEnv("BUFFER_CHANNEL_MAP");
 
   if (raw) {
     try {

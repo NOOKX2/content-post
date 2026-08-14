@@ -1,4 +1,7 @@
+"use client";
+
 import { Card } from "@/components/ui/Card";
+import { useT } from "@/lib/i18n";
 
 interface CalendarSummaryProps {
   total: number;
@@ -13,28 +16,28 @@ export function CalendarSummary({
   posted,
   needsEdit,
 }: CalendarSummaryProps) {
+  const { t } = useT();
+
   return (
     <Card className="p-5">
       <h3 className="text-sm font-semibold text-stone-800">
-        Summary — สรุปจำนวนงานทั้งหมด
+        {t("calendar.summaryTitle")}
       </h3>
-      <p className="mt-1 text-xs text-stone-500">
-        ตารางสำหรับดูโพสที่ลง — ขั้นตอนการลงโพสอย่างเดียว
-      </p>
+      <p className="mt-1 text-xs text-stone-500">{t("calendar.summaryHint")}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryStat label="งานทั้งหมด" value={total} />
+        <SummaryStat label={t("calendar.allJobs")} value={total} />
         <SummaryStat
-          label="คอนเทนต์ที่รอโพส"
+          label={t("calendar.waitingPost")}
           value={waiting}
           dotClass="bg-orange-500"
         />
         <SummaryStat
-          label="คอนเทนต์ที่โพสแล้ว"
+          label={t("calendar.postedContent")}
           value={posted}
           dotClass="bg-emerald-500"
         />
         <SummaryStat
-          label="คอนเทนต์รอแก้ไข"
+          label={t("calendar.needsEditContent")}
           value={needsEdit}
           dotClass="bg-red-500"
         />

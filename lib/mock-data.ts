@@ -27,6 +27,7 @@ export const MOCK_CONTENT: ContentItem[] = [
     filmingEquipment: ["Camera", "Lighting"],
     attachments: [],
     exampleAttachments: [],
+    coverImage: "",
     script: [
       {
         id: "s1",
@@ -69,6 +70,7 @@ export const MOCK_CONTENT: ContentItem[] = [
     filmingEquipment: ["Microphone", "Drone"],
     attachments: [],
     exampleAttachments: [],
+    coverImage: "",
     script: [],
     ideaCreator: "มานี มีสุข",
     photographer: "พิมพ์ใจ ถ่ายทำ",
@@ -100,6 +102,7 @@ export const MOCK_CONTENT: ContentItem[] = [
     filmingEquipment: [],
     attachments: [],
     exampleAttachments: [],
+    coverImage: "",
     script: [],
     ideaCreator: "Laura Power",
     photographer: "พิมพ์ใจ ถ่ายทำ",

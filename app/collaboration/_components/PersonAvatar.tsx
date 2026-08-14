@@ -25,11 +25,13 @@ export function PersonAvatar({
   size = "md",
   className,
   title,
+  imageUrl,
 }: {
   name: string;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   className?: string;
   title?: string;
+  imageUrl?: string | null;
 }) {
   const initial = (name.trim().charAt(0) || "?").toUpperCase();
   const sizeClass =
@@ -37,7 +39,25 @@ export function PersonAvatar({
       ? "h-7 w-7 text-[10px]"
       : size === "lg"
         ? "h-10 w-10 text-sm"
-        : "h-8 w-8 text-[11px]";
+        : size === "xl"
+          ? "h-12 w-12 text-base"
+          : "h-8 w-8 text-[11px]";
+
+  if (imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imageUrl}
+        alt={title ?? name}
+        title={title ?? name}
+        className={cn(
+          "inline-flex shrink-0 rounded-full object-cover ring-2 ring-white",
+          sizeClass,
+          className
+        )}
+      />
+    );
+  }
 
   return (
     <span

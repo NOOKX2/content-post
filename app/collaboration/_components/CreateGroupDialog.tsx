@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { PersonAvatar } from "@/app/collaboration/_components/PersonAvatar";
 import type { TeamMemberItem } from "@/lib/collaboration/types/team";
 import { cn } from "@/lib/shared/utils";
+import { useT } from "@/lib/i18n";
 
 export function CreateGroupDialog({
   open,
@@ -24,6 +25,7 @@ export function CreateGroupDialog({
   onClose: () => void;
   onCreate: (payload: { name: string; memberIds: string[] }) => void;
 }) {
+  const { t } = useT();
   const [name, setName] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -87,17 +89,17 @@ export function CreateGroupDialog({
               id="create-group-title"
               className="text-base font-semibold text-stone-900"
             >
-              สร้างกลุ่ม
+              {t("team.createGroup")}
             </h2>
             <p className="mt-0.5 text-xs text-stone-500">
-              ตั้งชื่อกลุ่มและเลือกสมาชิกที่ต้องการเพิ่ม
+              {t("team.groupHint")}
             </p>
           </div>
           <button
             type="button"
             onClick={handleClose}
             className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600"
-            aria-label="ปิด"
+            aria-label={t("common.close")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -105,16 +107,16 @@ export function CreateGroupDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <Input
-            label="ชื่อกลุ่ม"
+            label={t("team.groupName")}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="เช่น ทีม Content, ทีมถ่ายวิดีโอ"
+            placeholder={t("team.groupNamePlaceholder")}
             autoFocus
           />
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-stone-700">
-              สมาชิกในกลุ่ม
+              {t("team.groupMembers")}
             </label>
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
@@ -122,14 +124,14 @@ export function CreateGroupDialog({
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="ค้นหาสมาชิก..."
+                placeholder={t("team.searchMembers")}
                 className="h-9 w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pr-3 pl-8 text-sm text-stone-900 placeholder:text-stone-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
             <div className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-stone-200 p-2">
               {filteredMembers.length === 0 ? (
                 <p className="py-6 text-center text-sm text-stone-400">
-                  ไม่พบสมาชิก
+                  {t("team.noMembersFound")}
                 </p>
               ) : (
                 filteredMembers.map((member) => {
@@ -171,19 +173,19 @@ export function CreateGroupDialog({
               )}
             </div>
             <p className="text-xs text-stone-500">
-              เลือกแล้ว {selectedIds.length} คน (คุณจะถูกเพิ่มในกลุ่มโดยอัตโนมัติ)
+              {t("team.selectedPeople", { count: selectedIds.length })}
             </p>
           </div>
 
           <div className="flex justify-end gap-2 border-t border-stone-100 pt-4">
             <Button type="button" variant="outline" onClick={handleClose}>
-              ยกเลิก
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
               disabled={submitting || !name.trim() || selectedIds.length === 0}
             >
-              สร้างกลุ่ม
+              {t("team.createGroup")}
             </Button>
           </div>
         </form>

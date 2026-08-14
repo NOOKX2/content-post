@@ -127,6 +127,7 @@ export async function notifyContentDetailChanged(
     productsNeeded: "สินค้าที่ต้องเตรียม",
     itemsToPrepare: "สิ่งที่ต้องเตรียม",
     filmingEquipment: "อุปกรณ์ถ่าย",
+    coverImage: "ปกคลิป",
   };
 
   const labels = changedFields
@@ -210,6 +211,7 @@ export function detectContentChanges(
     { key: "productsNeeded", formKey: "productsNeeded" },
     { key: "itemsToPrepare", formKey: "itemsToPrepare" },
     { key: "filmingEquipment", formKey: "filmingEquipment" },
+    { key: "coverImage", formKey: "coverImage" },
   ];
 
   const changed: string[] = [];

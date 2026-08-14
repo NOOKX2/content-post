@@ -12,9 +12,11 @@ import {
   AuthFormPanel,
 } from "@/components/auth/AuthLayout";
 import { AuthField } from "@/components/auth/AuthField";
+import { useT } from "@/lib/i18n";
 
 export function LoginForm() {
   const router = useRouter();
+  const { t } = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -34,7 +36,7 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+        setError(t("auth.invalidCredentials"));
         return;
       }
 
@@ -42,7 +44,7 @@ export function LoginForm() {
       router.push(getDefaultPathForRole(session?.user?.role));
       router.refresh();
     } catch {
-      setError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่");
+      setError(t("auth.serverError"));
     } finally {
       setLoading(false);
     }
@@ -54,26 +56,27 @@ export function LoginForm() {
         <AuthBrandPanel
           headline={
             <>
-              Create Beyond
+              {t("auth.loginHeadline1")}
               <br />
-              Your <span className="text-blue-400">Content.</span>
+              {t("auth.loginHeadline2a")}{" "}
+              <span className="text-blue-400">{t("auth.loginHeadline2b")}</span>
             </>
           }
-          description="วางแผน สร้าง และโพสต์ content ข้ามทุกแพลตฟอร์ม — จากไอเดียสู่ปฏิทิน ในที่เดียว"
+          description={t("auth.loginDescription")}
         />
       }
       form={
         <AuthFormPanel
-          title="Welcome back!"
-          subtitle="กรุณากรอกข้อมูลเพื่อเข้าสู่ระบบ"
+          title={t("auth.loginTitle")}
+          subtitle={t("auth.loginSubtitle")}
           footer={
             <p className="text-center text-sm text-slate-500">
-              ยังไม่มีบัญชี?{" "}
+              {t("auth.noAccount")}{" "}
               <Link
                 href="/register"
                 className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
               >
-                สมัครสมาชิกฟรี
+                {t("auth.registerFree")}
               </Link>
             </p>
           }
@@ -86,7 +89,7 @@ export function LoginForm() {
             )}
 
             <AuthField
-              label="Email"
+              label={t("auth.email")}
               type="email"
               value={email}
               onChange={setEmail}
@@ -97,7 +100,7 @@ export function LoginForm() {
             />
 
             <AuthField
-              label="Password"
+              label={t("auth.password")}
               type="password"
               value={password}
               onChange={setPassword}
@@ -115,13 +118,13 @@ export function LoginForm() {
                   onChange={(e) => setRemember(e.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
                 />
-                <span className="text-sm text-slate-600">Remember for 30 days</span>
+                <span className="text-sm text-slate-600">{t("auth.remember")}</span>
               </label>
               <button
                 type="button"
                 className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
               >
-                Forgot password?
+                {t("auth.forgotPassword")}
               </button>
             </div>
 
@@ -133,10 +136,10 @@ export function LoginForm() {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  กำลังเข้าสู่ระบบ...
+                  {t("auth.loggingIn")}
                 </>
               ) : (
-                "Log in"
+                t("auth.logIn")
               )}
             </button>
           </form>

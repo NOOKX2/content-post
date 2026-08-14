@@ -37,7 +37,6 @@ export const authConfig = {
       const isAuthPage = pathname === "/login" || pathname === "/register";
       const isPublicApiRoute = pathname.startsWith("/api/auth");
       const isAdminRoute = pathname.startsWith("/admin");
-      const isCreateRoute = pathname === "/create";
 
       const apiKey = request.headers.get("x-api-key");
       const isValidN8nKey =
@@ -72,10 +71,6 @@ export const authConfig = {
         return false;
       }
 
-      if (isCreateRoute && isAdmin) {
-        return Response.redirect(new URL("/admin", nextUrl));
-      }
-
       if (isAdminRoute && !isAdmin) {
         return Response.redirect(
           new URL(getDefaultPathForRole(auth?.user?.role), nextUrl)
@@ -84,10 +79,24 @@ export const authConfig = {
 
       return true;
     },
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id!;
         token.role = user.role;
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = user.image;
+        token.displayName = user.displayName;
+        token.position = user.position;
+        token.busy = user.busy;
+      }
+      if (trigger === "update" && session?.user) {
+        token.name = session.user.name ?? token.name;
+        token.email = session.user.email ?? token.email;
+        token.picture = session.user.image ?? token.picture;
+        token.displayName = session.user.displayName ?? token.displayName;
+        token.position = session.user.position ?? token.position;
+        token.busy = session.user.busy ?? token.busy;
       }
       return token;
     },
@@ -95,6 +104,19 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
+        session.user.name = token.name ?? session.user.name;
+        session.user.email = token.email ?? session.user.email;
+        session.user.image =
+          typeof token.picture === "string" ? token.picture : session.user.image;
+        session.user.displayName =
+          typeof token.displayName === "string"
+            ? token.displayName
+            : session.user.displayName;
+        session.user.position =
+          typeof token.position === "string"
+            ? token.position
+            : session.user.position;
+        session.user.busy = Boolean(token.busy);
       }
       return session;
     },

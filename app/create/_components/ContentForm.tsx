@@ -15,6 +15,7 @@ import { SubmitSuccess } from "./SubmitSuccess";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/domain/form-config";
+import { isStillMedia } from "@/lib/content/domain/media-type";
 import type {
   ContentFormData,
   ContentItem,
@@ -38,6 +39,7 @@ import {
   shouldResubmitIdea,
 } from "@/lib/content/domain/workflow";
 import { useContents } from "@/lib/content/client/contents-provider";
+import { useT } from "@/lib/i18n";
 import { generateId } from "@/lib/shared/utils";
 
 type PostingChannelApiOption = {
@@ -108,6 +110,7 @@ const EMPTY_FORM: ContentFormData = {
   filmingEquipment: [],
   attachments: [],
   exampleAttachments: [],
+  coverImage: "",
   script: [],
   ideaCreator: "",
   photographer: "",
@@ -140,6 +143,7 @@ export function ContentForm({
   workflowPhase,
   initialMediaType = "video",
 }: ContentFormProps) {
+  const { t } = useT();
   const isEdit = Boolean(initialContent);
   const [form, setForm] = useState<ContentFormData>(() =>
     initialContent
@@ -177,6 +181,7 @@ export function ContentForm({
 
   const config = MEDIA_FORM_CONFIG[form.mediaType];
   const isVideo = form.mediaType === "video";
+  const isStill = isStillMedia(form.mediaType);
 
   const update = <K extends keyof ContentFormData>(
     key: K,
@@ -199,9 +204,10 @@ export function ContentForm({
     setForm((prev) => ({
       ...prev,
       mediaType,
-      script: mediaType === "image" ? [] : prev.script,
-      imageMeta:
-        mediaType === "image" ? prev.imageMeta : { ...EMPTY_IMAGE_META },
+      script: isStillMedia(mediaType) ? [] : prev.script,
+      imageMeta: isStillMedia(mediaType)
+        ? prev.imageMeta
+        : { ...EMPTY_IMAGE_META },
     }));
     onMediaTypeChange?.(mediaType);
   };
@@ -357,18 +363,18 @@ export function ContentForm({
 
   const submitLabel = (() => {
     if (submitting) {
-      return isEdit ? "กำลังบันทึก..." : "กำลังส่ง...";
+      return isEdit ? t("common.saving") : t("common.submitting");
     }
     if (!isEdit) {
-      return isVideo ? "เสร็จสิ้น" : "ส่งเพื่ออนุมัติ";
+      return isVideo ? t("create.finish") : t("create.submitForApproval");
     }
     if (willSubmitClip) {
-      return "ส่งงานให้ตรวจสอบ";
+      return t("create.submitWork");
     }
     if (willResubmitIdea) {
-      return "ส่งแนวคิดเพื่ออนุมัติ";
+      return t("create.submitIdea");
     }
-    return "บันทึกการแก้ไข";
+    return t("create.saveEdits");
   })();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -379,7 +385,7 @@ export function ContentForm({
       !form.channel.trim() &&
       form.postingTargets.length === 0
     ) {
-      alert("กรุณาเลือกช่องที่ลง");
+      alert(t("create.pickChannel"));
       return;
     }
     if (
@@ -387,7 +393,7 @@ export function ContentForm({
       form.postingTargets.length === 0 &&
       form.platforms.length === 0
     ) {
-      alert("กรุณาเลือกแพลตฟอร์มอย่างน้อย 1 แพลตฟอร์ม");
+      alert(t("create.pickPlatform"));
       return;
     }
 
@@ -398,6 +404,7 @@ export function ContentForm({
         endTime: "",
         attachments: form.attachments.filter((link) => link.trim()),
         exampleAttachments: form.exampleAttachments.filter((link) => link.trim()),
+        coverImage: form.coverImage.trim(),
         script: isVideo ? form.script : [],
         imageMeta: isVideo ? { ...EMPTY_IMAGE_META } : form.imageMeta,
       };
@@ -463,8 +470,8 @@ export function ContentForm({
         error instanceof Error && error.message
           ? error.message
           : isEdit
-            ? "บันทึกการแก้ไขไม่สำเร็จ กรุณาลองใหม่"
-            : "ส่ง Content ไม่สำเร็จ กรุณาลองใหม่";
+            ? t("create.saveFailed")
+            : t("create.submitFailed");
       alert(message);
     } finally {
       setSubmitting(false);
@@ -490,30 +497,42 @@ export function ContentForm({
         </div>
       )}
       {!isProducePhase && (
-      <Card
-        padding="none"
-        className={isVideo ? "border-amber-100" : "border-pink-100"}
-      >
-        <div className="border-b border-stone-200 px-6 py-4">
-          <h3 className="text-xl font-bold tracking-tight text-stone-900">
-            {isVideo ? "วิดีโอคอนเทนต์" : "รูปภาพคอนเทนต์"}
-          </h3>
-          <p className="mt-1 text-sm text-stone-500">
-            {isVideo
-              ? "รอบ 1 : กรอกข้อมูลและแนบรูปตัวอย่าง - หลังอนุมัติแล้ว ค่อยอัปโหลดคลิปเพื่อส่งให้ตัดต่อ"
-              : "กรอก brief งานออกแบบภาพ"}
-          </p>
-        </div>
-        <div className="p-6">
-          <MediaTypeToggle
-            value={form.mediaType}
-            onChange={handleMediaTypeChange}
-          />
-        </div>
-      </Card>
+        <Card
+          padding="none"
+          className={
+            isVideo
+              ? "border-orange-100"
+              : form.mediaType === "graphic"
+                ? "border-pink-100"
+                : "border-emerald-100"
+          }
+        >
+          <div className="border-b border-stone-200 px-6 py-4">
+            <h3 className="text-xl font-bold tracking-tight text-stone-900">
+              {isVideo
+                ? t("create.videoContent")
+                : form.mediaType === "graphic"
+                  ? t("create.graphicContent")
+                  : t("create.imageContent")}
+            </h3>
+            <p className="mt-1 text-sm text-stone-500">
+              {isVideo
+                ? t("create.videoRound1")
+                : form.mediaType === "graphic"
+                  ? t("create.graphicBrief")
+                  : t("create.imageBrief")}
+            </p>
+          </div>
+          <div className="p-6">
+            <MediaTypeToggle
+              value={form.mediaType}
+              onChange={handleMediaTypeChange}
+            />
+          </div>
+        </Card>
       )}
 
-      {!isVideo ? (
+      {isStill ? (
         <ImageContentFormFields
           form={form}
           contentId={contentId}
@@ -546,7 +565,7 @@ export function ContentForm({
       <div className="flex justify-end gap-3 pb-8">
         {isEdit ? (
           <Button type="button" variant="secondary" onClick={onCancel}>
-            ยกเลิก
+            {t("common.cancel")}
           </Button>
         ) : (
           <Button
@@ -557,7 +576,7 @@ export function ContentForm({
               setForm({ ...EMPTY_FORM, mediaType: form.mediaType });
             }}
           >
-            ล้างฟอร์ม
+            {t("create.clearForm")}
           </Button>
         )}
         <Button type="submit" size="lg" disabled={submitting}>

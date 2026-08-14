@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { PlatformBadgeGroup } from "@/components/ui/PlatformIcon";
 import { STATUS_LABELS } from "@/lib/constants";
-import { formatLocations, formatThaiDate } from "@/lib/shared/utils";
+import { formatLocations } from "@/lib/shared/utils";
+import {
+  formatLocalizedDate,
+  statusLabel,
+  useT,
+} from "@/lib/i18n";
 
 interface SubmitSuccessProps {
   content: ContentItem;
@@ -16,6 +21,7 @@ interface SubmitSuccessProps {
 }
 
 export function SubmitSuccess({ content, onCreateAnother }: SubmitSuccessProps) {
+  const { t, locale } = useT();
   const status = STATUS_LABELS[content.status];
 
   useEffect(() => {
@@ -30,45 +36,47 @@ export function SubmitSuccess({ content, onCreateAnother }: SubmitSuccessProps) 
         </div>
         <h2 className="mt-4 text-xl font-bold text-stone-900">
           {content.mediaType === "video" && content.status === "pending"
-            ? "ส่งแนวคิดเรียบร้อยแล้ว"
-            : "ส่ง Content เรียบร้อยแล้ว"}
+            ? t("create.ideaSubmitted")
+            : t("create.submitted")}
         </h2>
         <p className="mt-2 text-sm text-stone-600">
           {content.mediaType === "video" && content.status === "pending"
-            ? "Admin จะตรวจสอบแนวคิดและรูปตัวอย่างก่อน — หลังอนุมัติแล้วค่อยกลับมาอัปโหลดคลิปตัดต่อ"
-            : "ระบบบันทึก Content ของคุณแล้ว — Admin จะตรวจสอบและอนุมัติก่อนแสดงในปฏิทิน"}
+            ? t("workflow.successIdea")
+            : t("create.submittedSaved")}
         </p>
-        <Badge className={`mt-4 ${status.color}`}>{status.label}</Badge>
+        <Badge className={`mt-4 ${status.color}`}>
+          {statusLabel(t, content.status)}
+        </Badge>
       </div>
 
       <div className="rounded-xl border border-stone-200 bg-white p-5">
         <p className="text-xs font-medium uppercase tracking-wide text-stone-400">
-          สรุปที่ส่ง
+          {t("create.summary")}
         </p>
         <h3 className="mt-2 text-lg font-semibold text-stone-900">{content.name}</h3>
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-stone-500">รหัส Content</dt>
+            <dt className="text-stone-500">{t("create.contentId")}</dt>
             <dd className="font-mono font-medium text-stone-800">#{content.contentId}</dd>
           </div>
           {content.channel && (
             <div className="flex justify-between gap-4">
-              <dt className="text-stone-500">ช่องที่ลง</dt>
+              <dt className="text-stone-500">{t("create.channels")}</dt>
               <dd className="text-stone-800">{content.channel}</dd>
             </div>
           )}
           {content.scheduledDate && (
             <div className="flex justify-between gap-4">
-              <dt className="text-stone-500">วันเวลา</dt>
+              <dt className="text-stone-500">{t("create.datetime")}</dt>
               <dd className="text-stone-800">
-                {formatThaiDate(content.scheduledDate)}
+                {formatLocalizedDate(content.scheduledDate, locale)}
                 {content.scheduledTime ? ` • ${content.scheduledTime}` : ""}
               </dd>
             </div>
           )}
           {content.location.length > 0 && (
             <div className="flex justify-between gap-4">
-              <dt className="shrink-0 text-stone-500">สถานที่</dt>
+              <dt className="shrink-0 text-stone-500">{t("create.location")}</dt>
               <dd className="text-right text-stone-800">
                 {formatLocations(content.location)}
               </dd>
@@ -76,7 +84,7 @@ export function SubmitSuccess({ content, onCreateAnother }: SubmitSuccessProps) 
           )}
           {content.platforms.length > 0 && (
             <div className="flex items-center justify-between gap-4 pt-1">
-              <dt className="text-stone-500">แพลตฟอร์ม</dt>
+              <dt className="text-stone-500">{t("create.platforms")}</dt>
               <dd>
                 <PlatformBadgeGroup platforms={content.platforms} />
               </dd>
@@ -88,12 +96,12 @@ export function SubmitSuccess({ content, onCreateAnother }: SubmitSuccessProps) 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
         <Button size="lg" onClick={onCreateAnother}>
           <Plus className="h-4 w-4" />
-          สร้าง Content ใหม่
+          {t("create.createAnother")}
         </Button>
         <DashboardLink href="/calendar">
           <Button size="lg" variant="secondary" className="w-full sm:w-auto">
             <CalendarDays className="h-4 w-4" />
-            ดูในปฏิทิน
+            {t("create.viewCalendar")}
           </Button>
         </DashboardLink>
       </div>

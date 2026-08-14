@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import useSWR from "swr";
 import { CalendarView } from "@/app/calendar/_components/CalendarView";
 import { ContentCalendarGrid } from "@/app/calendar/_components/ContentCalendarGrid";
 import { CalendarToolbar } from "@/app/calendar/_components/CalendarToolbar";
@@ -17,6 +18,12 @@ import {
   type DateRangePreset,
   type PostStatusFilter,
 } from "@/lib/calendar/domain/filters";
+import { fetchMeetings } from "@/lib/collaboration/actions/fetch";
+import {
+  getGoogleCalendarStatusAction,
+  syncContentCalendarToGoogleAction,
+} from "@/lib/content/actions/google-calendar";
+import { useT } from "@/lib/i18n";
 
 const VIEW_TABS = [
   { id: "month", label: "รายเดือน" },
@@ -26,6 +33,7 @@ const VIEW_TABS = [
 type CalendarViewMode = (typeof VIEW_TABS)[number]["id"];
 
 export function CalendarPageClient() {
+  const { t } = useT();
   const [mode, setMode] = useState<CalendarMode>("post");
   const [view, setView] = useState<CalendarViewMode>("month");
   const [search, setSearch] = useState("");
@@ -36,9 +44,18 @@ export function CalendarPageClient() {
   const [activePreset, setActivePreset] = useState<DateRangePreset | null>(
     null
   );
+  const [showMeetings, setShowMeetings] = useState(true);
+  const [syncingGoogle, setSyncingGoogle] = useState(false);
 
-  const { contents } = useContents();
+  const { contents, mutateContents } = useContents();
   const { data: session } = useSession();
+  const { data: meetings = [] } = useSWR("calendar-meetings", fetchMeetings, {
+    refreshInterval: 30000,
+  });
+  const { data: googleStatus } = useSWR(
+    "google-calendar-status",
+    getGoogleCalendarStatusAction
+  );
 
   const handleModeChange = (nextMode: CalendarMode) => {
     setMode(nextMode);
@@ -97,11 +114,39 @@ export function CalendarPageClient() {
     setActivePreset(preset);
   };
 
+  const handleSyncGoogle = async () => {
+    setSyncingGoogle(true);
+    try {
+      const result = await syncContentCalendarToGoogleAction();
+      if (!result.configured) {
+        alert(t("calendar.syncGoogleNotConfigured"));
+        return;
+      }
+      if (result.failed > 0) {
+        alert(
+          t("calendar.syncGooglePartial", {
+            synced: result.synced,
+            failed: result.failed,
+          })
+        );
+      } else {
+        alert(t("calendar.syncGoogleDone", { synced: result.synced }));
+      }
+      await mutateContents();
+    } catch (error) {
+      alert(
+        error instanceof Error ? error.message : t("calendar.syncGoogleFailed")
+      );
+    } finally {
+      setSyncingGoogle(false);
+    }
+  };
+
   return (
     <>
       <Header
         session={session}
-        title={mode === "post" ? "ตารางลงคอนเทนต์" : "ตาราง Pre Post"}
+        title={mode === "post" ? t("calendar.postTitle") : t("calendar.prepostTitle")}
         compact
       />
       <div className="space-y-3 px-4 py-3">
@@ -129,7 +174,15 @@ export function CalendarPageClient() {
           onClearRange={handleClearRange}
           view={view}
           onViewChange={(id) => setView(id as CalendarViewMode)}
-          viewTabs={[...VIEW_TABS]}
+          viewTabs={[
+            { id: "month", label: t("calendar.month") },
+            { id: "week", label: t("calendar.week") },
+          ]}
+          showMeetings={showMeetings}
+          onShowMeetingsChange={setShowMeetings}
+          googleConfigured={Boolean(googleStatus?.configured)}
+          syncingGoogle={syncingGoogle}
+          onSyncGoogle={() => void handleSyncGoogle()}
         />
 
         {view === "week" ? (
@@ -138,6 +191,8 @@ export function CalendarPageClient() {
           <ContentCalendarGrid
             contents={filteredContents}
             dateField={dateField}
+            meetings={meetings}
+            showMeetings={showMeetings}
           />
         )}
 

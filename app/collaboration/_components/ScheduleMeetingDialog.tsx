@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Calendar, Link2, Type, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/lib/i18n";
 
 export type MeetingDraft = {
   title: string;
@@ -52,6 +53,7 @@ export function ScheduleMeetingDialog({
   onClose: () => void;
   onSubmit: (draft: MeetingDraft) => void;
 }) {
+  const { t } = useT();
   const [title, setTitle] = useState("");
   const [meetUrl, setMeetUrl] = useState("");
   const [startsAt, setStartsAt] = useState("");
@@ -96,10 +98,10 @@ export function ScheduleMeetingDialog({
                 id="schedule-meeting-title"
                 className="text-base font-semibold text-stone-900"
               >
-                นัดประชุมใหม่
+                {t("team.newMeeting")}
               </h2>
               <p className="text-[11px] text-stone-500">
-                สร้างลิงก์ Meet และส่งคำเชิญเข้าปฏิทินอัตโนมัติ
+                {t("team.newMeetingHint")}
               </p>
             </div>
           </div>
@@ -107,7 +109,7 @@ export function ScheduleMeetingDialog({
             type="button"
             onClick={onClose}
             className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600"
-            aria-label="ปิด"
+            aria-label={t("common.close")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -118,7 +120,7 @@ export function ScheduleMeetingDialog({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="หัวข้อการประชุม"
+              placeholder={t("team.meetingTitle")}
               className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 outline-none"
               required
               autoFocus
@@ -129,7 +131,7 @@ export function ScheduleMeetingDialog({
             <input
               value={meetUrl}
               onChange={(e) => setMeetUrl(e.target.value)}
-              placeholder="ลิงก์ Meet (เว้นว่างเพื่อสร้างอัตโนมัติ)"
+              placeholder={t("team.meetUrlPlaceholder")}
               className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 outline-none"
             />
           </FieldShell>
@@ -137,7 +139,7 @@ export function ScheduleMeetingDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="text-xs font-medium text-stone-600">
-                เวลาเริ่ม
+                {t("team.startTime")}
               </label>
               <FieldShell icon={Calendar}>
                 <input
@@ -151,7 +153,7 @@ export function ScheduleMeetingDialog({
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-stone-600">
-                เวลาสิ้นสุด
+                {t("team.endTime")}
               </label>
               <FieldShell icon={Calendar}>
                 <input
@@ -167,13 +169,13 @@ export function ScheduleMeetingDialog({
 
           <div className="flex justify-end gap-2 border-t border-stone-100 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
-              ยกเลิก
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
               disabled={submitting || !title.trim() || !startsAt || !endsAt}
             >
-              นัดประชุม
+              {t("team.scheduleMeeting")}
             </Button>
           </div>
         </form>
