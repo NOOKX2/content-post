@@ -19,6 +19,7 @@ import {
   workflowStepHint,
   workflowStepLabel,
 } from "@/lib/i18n";
+import type { ContentItem } from "@/lib/types";
 
 type WorkflowHubFilter = VideoWorkflowStep;
 
