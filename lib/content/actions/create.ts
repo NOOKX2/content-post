@@ -21,6 +21,7 @@ import {
 import {
   resolvePostingTargetsFromSlugs,
 } from "@/lib/integrations/buffer/posting-targets";
+import { notifyLineApprovalRequested } from "@/lib/integrations/line/notify";
 import {
   getAvailablePlatformsForPostingChannel,
   getPostingChannelPrefix,
@@ -154,6 +155,7 @@ export async function createContentRecord(
     action: "submitted",
     approvalRound: 1,
   });
+  await notifyLineApprovalRequested(record);
 
   updateTag(CONTENTS_CACHE_TAG);
   revalidatePath("/calendar");
@@ -205,6 +207,7 @@ export async function submitClipForApprovalRecord(
     action: "clip_submitted",
     approvalRound: 2,
   });
+  await notifyLineApprovalRequested(record);
 
   updateTag(CONTENTS_CACHE_TAG);
   revalidatePath("/calendar");
@@ -258,6 +261,7 @@ export async function resubmitIdeaForApprovalRecord(
     action: "submitted",
     approvalRound: 1,
   });
+  await notifyLineApprovalRequested(record);
 
   updateTag(CONTENTS_CACHE_TAG);
   revalidatePath("/calendar");

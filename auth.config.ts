@@ -31,12 +31,13 @@ export const authConfig = {
     authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user;
       const isAdmin = auth?.user?.role === "ADMIN";
-      const pathname = request.nextUrl.pathname;
+      const pathname = request.nextUrl.pathname.replace(/\/$/, "") || "/";
       const nextUrl = request.nextUrl;
 
       const isAuthPage = pathname === "/login" || pathname === "/register";
       const isPublicApiRoute = pathname.startsWith("/api/auth");
       const isAdminRoute = pathname.startsWith("/admin");
+      const isLineWebhookRoute = pathname === "/api/line/webhook";
 
       const apiKey = request.headers.get("x-api-key");
       const isValidN8nKey =
@@ -44,11 +45,11 @@ export const authConfig = {
       const isN8nScheduledRoute = pathname === "/api/content/scheduled";
       const isCronProcessDueRoute = pathname === "/api/cron/process-due";
       const isN8nPatchRoute = /^\/api\/content\/[^/]+$/.test(pathname);
-      const isN8nContentCreateRoute =
-        pathname === "/api/content" && request.method === "POST";
+      const isN8nContentCreateRoute = pathname === "/api/content";
 
       if (
         isPublicApiRoute ||
+        isLineWebhookRoute ||
         (isValidN8nKey &&
           (isN8nScheduledRoute ||
             isCronProcessDueRoute ||

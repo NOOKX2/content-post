@@ -21,7 +21,6 @@ import {
 } from "@/lib/collaboration/data/service";
 import {
   detectContentChanges,
-  notifyApprovalRejected,
   notifyContentDetailChanged,
 } from "@/lib/notifications/domain/events";
 import { writeContentUpdateAudit } from "@/lib/content/data/audit";
@@ -32,7 +31,7 @@ import {
   isValidPostingChannel,
 } from "@/lib/content/posting/posting-channels";
 import { createContentRecord, validateContentFormData, resubmitIdeaForApprovalRecord, submitClipForApprovalRecord } from "@/lib/content/actions/create";
-import { approveContentRecord } from "@/lib/content/actions/approve";
+import { approveContentRecord, rejectContentRecord } from "@/lib/content/actions/approve";
 import type { ContentFormData, ContentItem } from "@/lib/types";
 
 export type ActionResult<T = void> =
@@ -338,32 +337,11 @@ export async function rejectContent(
       return { success: true, data: toContentItem(existing) };
     }
 
-    if (!["pending", "clip_pending"].includes(existing.status)) {
-      return {
-        success: false,
-        error: "ไม่สามารถปฏิเสธงานในสถานะนี้ได้",
-      };
-    }
-
-    const record = await prisma.content.update({
-      where: { id },
-      data: { status: "rejected", approver: null },
-    });
-
-    await notifyApprovalRejected(existing);
-    await syncContentWorkflowToCollaboration({
-      content: existing,
-      actorName: session.user.name ?? "Admin",
-      action: "rejected",
-      note: rejectNote,
-    });
-
-    updateTag(CONTENTS_CACHE_TAG);
-    updateTag(contentCacheTag(id));
-    revalidatePath("/admin");
-    revalidatePath("/calendar");
-    revalidatePath("/posts");
-    revalidatePath(`/content/${id}`);
+    const record = await rejectContentRecord(
+      existing,
+      session.user.name ?? "Admin",
+      rejectNote
+    );
 
     return { success: true, data: toContentItem(record) };
   } catch (error) {

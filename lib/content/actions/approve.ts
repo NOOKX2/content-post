@@ -5,7 +5,7 @@ import { invalidateContentsCache } from "@/lib/content/data/cache-tags";
 import { CONTENTS_CACHE_TAG } from "@/lib/content/data/cache-tags";
 import { syncContentWorkflowToCollaboration } from "@/lib/collaboration/data/service";
 import { dispatchApprovedContentToN8n } from "@/lib/integrations/n8n/dispatch-approved-content";
-import { notifyApprovalApproved, notifyIdeaApproved } from "@/lib/notifications/domain/events";
+import { notifyApprovalApproved, notifyApprovalRejected, notifyIdeaApproved } from "@/lib/notifications/domain/events";
 import { isVideoAttachmentUrl } from "@/lib/content/domain/media-url";
 import { syncContentToGoogleCalendar } from "@/lib/content/data/google-calendar-sync";
 import { isGoogleCalendarConfigured } from "@/lib/integrations/google/calendar";
@@ -240,4 +240,40 @@ export async function approveContentRecord(
     status: existing.status,
   });
   return existing;
+}
+
+export async function rejectContentRecord(
+  existing: Content,
+  actorName: string,
+  note?: string
+): Promise<Content> {
+  if (existing.status === "rejected") {
+    return existing;
+  }
+
+  if (!["pending", "clip_pending"].includes(existing.status)) {
+    throw new Error("ไม่สามารถปฏิเสธงานในสถานะนี้ได้");
+  }
+
+  const record = await prisma.content.update({
+    where: { id: existing.id },
+    data: { status: "rejected", approver: null },
+  });
+
+  await notifyApprovalRejected(existing);
+  await syncContentWorkflowToCollaboration({
+    content: existing,
+    actorName,
+    action: "rejected",
+    note,
+  });
+
+  invalidateContentsCache(record.id);
+  updateTag(CONTENTS_CACHE_TAG);
+  revalidatePath("/admin");
+  revalidatePath("/calendar");
+  revalidatePath("/posts");
+  revalidatePath(`/content/${existing.id}`);
+
+  return record;
 }
