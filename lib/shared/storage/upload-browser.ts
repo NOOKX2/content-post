@@ -88,8 +88,18 @@ export async function uploadBrowserFile(
     if (putResponse.ok) {
       return data.url;
     }
-  } catch {
-    // CORS or network — fall through
+
+    if (file.size <= APP_PROXY_LIMIT) {
+      return uploadThroughApp(file, kind);
+    }
+
+    throw new Error(
+      `อัปโหลดวิดีโอตรงไปคลังไฟล์ไม่สำเร็จ (${putResponse.status}) — ตรวจ CORS ของ Cloudflare R2 ให้โดเมนนี้ใช้ PUT ได้`
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("คลังไฟล์")) {
+      throw error;
+    }
   }
 
   if (file.size <= APP_PROXY_LIMIT) {

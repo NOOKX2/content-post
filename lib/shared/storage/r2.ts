@@ -1,4 +1,8 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  PutBucketCorsCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export type R2Config = {
@@ -10,6 +14,7 @@ export type R2Config = {
 };
 
 let r2Client: S3Client | null = null;
+let corsEnsured = false;
 
 export function getR2Config(): R2Config | null {
   const accountId = process.env.R2_ACCOUNT_ID;
@@ -59,6 +64,61 @@ export function buildR2PublicUrl(key: string, config: R2Config): string {
   return `${config.publicBaseUrl}/${key}`;
 }
 
+function r2CorsOrigins(): string[] {
+  const origins = new Set<string>([
+    "http://localhost:3000",
+    "https://idea-content.vercel.app",
+  ]);
+
+  for (const raw of [
+    process.env.APP_PUBLIC_URL,
+    process.env.AUTH_URL,
+    process.env.NEXTAUTH_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "",
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "",
+  ]) {
+    if (!raw) continue;
+    try {
+      origins.add(new URL(raw).origin);
+    } catch {
+      // ignore invalid URL
+    }
+  }
+
+  return [...origins];
+}
+
+async function ensureR2BrowserCors(config: R2Config): Promise<void> {
+  if (corsEnsured) return;
+
+  try {
+    await getR2Client(config).send(
+      new PutBucketCorsCommand({
+        Bucket: config.bucketName,
+        CORSConfiguration: {
+          CORSRules: [
+            {
+              AllowedOrigins: r2CorsOrigins(),
+              AllowedMethods: ["GET", "PUT", "HEAD"],
+              AllowedHeaders: ["*"],
+              ExposeHeaders: ["ETag"],
+              MaxAgeSeconds: 3600,
+            },
+          ],
+        },
+      })
+    );
+    corsEnsured = true;
+    console.log("[r2] cors | allowed browser PUT from", r2CorsOrigins());
+  } catch (error) {
+    console.error("[r2] cors | PutBucketCors failed — set CORS in Cloudflare dashboard", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 export async function uploadToR2(input: {
   key: string;
   body: Buffer;
@@ -92,6 +152,8 @@ export async function createPresignedUpload(input: {
   if (!config) {
     throw new Error("Cloudflare R2 is not configured");
   }
+
+  await ensureR2BrowserCors(config);
 
   const uploadUrl = await getSignedUrl(
     getR2Client(config),
