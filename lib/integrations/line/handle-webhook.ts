@@ -5,6 +5,10 @@ import {
   rejectContentRecord,
 } from "@/lib/content/actions/approve";
 import { replyLineMessages } from "@/lib/integrations/line/client";
+import {
+  buildApprovalFlexMessage,
+  lineContentCardKind,
+} from "@/lib/integrations/line/flex-approval";
 import { logLine } from "@/lib/integrations/line/log";
 
 type LineEvent = {
@@ -29,7 +33,7 @@ async function handlePostback(event: LineEvent): Promise<void> {
     where: { id: parsed.id },
   });
 
-  const reply = async (text: string) => {
+  const replyText = async (text: string) => {
     if (!event.replyToken) return;
     await replyLineMessages(event.replyToken, [{ type: "text", text }]).catch(
       (error) => {
@@ -38,12 +42,20 @@ async function handlePostback(event: LineEvent): Promise<void> {
     );
   };
 
+  const replyCard = async (record: Content) => {
+    if (!event.replyToken) return;
+    const kind = lineContentCardKind(record.status);
+    await replyLineMessages(event.replyToken, [
+      buildApprovalFlexMessage(record, kind),
+    ]).catch((error) => {
+      console.error("[line] reply failed", error);
+    });
+  };
+
   if (!content) {
-    await reply("ไม่พบคอนเทนต์นี้");
+    await replyText("ไม่พบคอนเทนต์นี้");
     return;
   }
-
-  const label = `${content.contentId} — ${content.name}`;
 
   try {
     if (parsed.action === "approve") {
@@ -52,24 +64,34 @@ async function handlePostback(event: LineEvent): Promise<void> {
         contentId: content.contentId,
         status: updated.status,
       });
-      await reply(`อนุมัติแล้ว: ${label}\nสถานะ: ${updated.status}`);
+      await replyCard(updated);
       return;
     }
 
-    await rejectContentRecord(content, "LINE OA", "ไม่อนุมัติผ่าน LINE");
+    if (lineContentCardKind(content.status) !== "pending") {
+      await replyCard(content);
+      return;
+    }
+
+    const rejected = await rejectContentRecord(
+      content,
+      "LINE OA",
+      "ไม่อนุมัติผ่าน LINE"
+    );
     logLine("info", "postback", "rejected from LINE", {
       contentId: content.contentId,
     });
-    await reply(`ไม่อนุมัติ: ${label}`);
+    await replyCard(rejected);
   } catch (error) {
     logLine("error", "postback", "approve/reject failed", {
       action: parsed.action,
       id: parsed.id,
       error: error instanceof Error ? error.message : String(error),
     });
-    await reply(
-      error instanceof Error ? error.message : "ดำเนินการไม่สำเร็จ"
-    );
+    const latest = await prisma.content.findUnique({
+      where: { id: content.id },
+    });
+    await replyCard(latest ?? content);
   }
 }
 
@@ -78,7 +100,7 @@ export async function handleLineWebhookEvents(
 ): Promise<void> {
   for (const event of events) {
     if (event.type === "join" && event.source?.groupId) {
-          logLine("info", "webhook", "bot joined group — copy LINE_GROUP_ID", {
+      logLine("info", "webhook", "bot joined group — copy LINE_GROUP_ID", {
         groupId: event.source.groupId,
       });
       if (event.replyToken) {

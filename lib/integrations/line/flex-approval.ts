@@ -2,6 +2,8 @@ import type { Content } from "@prisma/client";
 import { STATUS_LABELS } from "@/lib/constants";
 import { getAppPublicUrl } from "@/lib/integrations/line/env";
 
+export type LineContentCardKind = "pending" | "approved" | "rejected";
+
 const MEDIA_LABEL: Record<string, string> = {
   video: "วิดีโอ",
   graphic: "กราฟิก",
@@ -50,13 +52,115 @@ function coverImage(content: Content): string | null {
   );
 }
 
-export function buildApprovalFlexMessage(content: Content) {
+export function lineContentCardKind(status: string): LineContentCardKind {
+  if (status === "pending" || status === "clip_pending") return "pending";
+  if (status === "rejected") return "rejected";
+  return "approved";
+}
+
+function headerForKind(kind: LineContentCardKind) {
+  if (kind === "approved") {
+    return { backgroundColor: "#16A34A", text: "อนุมัติแล้ว" };
+  }
+  if (kind === "rejected") {
+    return { backgroundColor: "#78716C", text: "ไม่อนุมัติ" };
+  }
+  return { backgroundColor: "#F97316", text: "รออนุมัติ" };
+}
+
+function altTextForKind(kind: LineContentCardKind, content: Content) {
+  const title = `${content.contentId} ${content.name}`.trim();
+  if (kind === "approved") return `อนุมัติแล้ว ${title}`;
+  if (kind === "rejected") return `ไม่อนุมัติ ${title}`;
+  return `รออนุมัติ ${title}`;
+}
+
+function statusColor(kind: LineContentCardKind) {
+  if (kind === "rejected") return "#B91C1C";
+  if (kind === "approved") return "#16A34A";
+  return "#16A34A";
+}
+
+function footerForKind(kind: LineContentCardKind, content: Content) {
+  const detailUrl = `${getAppPublicUrl()}/content/${content.id}`;
+  const detailButton = {
+    type: "button",
+    style: "link",
+    action: {
+      type: "uri",
+      label: "ดูรายละเอียด",
+      uri: detailUrl,
+    },
+  };
+
+  if (kind === "approved") {
+    return [
+      {
+        type: "button",
+        style: "primary",
+        color: "#16A34A",
+        action: {
+          type: "uri",
+          label: "อนุมัติแล้ว",
+          uri: detailUrl,
+        },
+      },
+      detailButton,
+    ];
+  }
+
+  if (kind === "rejected") {
+    return [
+      {
+        type: "button",
+        style: "primary",
+        color: "#78716C",
+        action: {
+          type: "uri",
+          label: "ไม่อนุมัติแล้ว",
+          uri: detailUrl,
+        },
+      },
+      detailButton,
+    ];
+  }
+
+  return [
+    {
+      type: "button",
+      style: "primary",
+      color: "#F97316",
+      action: {
+        type: "postback",
+        label: "อนุมัติ",
+        data: `approve:${content.id}`,
+        displayText: "อนุมัติ",
+      },
+    },
+    {
+      type: "button",
+      style: "secondary",
+      action: {
+        type: "postback",
+        label: "ไม่อนุมัติ",
+        data: `reject:${content.id}`,
+        displayText: "ไม่อนุมัติ",
+      },
+    },
+    detailButton,
+  ];
+}
+
+export function buildApprovalFlexMessage(
+  content: Content,
+  kind: LineContentCardKind = "pending"
+) {
   const status =
     STATUS_LABELS[content.status as keyof typeof STATUS_LABELS]?.label ??
     content.status;
   const media = MEDIA_LABEL[content.mediaType] ?? content.mediaType;
-  const detailUrl = `${getAppPublicUrl()}/content/${content.id}`;
   const image = coverImage(content);
+  const header = headerForKind(kind);
 
   const hero = image
     ? {
@@ -70,19 +174,19 @@ export function buildApprovalFlexMessage(content: Content) {
 
   return {
     type: "flex",
-    altText: `รออนุมัติ ${content.contentId} ${content.name}`,
+    altText: altTextForKind(kind, content),
     contents: {
       type: "bubble",
       ...(hero ? { hero } : {}),
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: "#F97316",
+        backgroundColor: header.backgroundColor,
         paddingAll: "12px",
         contents: [
           {
             type: "text",
-            text: "รออนุมัติ",
+            text: header.text,
             color: "#FFFFFF",
             weight: "bold",
             size: "sm",
@@ -143,7 +247,7 @@ export function buildApprovalFlexMessage(content: Content) {
                     type: "text",
                     text: status,
                     size: "sm",
-                    color: "#16A34A",
+                    color: statusColor(kind),
                     weight: "bold",
                     flex: 5,
                     wrap: true,
@@ -182,38 +286,7 @@ export function buildApprovalFlexMessage(content: Content) {
         type: "box",
         layout: "vertical",
         spacing: "sm",
-        contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: "#F97316",
-            action: {
-              type: "postback",
-              label: "อนุมัติ",
-              data: `approve:${content.id}`,
-              displayText: "อนุมัติ",
-            },
-          },
-          {
-            type: "button",
-            style: "secondary",
-            action: {
-              type: "postback",
-              label: "ไม่อนุมัติ",
-              data: `reject:${content.id}`,
-              displayText: "ไม่อนุมัติ",
-            },
-          },
-          {
-            type: "button",
-            style: "link",
-            action: {
-              type: "uri",
-              label: "ดูรายละเอียด",
-              uri: detailUrl,
-            },
-          },
-        ],
+        contents: footerForKind(kind, content),
       },
     },
   };
