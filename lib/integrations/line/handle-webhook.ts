@@ -4,11 +4,13 @@ import {
   approveContentRecord,
   rejectContentRecord,
 } from "@/lib/content/actions/approve";
+import { STATUS_LABELS } from "@/lib/constants";
 import { replyLineMessages } from "@/lib/integrations/line/client";
+import { lineContentCardKind } from "@/lib/integrations/line/flex-approval";
 import {
-  buildApprovalFlexMessage,
-  lineContentCardKind,
-} from "@/lib/integrations/line/flex-approval";
+  isLineApprovalPostbackActive,
+  parseLinePostback,
+} from "@/lib/integrations/line/postback";
 import { logLine } from "@/lib/integrations/line/log";
 
 type LineEvent = {
@@ -18,21 +20,16 @@ type LineEvent = {
   source?: { type?: string; groupId?: string; userId?: string };
 };
 
-function parsePostback(data: string): { action: string; id: string } | null {
-  const [action, id] = data.split(":");
-  if (!action || !id) return null;
-  if (action !== "approve" && action !== "reject") return null;
-  return { action, id };
-}
-
 async function handlePostback(event: LineEvent): Promise<void> {
-  const parsed = parsePostback(event.postback?.data ?? "");
+  const parsed = parseLinePostback(event.postback?.data ?? "");
   if (!parsed) return;
 
   const content = await prisma.content.findUnique({
     where: { id: parsed.id },
   });
 
+  // LINE Messaging API cannot edit a Flex card after it is sent.
+  // Do not reply with a second card — confirm with a short text instead.
   const replyText = async (text: string) => {
     if (!event.replyToken) return;
     await replyLineMessages(event.replyToken, [{ type: "text", text }]).catch(
@@ -42,18 +39,38 @@ async function handlePostback(event: LineEvent): Promise<void> {
     );
   };
 
-  const replyCard = async (record: Content) => {
-    if (!event.replyToken) return;
+  const replyDecision = async (record: Content) => {
+    const status =
+      STATUS_LABELS[record.status as keyof typeof STATUS_LABELS]?.label ??
+      record.status;
+    const title = `${record.contentId} — ${record.name}`.trim();
     const kind = lineContentCardKind(record.status);
-    await replyLineMessages(event.replyToken, [
-      buildApprovalFlexMessage(record, kind),
-    ]).catch((error) => {
-      console.error("[line] reply failed", error);
-    });
+    const headline =
+      kind === "rejected"
+        ? "ไม่อนุมัติแล้ว"
+        : kind === "pending"
+          ? "ยังรออนุมัติ"
+          : "อนุมัติแล้ว";
+    await replyText(`${headline}\n${title}\nสถานะ: ${status}`);
   };
 
   if (!content) {
     await replyText("ไม่พบคอนเทนต์นี้");
+    return;
+  }
+
+  if (!isLineApprovalPostbackActive(content, parsed.token)) {
+    const status =
+      STATUS_LABELS[content.status as keyof typeof STATUS_LABELS]?.label ??
+      content.status;
+    logLine("info", "postback", "ignored spent button on original card", {
+      contentId: content.contentId,
+      status: content.status,
+      action: parsed.action,
+    });
+    await replyText(
+      `งานนี้ดำเนินการแล้ว — ปุ่มบนการ์ดเดิมใช้ไม่ได้แล้ว\n${content.contentId} — ${content.name}\nสถานะ: ${status}`
+    );
     return;
   }
 
@@ -64,12 +81,7 @@ async function handlePostback(event: LineEvent): Promise<void> {
         contentId: content.contentId,
         status: updated.status,
       });
-      await replyCard(updated);
-      return;
-    }
-
-    if (lineContentCardKind(content.status) !== "pending") {
-      await replyCard(content);
+      await replyDecision(updated);
       return;
     }
 
@@ -81,7 +93,7 @@ async function handlePostback(event: LineEvent): Promise<void> {
     logLine("info", "postback", "rejected from LINE", {
       contentId: content.contentId,
     });
-    await replyCard(rejected);
+    await replyDecision(rejected);
   } catch (error) {
     logLine("error", "postback", "approve/reject failed", {
       action: parsed.action,
@@ -91,7 +103,7 @@ async function handlePostback(event: LineEvent): Promise<void> {
     const latest = await prisma.content.findUnique({
       where: { id: content.id },
     });
-    await replyCard(latest ?? content);
+    await replyDecision(latest ?? content);
   }
 }
 

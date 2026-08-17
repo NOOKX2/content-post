@@ -1,6 +1,7 @@
 import type { Content } from "@prisma/client";
 import { STATUS_LABELS } from "@/lib/constants";
 import { getAppPublicUrl } from "@/lib/integrations/line/env";
+import { buildLinePostbackData } from "@/lib/integrations/line/postback";
 
 export type LineContentCardKind = "pending" | "approved" | "rejected";
 
@@ -133,7 +134,7 @@ function footerForKind(kind: LineContentCardKind, content: Content) {
       action: {
         type: "postback",
         label: "อนุมัติ",
-        data: `approve:${content.id}`,
+        data: buildLinePostbackData("approve", content),
         displayText: "อนุมัติ",
       },
     },
@@ -143,7 +144,7 @@ function footerForKind(kind: LineContentCardKind, content: Content) {
       action: {
         type: "postback",
         label: "ไม่อนุมัติ",
-        data: `reject:${content.id}`,
+        data: buildLinePostbackData("reject", content),
         displayText: "ไม่อนุมัติ",
       },
     },
