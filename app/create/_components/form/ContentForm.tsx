@@ -1,10 +1,14 @@
 "use client";
 
+/**
+ * ฟอร์มสร้าง/แก้ไขคอนเทนต์
+ * ปุ่มเสร็จสิ้น → FinishSubmitBar + handleSubmit → app/create/_lib/submit-for-approval.ts
+ */
+
 import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
-import { Send } from "lucide-react";
 import { MediaTypeToggle } from "./MediaTypeToggle";
-import type { PostingChannelOption as PostingChannelSelectOption } from "@/app/create/_components/PostingChannelSelect";
+import type { PostingChannelOption as PostingChannelSelectOption } from "@/app/create/_components/form/PostingChannelSelect";
 import {
   formatChannelLabelFromTargets,
   platformsFromPostingTargets,
@@ -12,7 +16,7 @@ import {
 import { VideoContentFormFields } from "./VideoContentFormFields";
 import { ImageContentFormFields } from "./ImageContentFormFields";
 import { SubmitSuccess } from "./SubmitSuccess";
-import { Button } from "@/components/ui/Button";
+import { FinishSubmitBar } from "./FinishSubmitBar";
 import { Card } from "@/components/ui/Card";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/domain/form-config";
 import { isStillMedia } from "@/lib/content/domain/media-type";
@@ -24,20 +28,13 @@ import type {
   Platform,
 } from "@/lib/types";
 import { EMPTY_IMAGE_META } from "@/lib/types";
+import { previewNextContentId } from "@/lib/content/actions";
+import {
+  getFinishSubmitKind,
+  submitCreateContentForm,
+} from "@/app/create/_lib/submit-for-approval";
 import { resolveNextContentIdFromList } from "@/lib/content/data/content-id";
-import {
-  createContent,
-  previewNextContentId,
-  resubmitIdeaForApproval,
-  submitClipForApproval,
-  updateContent,
-} from "@/lib/content/actions";
 import { contentItemToFormData } from "@/lib/content/data/mappers";
-import {
-  hasFinalVideoClip,
-  shouldResubmitClip,
-  shouldResubmitIdea,
-} from "@/lib/content/domain/workflow";
 import { useContents } from "@/lib/content/client/contents-provider";
 import { useT } from "@/lib/i18n";
 import { generateId } from "@/lib/shared/utils";
@@ -347,19 +344,9 @@ export function ContentForm({
     onMediaTypeChange?.(mediaType);
   };
 
-  const willSubmitClip =
-    isEdit &&
-    isVideo &&
-    hasFinalVideoClip(form) &&
-    (initialContent?.status === "idea_approved" ||
-      (initialContent?.status === "rejected" && shouldResubmitClip(initialContent)));
-
-  const willResubmitIdea =
-    isEdit &&
-    isVideo &&
-    initialContent &&
-    shouldResubmitIdea(initialContent) &&
-    !hasFinalVideoClip(form);
+  const submitKind = getFinishSubmitKind(form, initialContent);
+  const willSubmitClip = submitKind === "submit_clip";
+  const willResubmitIdea = submitKind === "resubmit_idea";
 
   const submitLabel = (() => {
     if (submitting) {
@@ -399,28 +386,10 @@ export function ContentForm({
 
     setSubmitting(true);
     try {
-      const payload = {
-        ...form,
-        endTime: "",
-        attachments: form.attachments.filter((link) => link.trim()),
-        exampleAttachments: form.exampleAttachments.filter((link) => link.trim()),
-        coverImage: form.coverImage.trim(),
-        script: isVideo ? form.script : [],
-        imageMeta: isVideo ? { ...EMPTY_IMAGE_META } : form.imageMeta,
-      };
-
-      let result;
-      if (isEdit) {
-        if (willSubmitClip) {
-          result = await submitClipForApproval(initialContent!.id, payload);
-        } else if (willResubmitIdea) {
-          result = await resubmitIdeaForApproval(initialContent!.id, payload);
-        } else {
-          result = await updateContent(initialContent!.id, payload);
-        }
-      } else {
-        result = await createContent(payload);
-      }
+      const result = await submitCreateContentForm({
+        form,
+        initialContent,
+      });
 
       if (!result.success) {
         console.error("[content-form] action failed", {
@@ -562,28 +531,18 @@ export function ContentForm({
         />
       )}
 
-      <div className="flex justify-end gap-3 pb-8">
-        {isEdit ? (
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            {t("common.cancel")}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setChannelTargetSlugs([]);
-              setForm({ ...EMPTY_FORM, mediaType: form.mediaType });
-            }}
-          >
-            {t("create.clearForm")}
-          </Button>
-        )}
-        <Button type="submit" size="lg" disabled={submitting}>
-          <Send className="h-4 w-4" />
-          {submitLabel}
-        </Button>
-      </div>
+      <FinishSubmitBar
+        isEdit={isEdit}
+        submitting={submitting}
+        submitLabel={submitLabel}
+        cancelLabel={t("common.cancel")}
+        clearLabel={t("create.clearForm")}
+        onCancel={onCancel}
+        onClear={() => {
+          setChannelTargetSlugs([]);
+          setForm({ ...EMPTY_FORM, mediaType: form.mediaType });
+        }}
+      />
     </form>
   );
 }

@@ -1,14 +1,14 @@
 "use client";
 
 import { Calendar, Eye, ImageIcon, Info, Users } from "lucide-react";
-import { ImageAttachmentLinks } from "@/app/create/_components/ImageAttachmentLinks";
-import { ContentFormSection } from "@/app/create/_components/ContentFormSection";
-import { PlatformSelect } from "@/app/create/_components/PlatformSelect";
-import { TeamTable } from "@/app/create/_components/TeamTable";
+import { ImageAttachmentLinks } from "@/app/create/_components/form/ImageAttachmentLinks";
+import { ContentFormSection } from "@/app/create/_components/form/ContentFormSection";
+import { PlatformSelect } from "@/app/create/_components/form/PlatformSelect";
+import { TeamTable } from "@/app/create/_components/form/TeamTable";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { PostingChannelSelect } from "@/app/create/_components/PostingChannelSelect";
-import type { PostingChannelOption } from "@/app/create/_components/PostingChannelSelect";
+import { PostingChannelSelect } from "@/app/create/_components/form/PostingChannelSelect";
+import type { PostingChannelOption } from "@/app/create/_components/form/PostingChannelSelect";
 import { Select } from "@/components/ui/Select";
 import { CreatableMultiSelect } from "@/components/ui/CreatableMultiSelect";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";

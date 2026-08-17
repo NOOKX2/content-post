@@ -6,7 +6,7 @@ import { ContentDetail } from "@/app/content/[id]/_components/ContentDetail";
 import { ContentDetailSidebar } from "@/app/content/[id]/_components/ContentDetailSidebar";
 import { ContentComments } from "@/app/content/[id]/_components/ContentComments";
 import { TeamTasksPanel } from "@/app/collaboration/_components/TeamTasksPanel";
-import { ContentForm } from "@/app/create/_components/ContentForm";
+import { ContentForm } from "@/app/create/_components/form/ContentForm";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { NavBreadcrumb } from "@/components/layout/NavBreadcrumb";
 import { NotificationBell } from "@/components/notifications/NotificationBell";

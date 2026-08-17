@@ -1,3 +1,12 @@
+/**
+ * กดเสร็จสิ้นรอบแรกจะจบที่นี่: บันทึก pending → การ์ดทีม → LINE กลุ่ม
+ *
+ * ลำดับจากปุ่ม UI:
+ * app/create/_lib/submit-for-approval.ts
+ *   → createContent() ใน mutate.ts
+ *   → createContentRecord() ไฟล์นี้
+ *   → notifyLineApprovalRequested() ใน lib/integrations/line/notify.ts
+ */
 import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/shared/prisma";
 import {
@@ -148,6 +157,12 @@ export async function createContentRecord(
     data: formDataToCreateInput(data, nextContentId, userId),
   });
 
+  console.log("[content-submit] create | saved pending, notifying LINE", {
+    id: record.id,
+    contentId: record.contentId,
+    status: record.status,
+  });
+
   await postApprovalRequest(record, actorName, { round: 1 });
   await syncContentWorkflowToCollaboration({
     content: record,
@@ -207,6 +222,11 @@ export async function submitClipForApprovalRecord(
     action: "clip_submitted",
     approvalRound: 2,
   });
+  console.log("[content-submit] clip | saved clip_pending, notifying LINE", {
+    id: record.id,
+    contentId: record.contentId,
+    status: record.status,
+  });
   await notifyLineApprovalRequested(record);
 
   updateTag(CONTENTS_CACHE_TAG);
@@ -260,6 +280,11 @@ export async function resubmitIdeaForApprovalRecord(
     actorName,
     action: "submitted",
     approvalRound: 1,
+  });
+  console.log("[content-submit] resubmit-idea | saved pending, notifying LINE", {
+    id: record.id,
+    contentId: record.contentId,
+    status: record.status,
   });
   await notifyLineApprovalRequested(record);
 

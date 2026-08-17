@@ -12,21 +12,21 @@ import {
   Users,
   Video,
 } from "lucide-react";
-import { AttachmentLinks } from "@/app/create/_components/AttachmentLinks";
-import { ImageAttachmentLinks } from "@/app/create/_components/ImageAttachmentLinks";
+import { AttachmentLinks } from "@/app/create/_components/form/AttachmentLinks";
+import { ImageAttachmentLinks } from "@/app/create/_components/form/ImageAttachmentLinks";
 import {
   ContentFormSection,
   ContentFormSectionAction,
-} from "@/app/create/_components/ContentFormSection";
-import { PlatformSelect } from "@/app/create/_components/PlatformSelect";
-import { ScriptTable } from "@/app/create/_components/ScriptTable";
-import { TeamTable } from "@/app/create/_components/TeamTable";
+} from "@/app/create/_components/form/ContentFormSection";
+import { PlatformSelect } from "@/app/create/_components/form/PlatformSelect";
+import { ScriptTable } from "@/app/create/_components/form/ScriptTable";
+import { TeamTable } from "@/app/create/_components/form/TeamTable";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { CreatableMultiSelect } from "@/components/ui/CreatableMultiSelect";
-import { FilmingEquipmentChecklist } from "@/app/create/_components/FilmingEquipmentChecklist";
+import { FilmingEquipmentChecklist } from "@/app/create/_components/form/FilmingEquipmentChecklist";
 import { Input } from "@/components/ui/Input";
-import { PostingChannelSelect } from "@/app/create/_components/PostingChannelSelect";
-import type { PostingChannelOption } from "@/app/create/_components/PostingChannelSelect";
+import { PostingChannelSelect } from "@/app/create/_components/form/PostingChannelSelect";
+import type { PostingChannelOption } from "@/app/create/_components/form/PostingChannelSelect";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import {

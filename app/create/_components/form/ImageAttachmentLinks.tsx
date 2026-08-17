@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { ContentFormSection } from "@/app/create/_components/ContentFormSection";
+import { ContentFormSection } from "@/app/create/_components/form/ContentFormSection";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/shared/utils";
 import {

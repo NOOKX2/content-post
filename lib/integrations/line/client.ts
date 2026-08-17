@@ -41,6 +41,11 @@ async function lineRequest(path: string, body: unknown): Promise<void> {
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
+    console.error("[line] api | request failed", {
+      path,
+      status: response.status,
+      body: text.slice(0, 500),
+    });
     throw new Error(`LINE API ${path} ${response.status}: ${text}`);
   }
 }

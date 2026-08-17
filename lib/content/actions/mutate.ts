@@ -71,6 +71,7 @@ export async function previewNextContentId(
   }
 }
 
+/** กดเสร็จสิ้นรอบแรก: ตรวจ session แล้วเรียก createContentRecord (LINE ถูกยิงในนั้น) */
 export async function createContent(
   data: ContentFormData
 ): Promise<ActionResult<ContentItem>> {
@@ -97,6 +98,11 @@ export async function createContent(
       session.user.id,
       session.user.name ?? "ผู้ใช้"
     );
+    console.log("[content-submit] createContent | ok", {
+      id: item.id,
+      contentId: item.contentId,
+      status: item.status,
+    });
     return { success: true, data: item };
   } catch (error) {
     logActionError("createContent", error, {

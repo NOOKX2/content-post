@@ -5,6 +5,7 @@ import {
   rejectContentRecord,
 } from "@/lib/content/actions/approve";
 import { replyLineMessages } from "@/lib/integrations/line/client";
+import { logLine } from "@/lib/integrations/line/log";
 
 type LineEvent = {
   type?: string;
@@ -47,13 +48,25 @@ async function handlePostback(event: LineEvent): Promise<void> {
   try {
     if (parsed.action === "approve") {
       const updated = await approveContentRecord(content.id, "LINE OA");
+      logLine("info", "postback", "approved from LINE", {
+        contentId: content.contentId,
+        status: updated.status,
+      });
       await reply(`อนุมัติแล้ว: ${label}\nสถานะ: ${updated.status}`);
       return;
     }
 
     await rejectContentRecord(content, "LINE OA", "ไม่อนุมัติผ่าน LINE");
+    logLine("info", "postback", "rejected from LINE", {
+      contentId: content.contentId,
+    });
     await reply(`ไม่อนุมัติ: ${label}`);
   } catch (error) {
+    logLine("error", "postback", "approve/reject failed", {
+      action: parsed.action,
+      id: parsed.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
     await reply(
       error instanceof Error ? error.message : "ดำเนินการไม่สำเร็จ"
     );
@@ -65,7 +78,7 @@ export async function handleLineWebhookEvents(
 ): Promise<void> {
   for (const event of events) {
     if (event.type === "join" && event.source?.groupId) {
-      console.log("[line] bot joined group — set LINE_GROUP_ID to this value", {
+          logLine("info", "webhook", "bot joined group — copy LINE_GROUP_ID", {
         groupId: event.source.groupId,
       });
       if (event.replyToken) {

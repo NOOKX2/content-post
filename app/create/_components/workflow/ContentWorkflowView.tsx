@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowLeft } from "lucide-react";
-import { ContentForm } from "@/app/create/_components/ContentForm";
-import { ContentWorkflowHub } from "@/app/create/_components/ContentWorkflowHub";
-import { ContentWorkflowStatusPanel } from "@/app/create/_components/ContentWorkflowStatusPanel";
-import { ContentWorkflowStepper } from "@/app/create/_components/ContentWorkflowStepper";
+import { ContentForm } from "@/app/create/_components/form/ContentForm";
+import { ContentWorkflowHub } from "@/app/create/_components/workflow/ContentWorkflowHub";
+import { ContentWorkflowStatusPanel } from "@/app/create/_components/workflow/ContentWorkflowStatusPanel";
+import { ContentWorkflowStepper } from "@/app/create/_components/workflow/ContentWorkflowStepper";
 import {
   getContentWorkflowHeader,
   getContentWorkflowStep,

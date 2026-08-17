@@ -11,7 +11,13 @@ export async function POST(request: Request) {
   const rawBody = await request.text();
   const signature = request.headers.get("x-line-signature");
 
+  console.log("[line] webhook | POST", {
+    hasSignature: Boolean(signature),
+    bodyBytes: rawBody.length,
+  });
+
   if (!getLineChannelSecret()) {
+    console.error("[line] webhook | LINE_CHANNEL_SECRET is not configured");
     return NextResponse.json(
       { error: "LINE_CHANNEL_SECRET is not configured" },
       { status: 500 }
@@ -19,6 +25,7 @@ export async function POST(request: Request) {
   }
 
   if (!verifyLineSignature(rawBody, signature)) {
+    console.error("[line] webhook | invalid signature");
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
