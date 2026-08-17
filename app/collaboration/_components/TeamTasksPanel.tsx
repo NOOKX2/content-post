@@ -28,6 +28,11 @@ import {
 import type { TaskStatus } from "@prisma/client";
 import { useDashboardNav } from "@/lib/navigation/client/dashboard-nav";
 import { cn, formatThaiDate } from "@/lib/shared/utils";
+import {
+  TEAM_MEMBERS_KEY,
+  TEAM_TASKS_ALL_KEY,
+  useCollaborationBootstrap,
+} from "@/lib/collaboration/client/collaboration-provider";
 import { useT } from "@/lib/i18n";
 
 function assigneeOptions(
@@ -99,14 +104,23 @@ export function TeamTasksPanel({
 }: TeamTasksPanelProps) {
   const { navigate } = useDashboardNav();
   const { t } = useT();
+  const bootstrap = useCollaborationBootstrap();
   const unavailable = t("profile.unavailable");
   const tasksKey = contentId
     ? `team-tasks:content:${contentId}`
-    : "team-tasks:all";
-  const { data: tasks = [], mutate, isLoading } = useSWR(tasksKey, () =>
-    fetchTeamTasks({ contentId })
+    : TEAM_TASKS_ALL_KEY;
+  const { data: tasks = [], mutate, isLoading } = useSWR(
+    tasksKey,
+    () => fetchTeamTasks({ contentId }),
+    {
+      fallbackData: contentId ? undefined : bootstrap?.tasks,
+      revalidateOnMount: Boolean(contentId) || !bootstrap,
+    }
   );
-  const { data: members = [] } = useSWR("team-members", fetchTeamMembers);
+  const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers, {
+    fallbackData: bootstrap?.members,
+    revalidateOnMount: !bootstrap,
+  });
 
   const [title, setTitle] = useState("");
   const [assigneeId, setAssigneeId] = useState("");

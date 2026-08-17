@@ -2,18 +2,22 @@ import { toCollaborationMessageItem } from "@/lib/collaboration/data/mappers";
 import {
   getChannelMessagesPage,
   listChannels,
+  listUserMeetings,
   markChannelAsRead,
 } from "@/lib/collaboration/data/service";
-import { listTeamMembers } from "@/lib/collaboration/data/team-service";
+import { listTeamMembers, listTasks } from "@/lib/collaboration/data/team-service";
 import type {
   CollaborationChannelItem,
   CollaborationMessageItem,
+  MeetingItem,
 } from "@/lib/collaboration/types";
-import type { TeamMemberItem } from "@/lib/collaboration/types/team";
+import type { TaskItem, TeamMemberItem } from "@/lib/collaboration/types/team";
 
 export type CollaborationBootstrap = {
   channels: CollaborationChannelItem[];
   members: TeamMemberItem[];
+  meetings: MeetingItem[];
+  tasks: TaskItem[];
   defaultChannelId: string | null;
   initialMessagesByChannelId: Record<string, CollaborationMessageItem[]>;
 };
@@ -27,9 +31,11 @@ function pickDefaultChannel(
 export async function getCollaborationBootstrap(
   userId: string
 ): Promise<CollaborationBootstrap> {
-  const [channels, members] = await Promise.all([
+  const [channels, members, meetings, tasks] = await Promise.all([
     listChannels(userId),
     listTeamMembers(),
+    listUserMeetings(userId),
+    listTasks(),
   ]);
 
   const defaultChannel = pickDefaultChannel(channels);
@@ -59,6 +65,8 @@ export async function getCollaborationBootstrap(
   return {
     channels,
     members,
+    meetings,
+    tasks,
     defaultChannelId: defaultChannel?.id ?? null,
     initialMessagesByChannelId,
   };

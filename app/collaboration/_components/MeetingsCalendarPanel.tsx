@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { fetchMeetings } from "@/lib/collaboration/actions/fetch";
+import {
+  COLLAB_MEETINGS_KEY,
+  useCollaborationBootstrap,
+} from "@/lib/collaboration/client/collaboration-provider";
 import type { MeetingItem } from "@/lib/collaboration/types";
 import { cn, getDaysInMonth } from "@/lib/shared/utils";
 import { dateLocale } from "@/lib/i18n/config";
@@ -51,11 +55,16 @@ export function MeetingsCalendarPanel() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
+  const bootstrap = useCollaborationBootstrap();
 
   const { data: meetings = [], isLoading } = useSWR(
-    "collab-meetings",
+    COLLAB_MEETINGS_KEY,
     fetchMeetings,
-    { refreshInterval: 15000 }
+    {
+      fallbackData: bootstrap?.meetings,
+      revalidateOnMount: !bootstrap,
+      refreshInterval: 15000,
+    }
   );
 
   const byDay = useMemo(() => {

@@ -16,15 +16,24 @@ import {
   isAdminRole,
   toAssignableRole,
 } from "@/lib/auth/domain/roles";
-import { useT } from "@/lib/i18n";
-import type { TeamMemberItem } from "@/lib/collaboration/types/team";
+import {
+  TEAM_MEMBERS_KEY,
+  useCollaborationBootstrap,
+} from "@/lib/collaboration/client/collaboration-provider";
 import type { Role } from "@prisma/client";
+import type { TeamMemberItem } from "@/lib/collaboration/types/team";
+import { useT } from "@/lib/i18n";
 
 export function TeamMembersPanel() {
   const { data: session } = useSession();
+  const bootstrap = useCollaborationBootstrap();
   const { data: members = [], mutate, isLoading } = useSWR(
-    "team-members",
-    fetchTeamMembers
+    TEAM_MEMBERS_KEY,
+    fetchTeamMembers,
+    {
+      fallbackData: bootstrap?.members,
+      revalidateOnMount: !bootstrap,
+    }
   );
   const { t } = useT();
   const canEditRoles = isAdminRole(session?.user?.role);

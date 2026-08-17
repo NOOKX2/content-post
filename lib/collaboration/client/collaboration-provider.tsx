@@ -8,6 +8,8 @@ import type { CollaborationChannelItem } from "@/lib/collaboration/types";
 
 export const COLLAB_CHANNELS_KEY = "collab-channels";
 export const TEAM_MEMBERS_KEY = "team-members";
+export const COLLAB_MEETINGS_KEY = "collab-meetings";
+export const TEAM_TASKS_ALL_KEY = "team-tasks:all";
 
 export function collabMessagesKey(channelId: string) {
   return `collab-messages:${channelId}`;
@@ -42,6 +44,8 @@ export function CollaborationProvider({
     const fallback: Record<string, unknown> = {
       [COLLAB_CHANNELS_KEY]: bootstrap.channels,
       [TEAM_MEMBERS_KEY]: bootstrap.members,
+      [COLLAB_MEETINGS_KEY]: bootstrap.meetings,
+      [TEAM_TASKS_ALL_KEY]: bootstrap.tasks,
     };
 
     for (const [channelId, messages] of Object.entries(

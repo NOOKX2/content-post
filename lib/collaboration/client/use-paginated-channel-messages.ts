@@ -38,14 +38,13 @@ export function usePaginatedChannelMessages(
   }
 ) {
   const fallbackMessages = options?.fallbackMessages;
+  const hasSeed = fallbackMessages !== undefined;
   const [messages, setMessages] = useState<CollaborationMessageItem[]>(
     () => fallbackMessages ?? []
   );
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const [loadingInitial, setLoadingInitial] = useState(
-    () => !fallbackMessages?.length
-  );
+  const [loadingInitial, setLoadingInitial] = useState(() => !hasSeed);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const hasMoreOlderRef = useRef(true);
@@ -72,8 +71,8 @@ export function usePaginatedChannelMessages(
   useEffect(() => {
     let cancelled = false;
 
-    if (fallbackMessages?.length) {
-      setMessages(fallbackMessages);
+    if (hasSeed) {
+      setMessages(fallbackMessages ?? []);
       setLoadingInitial(false);
       setHasMoreOlder(true);
       hasMoreOlderRef.current = true;
@@ -98,7 +97,7 @@ export function usePaginatedChannelMessages(
     return () => {
       cancelled = true;
     };
-  }, [channelId, fallbackMessages, loadInitial]);
+  }, [channelId, hasSeed, fallbackMessages, loadInitial]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {

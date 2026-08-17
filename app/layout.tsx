@@ -6,6 +6,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { getLocale } from "@/lib/i18n/server";
 import { getArchivePayload } from "@/lib/archive/data/queries";
 import type { ArchivePayload } from "@/lib/archive/types";
+import { getCollaborationBootstrap } from "@/lib/collaboration/data/queries";
+import type { CollaborationBootstrap } from "@/lib/collaboration/data/queries";
 import { getMyProfile } from "@/lib/profile/data";
 import "./globals.css";
 
@@ -33,26 +35,46 @@ export default async function RootLayout({
   const locale = await getLocale();
   let initialProfile = null;
   let initialArchive: ArchivePayload | null = null;
+  let initialCollaboration: CollaborationBootstrap | undefined;
   let archiveError = "";
 
   if (session?.user?.id) {
-    try {
-      initialProfile = await getMyProfile(session.user.id);
-    } catch (error) {
-      console.error("[layout] failed to load profile", error);
+    const [profileResult, archiveResult, collaborationResult] =
+      await Promise.allSettled([
+        getMyProfile(session.user.id),
+        getArchivePayload(),
+        getCollaborationBootstrap(session.user.id),
+      ]);
+
+    if (profileResult.status === "fulfilled") {
+      initialProfile = profileResult.value;
+    } else {
+      console.error("[layout] failed to load profile", profileResult.reason);
     }
 
-    try {
-      initialArchive = await getArchivePayload();
-    } catch (error) {
-      console.error("[layout] failed to load archive", error);
-      const message = error instanceof Error ? error.message : String(error);
+    if (archiveResult.status === "fulfilled") {
+      initialArchive = archiveResult.value;
+    } else {
+      console.error("[layout] failed to load archive", archiveResult.reason);
+      const message =
+        archiveResult.reason instanceof Error
+          ? archiveResult.reason.message
+          : String(archiveResult.reason);
       if (/does not exist|P2021|P2010|undefined/i.test(message)) {
         archiveError =
           "ฐานข้อมูลยังไม่มีตารางคลังข้อมูล กรุณารัน bunx prisma migrate deploy";
       } else {
         archiveError = `โหลดคลังข้อมูลไม่สำเร็จ — ${message}`;
       }
+    }
+
+    if (collaborationResult.status === "fulfilled") {
+      initialCollaboration = collaborationResult.value;
+    } else {
+      console.error(
+        "[layout] failed to load collaboration",
+        collaborationResult.reason
+      );
     }
   }
 
@@ -67,6 +89,7 @@ export default async function RootLayout({
           locale={locale}
           initialProfile={initialProfile}
           initialArchive={initialArchive}
+          initialCollaboration={initialCollaboration}
           archiveError={archiveError}
         >
           <AppShell session={session}>{children}</AppShell>
