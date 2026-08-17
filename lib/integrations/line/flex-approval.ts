@@ -292,3 +292,82 @@ export function buildApprovalFlexMessage(
     },
   };
 }
+
+export function buildDecisionFlexMessage(content: Content) {
+  const kind = lineContentCardKind(content.status);
+  const header = headerForKind(kind);
+  const status =
+    STATUS_LABELS[content.status as keyof typeof STATUS_LABELS]?.label ??
+    content.status;
+  const media = MEDIA_LABEL[content.mediaType] ?? content.mediaType;
+  const detailUrl = `${getAppPublicUrl()}/content/${content.id}`;
+
+  return {
+    type: "flex",
+    altText: altTextForKind(kind, content),
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: header.backgroundColor,
+        paddingAll: "10px",
+        contents: [
+          {
+            type: "text",
+            text: header.text,
+            color: "#FFFFFF",
+            weight: "bold",
+            size: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        paddingAll: "12px",
+        contents: [
+          {
+            type: "text",
+            text: content.name || content.contentId,
+            weight: "bold",
+            size: "md",
+            wrap: true,
+          },
+          {
+            type: "text",
+            text: `${media}  ${content.contentId}`,
+            size: "xs",
+            color: "#8C8C8C",
+          },
+          {
+            type: "text",
+            text: status,
+            size: "sm",
+            color: statusColor(kind),
+            weight: "bold",
+            wrap: true,
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            style: "link",
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "ดูรายละเอียด",
+              uri: detailUrl,
+            },
+          },
+        ],
+      },
+    },
+  };
+}

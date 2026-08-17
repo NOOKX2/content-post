@@ -4,9 +4,8 @@ import {
   approveContentRecord,
   rejectContentRecord,
 } from "@/lib/content/actions/approve";
-import { STATUS_LABELS } from "@/lib/constants";
 import { replyLineMessages } from "@/lib/integrations/line/client";
-import { lineContentCardKind } from "@/lib/integrations/line/flex-approval";
+import { buildDecisionFlexMessage } from "@/lib/integrations/line/flex-approval";
 import {
   isLineApprovalPostbackActive,
   parseLinePostback,
@@ -28,8 +27,7 @@ async function handlePostback(event: LineEvent): Promise<void> {
     where: { id: parsed.id },
   });
 
-  // LINE Messaging API cannot edit a Flex card after it is sent.
-  // Do not reply with a second card — confirm with a short text instead.
+  // LINE cannot edit the original Flex card. Confirm with a compact card instead.
   const replyText = async (text: string) => {
     if (!event.replyToken) return;
     await replyLineMessages(event.replyToken, [{ type: "text", text }]).catch(
@@ -40,18 +38,12 @@ async function handlePostback(event: LineEvent): Promise<void> {
   };
 
   const replyDecision = async (record: Content) => {
-    const status =
-      STATUS_LABELS[record.status as keyof typeof STATUS_LABELS]?.label ??
-      record.status;
-    const title = `${record.contentId} — ${record.name}`.trim();
-    const kind = lineContentCardKind(record.status);
-    const headline =
-      kind === "rejected"
-        ? "ไม่อนุมัติแล้ว"
-        : kind === "pending"
-          ? "ยังรออนุมัติ"
-          : "อนุมัติแล้ว";
-    await replyText(`${headline}\n${title}\nสถานะ: ${status}`);
+    if (!event.replyToken) return;
+    await replyLineMessages(event.replyToken, [
+      buildDecisionFlexMessage(record),
+    ]).catch((error) => {
+      console.error("[line] reply failed", error);
+    });
   };
 
   if (!content) {
@@ -60,17 +52,12 @@ async function handlePostback(event: LineEvent): Promise<void> {
   }
 
   if (!isLineApprovalPostbackActive(content, parsed.token)) {
-    const status =
-      STATUS_LABELS[content.status as keyof typeof STATUS_LABELS]?.label ??
-      content.status;
     logLine("info", "postback", "ignored spent button on original card", {
       contentId: content.contentId,
       status: content.status,
       action: parsed.action,
     });
-    await replyText(
-      `งานนี้ดำเนินการแล้ว — ปุ่มบนการ์ดเดิมใช้ไม่ได้แล้ว\n${content.contentId} — ${content.name}\nสถานะ: ${status}`
-    );
+    await replyDecision(content);
     return;
   }
 
