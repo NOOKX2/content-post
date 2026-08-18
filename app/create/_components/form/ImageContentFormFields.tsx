@@ -22,6 +22,7 @@ import {
 import { MEDIA_FORM_CONFIG } from "@/lib/content/domain/form-config";
 import { isImageAttachment } from "@/lib/content/domain/attachments";
 import { generateId } from "@/lib/shared/utils";
+import { useT } from "@/lib/i18n";
 import type { ContentFormData, ImageMeta, Platform } from "@/lib/types";
 
 type ChannelOption = PostingChannelOption;
@@ -55,6 +56,7 @@ export function ImageContentFormFields({
   ) => void;
   onChannelsChange: (slugs: string[]) => void;
 }) {
+  const { t } = useT();
   const config = MEDIA_FORM_CONFIG[form.mediaType === "graphic" ? "graphic" : "image"];
   const accentBorder =
     form.mediaType === "graphic" ? "border-pink-100" : "border-emerald-100";
@@ -126,7 +128,7 @@ export function ImageContentFormFields({
               label="รายละเอียด"
               value={form.details}
               onChange={(e) => update("details", e.target.value)}
-              placeholder="อธิบาย concept, mood, หรือ brief ของงานภาพ..."
+              placeholder={t("create.detailsPlaceholder")}
               rows={3}
             />
           </div>
@@ -220,7 +222,7 @@ export function ImageContentFormFields({
                 strokeWidth={2.25}
               />
               <h3 className="text-xl font-bold tracking-tight text-stone-900">
-                ผู้สร้าง Content &amp; หน้าที่รับผิดชอบ
+                ผู้สร้างคอนเทนต์ &amp; หน้าที่รับผิดชอบ
               </h3>
             </div>
             <button
@@ -269,7 +271,7 @@ export function ImageContentFormFields({
               label="ผู้อนุมัติ"
               value=""
               readOnly
-              placeholder="— กำหนดเมื่อ Admin อนุมัติ —"
+              placeholder="— กำหนดเมื่อผู้ดูแลอนุมัติ —"
               className="bg-stone-50"
             />
           </div>
@@ -311,8 +313,7 @@ export function ImageContentFormFields({
             <div className="flex gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-xs text-blue-800">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <p>
-                วันและเวลานี้จะใช้สำหรับลงโพสต์อัตโนมัติ และแสดงในปฏิทิน
-                Content
+                วันและเวลานี้จะใช้สำหรับลงโพสต์อัตโนมัติ และแสดงในปฏิทินคอนเทนต์
               </p>
             </div>
           </div>

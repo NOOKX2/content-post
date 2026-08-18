@@ -21,10 +21,13 @@ function AppShellMain({
   session: Session | null;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const { activePath } = useDashboardNav();
   const isDashboard = activePath === "/dashboard";
   const isCollaboration = activePath === "/collaboration";
   const isFullHeightView = isDashboard || isCollaboration;
+  const useStreamedCollaboration =
+    pathname === "/collaboration" && activePath === "/collaboration";
 
   return (
     <div className="flex h-dvh bg-stone-50 md:flex-row">
@@ -36,12 +39,9 @@ function AppShellMain({
             isFullHeightView ? "overflow-hidden" : "overflow-y-auto"
           )}
         >
-          <DashboardRouter />
+          {useStreamedCollaboration ? children : <DashboardRouter />}
         </main>
         <MobileBottomNav session={session} />
-      </div>
-      <div className="hidden" aria-hidden>
-        {children}
       </div>
     </div>
   );

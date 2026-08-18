@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { prefetchCollaboration } from "@/lib/collaboration/client/prefetch-collaboration";
 
 type DashboardNavContextValue = {
   activePath: string;
@@ -95,6 +96,10 @@ export function DashboardNavProvider({
       const targetPath = href.split("?")[0];
       activeHrefRef.current = href;
       setActivePath(targetPath);
+
+      if (targetPath === "/collaboration") {
+        void prefetchCollaboration();
+      }
 
       if (typeof window === "undefined") {
         return;

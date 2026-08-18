@@ -38,63 +38,51 @@ import { useDashboardNav } from "@/lib/navigation/client/dashboard-nav";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/domain/form-config";
 import { isImageAttachment } from "@/lib/content/domain/attachments";
 import { isVideoMediaUrl } from "@/lib/content/domain/media-url";
-import { cn, formatThaiDate } from "@/lib/shared/utils";
+import { cn } from "@/lib/shared/utils";
+import { formatLocalizedDate, statusLabel, useT } from "@/lib/i18n";
 import type { ContentItem } from "@/lib/types";
 import type { Session } from "next-auth";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
-  ContentItem["status"],
-  { label: string; dotClass: string; labelClass: string }
-> = {
+const STATUS_CONFIG: Record<ContentItem["status"], { dotClass: string; labelClass: string }> = {
   draft: {
-    label: "Draft",
     dotClass: "bg-stone-400",
     labelClass: "text-stone-600",
   },
   pending: {
-    label: "Pending Review",
     dotClass: "bg-amber-400 animate-pulse",
     labelClass: "text-amber-600",
   },
   idea_approved: {
-    label: "Idea Approved",
     dotClass: "bg-sky-400",
     labelClass: "text-sky-600",
   },
   clip_pending: {
-    label: "Clip Review",
     dotClass: "bg-orange-400 animate-pulse",
     labelClass: "text-orange-600",
   },
   approved: {
-    label: "Approved",
     dotClass: "bg-emerald-400",
     labelClass: "text-emerald-600",
   },
   scheduled: {
-    label: "Scheduled",
     dotClass: "bg-sky-400",
     labelClass: "text-sky-600",
   },
   posting: {
-    label: "Posting…",
     dotClass: "bg-amber-400 animate-pulse",
     labelClass: "text-amber-600",
   },
   posted: {
-    label: "Published",
     dotClass: "bg-emerald-400",
     labelClass: "text-emerald-600",
   },
   post_failed: {
-    label: "Post Failed",
     dotClass: "bg-red-400",
     labelClass: "text-red-600",
   },
   rejected: {
-    label: "Rejected",
     dotClass: "bg-red-400",
     labelClass: "text-red-600",
   },
@@ -111,6 +99,7 @@ function PostLinkSection({
   canEdit: boolean;
   onSaved: (updated: ContentItem) => void;
 }) {
+  const { t } = useT();
   const [url, setUrl] = useState(content.postUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -140,7 +129,7 @@ function PostLinkSection({
     <div className="space-y-1.5">
       <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-widest text-stone-400 uppercase">
         <Link2 className="h-3 w-3" />
-        Post Link (Real URL)
+        {t("content.postLinkLabel")}
       </p>
       <div className="flex items-center gap-1.5">
         <div className="relative flex-1">
@@ -149,7 +138,7 @@ function PostLinkSection({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={!canEdit}
-            placeholder="Paste published link here..."
+            placeholder={t("content.postLinkPlaceholder")}
             className={cn(
               "h-9 w-full rounded-lg border px-3 pr-9 text-sm outline-none transition",
               canEdit
@@ -162,7 +151,7 @@ function PostLinkSection({
               type="button"
               onClick={handleCopy}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-stone-400 hover:text-stone-600"
-              title="Copy"
+              title={t("content.copyLink")}
             >
               {copied ? (
                 <Check className="h-3.5 w-3.5 text-emerald-500" />
@@ -178,20 +167,20 @@ function PostLinkSection({
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 hover:text-stone-800 transition"
-            title="Open link"
+            title={t("content.openLink")}
           >
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         )}
         {canEdit && isDirty && (
           <Button size="sm" onClick={handleSave} disabled={saving}>
-            {saving ? "..." : "Save"}
+            {saving ? "..." : t("common.save")}
           </Button>
         )}
       </div>
       {url && (
         <p className="text-[11px] text-stone-400">
-          Update this field after successful publication.
+          {t("content.postLinkHint")}
         </p>
       )}
     </div>
@@ -201,15 +190,16 @@ function PostLinkSection({
 // ─── Assignment details ───────────────────────────────────────────────────────
 
 function AssignmentDetails({ content }: { content: ContentItem }) {
+  const { t, locale } = useT();
   const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
   const scheduleLabel = content.scheduledDate
-    ? `${formatThaiDate(content.scheduledDate)}${content.scheduledTime ? ` · ${content.scheduledTime}` : ""}`
+    ? `${formatLocalizedDate(content.scheduledDate, locale)}${content.scheduledTime ? ` · ${content.scheduledTime}` : ""}`
     : null;
 
   const rows: { label: string; value: React.ReactNode }[] = [];
   if (content.channel)
     rows.push({
-      label: "ประเภท",
+      label: t("create.channel"),
       value: (
         <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
           <span
@@ -224,7 +214,7 @@ function AssignmentDetails({ content }: { content: ContentItem }) {
     });
   if (content.ideaCreator)
     rows.push({
-      label: "Created By",
+      label: t("content.createdBy"),
       value: (
         <span className="inline-flex items-center gap-1.5">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-[10px] font-bold text-white">
@@ -235,10 +225,10 @@ function AssignmentDetails({ content }: { content: ContentItem }) {
       ),
     });
   if (scheduleLabel)
-    rows.push({ label: "POST DATE", value: scheduleLabel });
+    rows.push({ label: t("content.postDate"), value: scheduleLabel });
   if (content.category)
     rows.push({
-      label: "Category",
+      label: t("content.category"),
       value: (
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
           {content.category}
@@ -247,16 +237,16 @@ function AssignmentDetails({ content }: { content: ContentItem }) {
     });
   if (content.platforms.length > 0)
     rows.push({
-      label: "Platforms",
+      label: t("content.platforms"),
       value: <PlatformBadgeGroup platforms={content.platforms} size="sm" />,
     });
   if (content.approver)
-    rows.push({ label: "Approved By", value: content.approver });
+    rows.push({ label: t("content.approvedBy"), value: content.approver });
 
   return (
     <div className="space-y-0.5">
       <p className="mb-2 text-[10px] font-semibold tracking-widest text-stone-400 uppercase">
-        Assignment Details
+        {t("content.assignmentDetails")}
       </p>
       <dl className="divide-y divide-stone-100">
         {rows.map(({ label, value }) => (
@@ -276,11 +266,12 @@ function AssignmentDetails({ content }: { content: ContentItem }) {
 // ─── Post objective / details ─────────────────────────────────────────────────
 
 function PostObjective({ content }: { content: ContentItem }) {
+  const { t } = useT();
   if (!content.details) return null;
   return (
     <div className="space-y-1.5">
       <p className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase">
-        วัตถุประสงค์ของโพสต์
+        {t("content.objectiveTitle")}
       </p>
       <p className="text-sm leading-relaxed text-stone-600">
         {content.details}
@@ -292,6 +283,7 @@ function PostObjective({ content }: { content: ContentItem }) {
 // ─── Hero media (left column) ─────────────────────────────────────────────────
 
 function HeroMediaPanel({ content }: { content: ContentItem }) {
+  const { t } = useT();
   const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
   const heroUrl = content.attachments.find((url) => url.trim()) ?? "";
   const heroIsVideo = heroUrl ? isVideoMediaUrl(heroUrl) : false;
@@ -321,7 +313,7 @@ function HeroMediaPanel({ content }: { content: ContentItem }) {
             mediaConfig.accentBg
           )}
         >
-          <p className="text-sm text-stone-500">ยังไม่มีไฟล์ตัวอย่าง</p>
+          <p className="text-sm text-stone-500">{t("content.previewMissing")}</p>
         </div>
       )}
     </div>
@@ -331,13 +323,14 @@ function HeroMediaPanel({ content }: { content: ContentItem }) {
 // ─── Caption preview ──────────────────────────────────────────────────────────
 
 function CaptionPreview({ content }: { content: ContentItem }) {
+  const { t } = useT();
   const caption = content.details;
   if (!caption) return null;
 
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
       <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold tracking-widest text-stone-400 uppercase">
-        Caption Preview
+        {t("content.captionPreview")}
       </p>
       <p className="whitespace-pre-wrap text-sm leading-relaxed text-stone-700">
         {caption}
@@ -378,6 +371,7 @@ function ActionButtons({
   exporting: boolean;
   onExport: () => void;
 }) {
+  const { t } = useT();
   const showEdit = canEditContent(session, content);
   const showDelete = canDeleteContent(session, content);
   const isAdmin = isAdminRole(session?.user?.role);
@@ -391,20 +385,22 @@ function ActionButtons({
         <Button variant="outline" size="sm" onClick={onExport} disabled={exporting}>
           <FileDown className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">
-            {exporting ? "Exporting…" : "Export PDF"}
+            {exporting ? t("common.loading") : t("common.exportPdf")}
           </span>
         </Button>
       )}
       {showDelete && (
         <Button variant="danger" size="sm" onClick={onDelete} disabled={deleting}>
           <Trash2 className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">{deleting ? "Deleting…" : "Delete"}</span>
+          <span className="hidden sm:inline">
+            {deleting ? t("content.deleting") : t("common.delete")}
+          </span>
         </Button>
       )}
       {showEdit && (
         <Button variant="outline" size="sm" onClick={onEdit}>
           <Pencil className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Edit Draft</span>
+          <span className="hidden sm:inline">{t("content.editDraft")}</span>
         </Button>
       )}
       {canApprove && (
@@ -416,7 +412,7 @@ function ActionButtons({
             disabled={rejecting}
           >
             <X className="h-3.5 w-3.5" />
-            <span>{rejecting ? "…" : "Reject"}</span>
+            <span>{rejecting ? "…" : t("content.reject")}</span>
           </Button>
           <Button
             size="sm"
@@ -425,7 +421,7 @@ function ActionButtons({
             disabled={approving}
           >
             <Check className="h-3.5 w-3.5" />
-            <span>{approving ? "…" : "Approve"}</span>
+            <span>{approving ? "…" : t("content.approve")}</span>
           </Button>
         </>
       )}
@@ -442,6 +438,7 @@ export function ContentDetailView({
   content: ContentItem;
   session: Session | null;
 }) {
+  const { t } = useT();
   const [content, setContent] = useState(initialContent);
   const [editing, setEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -452,6 +449,7 @@ export function ContentDetailView({
   const { navigate } = useDashboardNav();
 
   const statusCfg = STATUS_CONFIG[content.status];
+  const statusText = statusLabel(t, content.status);
 
   const handleExportPdf = async () => {
     if (exporting) return;
@@ -459,7 +457,7 @@ export function ContentDetailView({
     try {
       await downloadContentPdf(content.id, contentPdfFilename(content));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "ส่งออก PDF ไม่สำเร็จ กรุณาลองใหม่");
+      alert(error instanceof Error ? error.message : t("common.error"));
     } finally {
       setExporting(false);
     }
@@ -468,7 +466,7 @@ export function ContentDetailView({
   const handleDelete = async () => {
     if (deleting) return;
     const confirmed = window.confirm(
-      `ลบ Content "${content.name}" (#${content.contentId})?\n\nการลบไม่สามารถย้อนกลับได้`
+      t("content.deleteConfirm", { name: content.name, id: content.contentId })
     );
     if (!confirmed) return;
     setDeleting(true);
@@ -484,7 +482,7 @@ export function ContentDetailView({
       );
       navigate("/calendar");
     } catch {
-      alert("ลบ Content ไม่สำเร็จ กรุณาลองใหม่");
+      alert(t("content.deleteFailed"));
     } finally {
       setDeleting(false);
     }
@@ -504,7 +502,7 @@ export function ContentDetailView({
 
   const handleReject = async () => {
     if (rejecting) return;
-    const note = window.prompt("เหตุผลการ Reject (ถ้ามี):");
+    const note = window.prompt(t("content.rejectPrompt"));
     if (note === null) return; // cancelled
     setRejecting(true);
     try {
@@ -569,11 +567,11 @@ export function ContentDetailView({
               <ArrowLeft className="h-3.5 w-3.5" />
             </button>
             <span className="hidden font-semibold uppercase tracking-wide sm:inline">
-              {STATUS_CONFIG[content.status].label}
+              {statusText}
             </span>
             <ChevronRight className="hidden h-3 w-3 sm:block" />
             <span className="hidden font-mono text-stone-400 sm:inline">
-              CONTENT ID: #{content.contentId}
+              {t("content.contentIdLabel")}: #{content.contentId}
             </span>
           </div>
 
@@ -618,7 +616,7 @@ export function ContentDetailView({
               <span
                 className={cn("h-2 w-2 rounded-full", statusCfg.dotClass)}
               />
-              {statusCfg.label}
+              {statusText}
             </span>
           </div>
         </div>

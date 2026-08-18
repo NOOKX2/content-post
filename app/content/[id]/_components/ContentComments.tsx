@@ -5,23 +5,24 @@ import useSWR from "swr";
 import { MessageSquare, Pencil, Tag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { TEAM_MEMBERS } from "@/lib/constants";
+import { formatLocalizedDate, useT } from "@/lib/i18n";
 import {
   fetchContentComments,
   postContentComment,
   type ContentCommentItem,
 } from "@/lib/notifications/actions/fetch";
-import { cn, formatThaiDate } from "@/lib/shared/utils";
+import { cn } from "@/lib/shared/utils";
 
 type CommentType = "comment" | "edit_request" | "tag";
 
-function commentTypeLabel(type: string): string {
+function commentTypeLabel(type: string, t: ReturnType<typeof useT>["t"]): string {
   switch (type) {
     case "edit_request":
-      return "ขอแก้ไข";
+      return t("content.editRequest");
     case "tag":
-      return "แท็ก";
+      return t("content.tag");
     default:
-      return "ความคิดเห็น";
+      return t("content.comment");
   }
 }
 
@@ -37,6 +38,7 @@ function CommentTypeIcon({ type }: { type: string }) {
 }
 
 export function ContentComments({ contentId }: { contentId: string }) {
+  const { t, locale } = useT();
   const [body, setBody] = useState("");
   const [commentType, setCommentType] = useState<CommentType>("comment");
   const [taggedName, setTaggedName] = useState("");
@@ -68,7 +70,7 @@ export function ContentComments({ contentId }: { contentId: string }) {
       setShowForm(false);
       mutate();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "ส่งไม่สำเร็จ");
+      setError(err instanceof Error ? err.message : t("content.submitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -81,7 +83,7 @@ export function ContentComments({ contentId }: { contentId: string }) {
           <MessageSquare className="h-5 w-5" strokeWidth={2.25} />
         </span>
         <h3 className="text-xl font-bold tracking-tight text-slate-900">
-          ความคิดเห็นและการทำงานร่วมกัน ({comments.length})
+          {t("content.commentsTitle", { count: comments.length })}
         </h3>
       </div>
 
@@ -105,20 +107,20 @@ export function ContentComments({ contentId }: { contentId: string }) {
                     )}
                   >
                     <CommentTypeIcon type={comment.commentType} />
-                    {commentTypeLabel(comment.commentType)}
+                    {commentTypeLabel(comment.commentType, t)}
                   </span>
                   <span className="font-medium text-stone-700">
                     {comment.authorName}
                   </span>
                   <span>·</span>
-                  <span>{formatThaiDate(comment.createdAt.slice(0, 10))}</span>
+                  <span>{formatLocalizedDate(comment.createdAt.slice(0, 10), locale)}</span>
                 </div>
                 <p className="mt-1.5 text-sm leading-relaxed text-stone-800">
                   {comment.body}
                 </p>
                 {comment.taggedName && (
                   <p className="mt-1 text-xs text-blue-600">
-                    แท็ก: {comment.taggedName}
+                    {t("content.tagged", { name: comment.taggedName })}
                   </p>
                 )}
               </li>
@@ -127,10 +129,10 @@ export function ContentComments({ contentId }: { contentId: string }) {
         ) : (
           <div className="mb-4 py-8 text-center">
             <p className="text-sm font-medium text-stone-600">
-              ยังไม่มีความคิดเห็นสำหรับ Content นี้
+              {t("content.emptyComments")}
             </p>
             <p className="mt-1 text-xs text-stone-400">
-              เป็นคนแรกที่แสดงความคิดเห็น หรือขอแก้ไขงานชิ้นนี้
+              {t("content.emptyCommentsHint")}
             </p>
           </div>
         )}
@@ -143,7 +145,7 @@ export function ContentComments({ contentId }: { contentId: string }) {
               className="inline-flex items-center gap-2 rounded-full border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50"
             >
               <Pencil className="h-3.5 w-3.5" />
-              เขียนความคิดเห็นของคุณ
+              {t("content.writeComment")}
             </button>
           </div>
         ) : (
@@ -151,9 +153,9 @@ export function ContentComments({ contentId }: { contentId: string }) {
             <div className="flex flex-wrap gap-2">
               {(
                 [
-                  ["comment", "แสดงความคิดเห็น"],
-                  ["edit_request", "ขอแก้ไข"],
-                  ["tag", "แท็กผู้รับผิดชอบ"],
+                  ["comment", t("content.commentAction")],
+                  ["edit_request", t("content.editRequest")],
+                  ["tag", t("content.tagAction")],
                 ] as const
               ).map(([type, label]) => (
                 <button
@@ -179,7 +181,7 @@ export function ContentComments({ contentId }: { contentId: string }) {
                 className="w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm"
                 required
               >
-                <option value="">เลือกผู้รับผิดชอบ</option>
+                <option value="">{t("content.taggedPlaceholder")}</option>
                 {TEAM_MEMBERS.map((name) => (
                   <option key={name} value={name}>
                     {name}
@@ -193,10 +195,10 @@ export function ContentComments({ contentId }: { contentId: string }) {
               onChange={(e) => setBody(e.target.value)}
               placeholder={
                 commentType === "edit_request"
-                  ? "ระบุสิ่งที่ต้องการแก้ไข..."
+                  ? t("content.editRequestPlaceholder")
                   : commentType === "tag"
-                    ? "ข้อความถึงผู้รับผิดชอบ..."
-                    : "แสดงความคิดเห็น..."
+                    ? t("content.tagPlaceholder")
+                    : t("content.commentPlaceholder")
               }
               rows={3}
               className="w-full resize-none rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -215,7 +217,7 @@ export function ContentComments({ contentId }: { contentId: string }) {
                   setError(null);
                 }}
               >
-                ยกเลิก
+                {t("common.cancel")}
               </Button>
               <Button
                 type="submit"
@@ -223,7 +225,7 @@ export function ContentComments({ contentId }: { contentId: string }) {
                 className="min-w-24 px-5"
                 disabled={submitting || !body.trim()}
               >
-                {submitting ? "กำลังส่ง..." : "ส่ง"}
+                {submitting ? t("common.submitting") : t("common.submit")}
               </Button>
             </div>
           </form>

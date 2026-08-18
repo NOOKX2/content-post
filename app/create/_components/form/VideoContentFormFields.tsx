@@ -467,7 +467,7 @@ export function VideoContentFormFields({
                 >
                   <ExternalLink className="h-8 w-8 text-amber-400" />
                   <span className="line-clamp-2 break-all">{previewVideo}</span>
-                  <span className="text-xs text-amber-200/80">เปิดลิงก์วิดีโอ</span>
+                  <span className="text-xs text-amber-200/80">{t("create.openVideo")}</span>
                 </a>
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-xs text-stone-400">
@@ -482,15 +482,15 @@ export function VideoContentFormFields({
             </div>
             <div className="border-t border-stone-200 bg-white p-3">
               <p className="text-sm font-bold leading-snug text-stone-900">
-                {form.name.trim() || "ชื่อคอนเทนต์"}
+                {form.name.trim() || t("create.contentName")}
               </p>
               <p className="mt-1 line-clamp-2 text-xs text-stone-500">
-                {form.details.trim() || "รายละเอียด brief จะแสดงที่นี่"}
+                {form.details.trim() || t("create.previewDetailsPlaceholder")}
               </p>
             </div>
           </div>
           <p className="mt-2 text-[11px] text-stone-400">
-            ตัวอย่างวิดีโอและชื่อคอนเทนต์ ก่อนส่งอนุมัติ
+            {t("create.previewHint")}
           </p>
         </Card>
       </aside>

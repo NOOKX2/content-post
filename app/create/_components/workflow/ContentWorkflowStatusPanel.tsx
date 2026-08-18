@@ -233,7 +233,7 @@ function AdminApprovalActions({
   return (
     <Card className="border-orange-100 bg-orange-50/40 p-5">
       <p className="text-sm font-semibold text-stone-900">
-        การดำเนินการของ Admin
+        การดำเนินการของผู้ดูแล
       </p>
       <p className="mt-1 text-xs text-stone-600">
         {round === 2
@@ -343,9 +343,9 @@ export function ContentWorkflowStatusPanel({
                 <Clock3 className="h-4 w-4" />
                 {step === 2
                   ? isImage
-                    ? "ส่งงานเพื่ออนุมัติแล้ว — รอ Admin ตรวจสอบ"
-                    : "ส่งขออนุมัติเบื้องต้นแล้ว — รอ Admin ตรวจสอบ"
-                  : "ส่งคลิปเพื่อตรวจสอบแล้ว — รอ Admin อนุมัติขั้นสุดท้าย"}
+                    ? "ส่งงานเพื่ออนุมัติแล้ว — รอผู้ดูแลตรวจสอบ"
+                    : "ส่งขออนุมัติเบื้องต้นแล้ว — รอผู้ดูแลตรวจสอบ"
+                  : "ส่งคลิปเพื่อตรวจสอบแล้ว — รอผู้ดูแลอนุมัติขั้นสุดท้าย"}
               </div>
             </div>
           )}
@@ -381,7 +381,7 @@ export function ContentWorkflowStatusPanel({
         <aside className="space-y-4 lg:sticky lg:top-20">
           <Card className="p-5">
             <p className="text-sm font-semibold text-stone-800">
-              วันโพสต์ Content
+              วันโพสต์คอนเทนต์
             </p>
             <p className="mt-2 text-sm text-stone-600">
               {content.scheduledDate

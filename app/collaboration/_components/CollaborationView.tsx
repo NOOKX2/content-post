@@ -12,11 +12,13 @@ import {
   TeamWorkspaceRail,
   type TeamWorkspaceSection,
 } from "@/app/collaboration/_components/TeamWorkspaceRail";
+import { CollaborationShell } from "@/app/collaboration/_components/CollaborationShell";
 import {
   COLLAB_CHANNELS_KEY,
   patchChannelsUnread,
   useCollaborationBootstrap,
 } from "@/lib/collaboration/client/collaboration-provider";
+import { prefetchCollaboration } from "@/lib/collaboration/client/prefetch-collaboration";
 import {
   fetchCollaborationChannels,
   markCollaborationChannelRead,
@@ -32,7 +34,7 @@ export function CollaborationView() {
   const isMobile = useIsMobile();
   const bootstrap = useCollaborationBootstrap();
   const { mutate: mutateGlobal } = useSWRConfig();
-  const { data: channels = [] } = useSWR(
+  const { data: channels = [], isLoading: channelsLoading } = useSWR(
     COLLAB_CHANNELS_KEY,
     fetchCollaborationChannels,
     {
@@ -80,6 +82,18 @@ export function CollaborationView() {
       setMobileChatOpen(false);
     }
   }, [section]);
+
+  useEffect(() => {
+    if (bootstrap || channels.length > 0) {
+      return;
+    }
+
+    void prefetchCollaboration();
+  }, [bootstrap, channels.length]);
+
+  if (channelsLoading && !bootstrap && channels.length === 0) {
+    return <CollaborationShell />;
+  }
 
   const activeChannel =
     channels.find((channel) => channel.id === activeChannelId) ?? null;

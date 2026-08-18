@@ -6,8 +6,6 @@ import { AppShell } from "@/components/layout/AppShell";
 import { getLocale } from "@/lib/i18n/server";
 import { getArchivePayload } from "@/lib/archive/data/queries";
 import type { ArchivePayload } from "@/lib/archive/types";
-import { getCollaborationBootstrap } from "@/lib/collaboration/data/queries";
-import type { CollaborationBootstrap } from "@/lib/collaboration/data/queries";
 import { getMyProfile } from "@/lib/profile/data";
 import "./globals.css";
 
@@ -35,16 +33,13 @@ export default async function RootLayout({
   const locale = await getLocale();
   let initialProfile = null;
   let initialArchive: ArchivePayload | null = null;
-  let initialCollaboration: CollaborationBootstrap | undefined;
   let archiveError = "";
 
   if (session?.user?.id) {
-    const [profileResult, archiveResult, collaborationResult] =
-      await Promise.allSettled([
-        getMyProfile(session.user.id),
-        getArchivePayload(),
-        getCollaborationBootstrap(session.user.id),
-      ]);
+    const [profileResult, archiveResult] = await Promise.allSettled([
+      getMyProfile(session.user.id),
+      getArchivePayload(),
+    ]);
 
     if (profileResult.status === "fulfilled") {
       initialProfile = profileResult.value;
@@ -68,14 +63,6 @@ export default async function RootLayout({
       }
     }
 
-    if (collaborationResult.status === "fulfilled") {
-      initialCollaboration = collaborationResult.value;
-    } else {
-      console.error(
-        "[layout] failed to load collaboration",
-        collaborationResult.reason
-      );
-    }
   }
 
   return (
@@ -89,7 +76,6 @@ export default async function RootLayout({
           locale={locale}
           initialProfile={initialProfile}
           initialArchive={initialArchive}
-          initialCollaboration={initialCollaboration}
           archiveError={archiveError}
         >
           <AppShell session={session}>{children}</AppShell>

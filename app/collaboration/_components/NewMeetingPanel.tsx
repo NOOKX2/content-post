@@ -13,7 +13,7 @@ import {
   startOfMondayWeek,
 } from "@/app/collaboration/_lib/calendar-utils";
 import { cn } from "@/lib/shared/utils";
-import { useT } from "@/lib/i18n";
+import { dateLocale, useT } from "@/lib/i18n";
 
 export type MeetingKind = "meeting" | "blocked" | "personal";
 
@@ -58,7 +58,7 @@ export function NewMeetingPanel({
   onClose: () => void;
   onSubmit: (draft: NewMeetingDraft) => void;
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const weekStart = startOfMondayWeek(selectedDate);
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
   const [title, setTitle] = useState("");
@@ -115,7 +115,7 @@ export function NewMeetingPanel({
     event.preventDefault();
     const fallbackTitle =
       kind === "blocked"
-        ? "Focus Block"
+        ? t("team.meetingKindBlocked")
         : kind === "personal"
           ? t("team.meetingKindPersonal")
           : title.trim();
@@ -138,7 +138,7 @@ export function NewMeetingPanel({
   ];
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col border-l border-stone-200 bg-white md:w-[340px]">
+    <aside className="flex h-full w-full shrink-0 flex-col border-l border-stone-200 bg-white md:w-85">
       <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
         <h2 className="text-sm font-semibold text-stone-900">{t("team.newMeeting")}</h2>
         <button
@@ -195,7 +195,9 @@ export function NewMeetingPanel({
                   )}
                 >
                   <span className="text-[9px] font-semibold uppercase opacity-70">
-                    {weekDay.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 2)}
+                    {weekDay
+                      .toLocaleDateString(dateLocale(locale), { weekday: "short" })
+                      .slice(0, 2)}
                   </span>
                   <span className="text-sm font-semibold">{weekDay.getDate()}</span>
                 </button>
@@ -231,7 +233,7 @@ export function NewMeetingPanel({
                     value={`${pad(slot.hours)}:${pad(slot.minutes)}`}
                   >
                     {new Date(2026, 0, 1, slot.hours, slot.minutes).toLocaleTimeString(
-                      "en-US",
+                      dateLocale(locale),
                       { hour: "numeric", minute: "2-digit" }
                     )}
                   </option>
@@ -266,7 +268,7 @@ export function NewMeetingPanel({
                     value={`${pad(slot.hours)}:${pad(slot.minutes)}`}
                   >
                     {new Date(2026, 0, 1, slot.hours, slot.minutes).toLocaleTimeString(
-                      "en-US",
+                      dateLocale(locale),
                       { hour: "numeric", minute: "2-digit" }
                     )}
                   </option>

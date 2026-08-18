@@ -4,7 +4,6 @@ import { SessionProvider } from "next-auth/react";
 import { ArchiveProvider } from "@/lib/archive/client/archive-provider";
 import type { ArchivePayload } from "@/lib/archive/types";
 import { CollaborationProvider } from "@/lib/collaboration/client/collaboration-provider";
-import type { CollaborationBootstrap } from "@/lib/collaboration/data/queries";
 import { ContentsProvider } from "@/lib/content/client/contents-provider";
 import { ProfileProvider } from "@/lib/profile/client/profile-provider";
 import type { UserProfile } from "@/lib/profile/types";
@@ -15,7 +14,6 @@ import { LocaleProvider, type Locale } from "@/lib/i18n";
 export function Providers({
   children,
   initialContents,
-  initialCollaboration,
   initialProfile,
   initialArchive,
   archiveError,
@@ -24,7 +22,6 @@ export function Providers({
 }: {
   children: React.ReactNode;
   initialContents?: ContentItem[];
-  initialCollaboration?: CollaborationBootstrap;
   initialProfile?: UserProfile | null;
   initialArchive?: ArchivePayload | null;
   archiveError?: string;
@@ -40,7 +37,7 @@ export function Providers({
             initialError={archiveError}
           >
             <ContentsProvider initialContents={initialContents}>
-              <CollaborationProvider bootstrap={initialCollaboration}>
+              <CollaborationProvider>
                 {children}
               </CollaborationProvider>
             </ContentsProvider>
