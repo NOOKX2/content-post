@@ -89,9 +89,7 @@ export function CollaborationChatPanel({
     appendMessage,
     refreshMessages,
     scrollToBottom,
-  } = usePaginatedChannelMessages(channel.id, {
-    fallbackMessages: bootstrap?.initialMessagesByChannelId[channel.id],
-  });
+  } = usePaginatedChannelMessages(channel.id);
   const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers, {
     fallbackData: bootstrap?.members,
     revalidateOnMount: !bootstrap,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { MobileBottomNav } from "./MobileBottomNav";
@@ -9,6 +10,7 @@ import {
   useDashboardNav,
 } from "@/lib/navigation/client/dashboard-nav";
 import { AppSessionProvider } from "@/lib/auth/client/app-session";
+import { prefetchCollaboration } from "@/lib/collaboration/client/prefetch-collaboration";
 import { cn } from "@/lib/shared/utils";
 import type { Session } from "next-auth";
 
@@ -28,6 +30,12 @@ function AppShellMain({
   const isFullHeightView = isDashboard || isCollaboration;
   const useStreamedCollaboration =
     pathname === "/collaboration" && activePath === "/collaboration";
+
+  useEffect(() => {
+    if (session?.user) {
+      void prefetchCollaboration();
+    }
+  }, [session?.user]);
 
   return (
     <div className="flex h-dvh bg-stone-50 md:flex-row">

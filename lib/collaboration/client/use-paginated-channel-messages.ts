@@ -1,11 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { mutate } from "swr";
 import type { CollaborationMessageItem } from "@/lib/collaboration/types";
 import {
   fetchChannelMessagesPage,
   fetchNewChannelMessages,
 } from "@/lib/collaboration/actions/fetch";
+import {
+  collabMessagesKey,
+  useCollaborationBootstrap,
+} from "@/lib/collaboration/client/collaboration-provider";
+import {
+  getCachedChannelMessages,
+  resolveChannelMessageSeed,
+} from "@/lib/collaboration/client/channel-message-seed";
+import { prefetchCollaboration } from "@/lib/collaboration/client/prefetch-collaboration";
 
 function mergeUniqueMessages(
   existing: CollaborationMessageItem[],
@@ -31,16 +41,21 @@ function prependUniqueMessages(
   return [...toAdd, ...existing];
 }
 
-export function usePaginatedChannelMessages(
+function syncMessagesCache(
   channelId: string,
-  options?: {
-    fallbackMessages?: CollaborationMessageItem[];
-  }
+  messages: CollaborationMessageItem[]
 ) {
-  const fallbackMessages = options?.fallbackMessages;
-  const hasSeed = fallbackMessages !== undefined;
+  void mutate(collabMessagesKey(channelId), messages, { revalidate: false });
+}
+
+export function usePaginatedChannelMessages(channelId: string) {
+  const bootstrap = useCollaborationBootstrap();
+  const bootstrapMessages = bootstrap?.initialMessagesByChannelId[channelId];
+  const seedMessages = resolveChannelMessageSeed(channelId, bootstrapMessages);
+  const hasSeed = seedMessages !== undefined;
+
   const [messages, setMessages] = useState<CollaborationMessageItem[]>(
-    () => fallbackMessages ?? []
+    () => seedMessages ?? []
   );
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -56,39 +71,66 @@ export function usePaginatedChannelMessages(
       messages[messages.length - 1]?.createdAt ?? null;
   }, [messages]);
 
+  const applyPage = useCallback(
+    (page: { messages: CollaborationMessageItem[]; hasMore: boolean }) => {
+      setMessages(page.messages);
+      setHasMoreOlder(page.hasMore);
+      hasMoreOlderRef.current = page.hasMore;
+      syncMessagesCache(channelId, page.messages);
+    },
+    [channelId]
+  );
+
+  const revalidateInBackground = useCallback(
+    (isCancelled: () => boolean) => {
+      void fetchChannelMessagesPage(channelId).then((page) => {
+        if (isCancelled()) return;
+        applyPage(page);
+      });
+    },
+    [applyPage, channelId]
+  );
+
   const loadInitial = useCallback(async () => {
     setLoadingInitial(true);
     try {
       const page = await fetchChannelMessagesPage(channelId);
-      setMessages(page.messages);
-      setHasMoreOlder(page.hasMore);
-      hasMoreOlderRef.current = page.hasMore;
+      applyPage(page);
     } finally {
       setLoadingInitial(false);
     }
-  }, [channelId]);
+  }, [applyPage, channelId]);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (hasSeed) {
-      setMessages(fallbackMessages ?? []);
+    const resolvedSeed = resolveChannelMessageSeed(channelId, bootstrapMessages);
+
+    if (resolvedSeed !== undefined) {
+      setMessages(resolvedSeed);
       setLoadingInitial(false);
       setHasMoreOlder(true);
       hasMoreOlderRef.current = true;
-
-      void fetchChannelMessagesPage(channelId).then((page) => {
-        if (cancelled) return;
-        setMessages(page.messages);
-        setHasMoreOlder(page.hasMore);
-        hasMoreOlderRef.current = page.hasMore;
-      });
+      syncMessagesCache(channelId, resolvedSeed);
+      revalidateInBackground(() => cancelled);
     } else {
       setMessages([]);
       setHasMoreOlder(true);
       hasMoreOlderRef.current = true;
-      void loadInitial().then(() => {
+
+      void prefetchCollaboration().then(() => {
         if (cancelled) return;
+
+        const cached = getCachedChannelMessages(channelId);
+        if (cached !== undefined) {
+          setMessages(cached);
+          setLoadingInitial(false);
+          syncMessagesCache(channelId, cached);
+          revalidateInBackground(() => cancelled);
+          return;
+        }
+
+        void loadInitial();
       });
     }
 
@@ -97,7 +139,12 @@ export function usePaginatedChannelMessages(
     return () => {
       cancelled = true;
     };
-  }, [channelId, hasSeed, fallbackMessages, loadInitial]);
+  }, [
+    channelId,
+    bootstrapMessages,
+    loadInitial,
+    revalidateInBackground,
+  ]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -106,7 +153,11 @@ export function usePaginatedChannelMessages(
 
       void fetchNewChannelMessages(channelId, since).then((incoming) => {
         if (!incoming.length) return;
-        setMessages((current) => mergeUniqueMessages(current, incoming));
+        setMessages((current) => {
+          const merged = mergeUniqueMessages(current, incoming);
+          syncMessagesCache(channelId, merged);
+          return merged;
+        });
       });
     }, 5000);
 
@@ -129,7 +180,11 @@ export function usePaginatedChannelMessages(
       const page = await fetchChannelMessagesPage(channelId, {
         before: oldest.id,
       });
-      setMessages((current) => prependUniqueMessages(current, page.messages));
+      setMessages((current) => {
+        const merged = prependUniqueMessages(current, page.messages);
+        syncMessagesCache(channelId, merged);
+        return merged;
+      });
       setHasMoreOlder(page.hasMore);
       hasMoreOlderRef.current = page.hasMore;
 
@@ -160,26 +215,36 @@ export function usePaginatedChannelMessages(
     }
   }, [loadOlder]);
 
-  const appendMessage = useCallback((saved: CollaborationMessageItem) => {
-    setMessages((current) => mergeUniqueMessages(current, [saved]));
-  }, []);
+  const appendMessage = useCallback(
+    (saved: CollaborationMessageItem) => {
+      setMessages((current) => {
+        const merged = mergeUniqueMessages(current, [saved]);
+        syncMessagesCache(channelId, merged);
+        return merged;
+      });
+    },
+    [channelId]
+  );
 
   const refreshMessages = useCallback(async () => {
     const page = await fetchChannelMessagesPage(channelId);
     setMessages((current) => {
-      if (!hasMoreOlderRef.current) {
-        return page.messages;
-      }
+      const next = !hasMoreOlderRef.current
+        ? page.messages
+        : (() => {
+            const oldestInPage = page.messages[0]?.createdAt;
+            if (!oldestInPage) {
+              return page.messages;
+            }
 
-      const oldestInPage = page.messages[0]?.createdAt;
-      if (!oldestInPage) {
-        return page.messages;
-      }
+            const olderPrefix = current.filter(
+              (message) => message.createdAt < oldestInPage
+            );
+            return [...olderPrefix, ...page.messages];
+          })();
 
-      const olderPrefix = current.filter(
-        (message) => message.createdAt < oldestInPage
-      );
-      return [...olderPrefix, ...page.messages];
+      syncMessagesCache(channelId, next);
+      return next;
     });
   }, [channelId]);
 

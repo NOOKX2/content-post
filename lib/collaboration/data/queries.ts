@@ -39,15 +39,16 @@ export async function getCollaborationBootstrap(
   ]);
 
   const defaultChannel = pickDefaultChannel(channels);
-  const initialMessagesByChannelId: Record<string, CollaborationMessageItem[]> =
-    {};
-
-  if (defaultChannel) {
-    const page = await getChannelMessagesPage(defaultChannel.id);
-    initialMessagesByChannelId[defaultChannel.id] = page.messages.map(
-      toCollaborationMessageItem
-    );
-  }
+  const messagePages = await Promise.all(
+    channels.map(async (channel) => {
+      const page = await getChannelMessagesPage(channel.id);
+      return [
+        channel.id,
+        page.messages.map(toCollaborationMessageItem),
+      ] as const;
+    })
+  );
+  const initialMessagesByChannelId = Object.fromEntries(messagePages);
 
   if (defaultChannel) {
     await markChannelAsRead(defaultChannel.id, userId);
