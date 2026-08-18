@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
-import { Header } from "@/components/layout/Header";
-import { Tabs } from "@/components/ui/Tabs";
 import { CollaborationChannelSidebar } from "@/app/collaboration/_components/CollaborationChannelSidebar";
 import { CollaborationChatPanel } from "@/app/collaboration/_components/CollaborationChatPanel";
-import { MeetingsCalendarPanel } from "@/app/collaboration/_components/MeetingsCalendarPanel";
+import { TeamCalendarWorkspace } from "@/app/collaboration/_components/TeamCalendarWorkspace";
 import { TeamMembersPanel } from "@/app/collaboration/_components/TeamMembersPanel";
 import { TeamTasksPanel } from "@/app/collaboration/_components/TeamTasksPanel";
+import {
+  TeamWorkspaceRail,
+  type TeamWorkspaceSection,
+} from "@/app/collaboration/_components/TeamWorkspaceRail";
 import {
   COLLAB_CHANNELS_KEY,
   patchChannelsUnread,
@@ -18,19 +20,11 @@ import {
 import {
   fetchCollaborationChannels,
   markCollaborationChannelRead,
+  openDirectMessage,
 } from "@/lib/collaboration/actions/fetch";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import { cn } from "@/lib/shared/utils";
 import { useT } from "@/lib/i18n";
-
-const TEAM_TABS = [
-  { id: "chat", label: "แชท" },
-  { id: "members", label: "สมาชิก" },
-  { id: "meetings", label: "ประชุม" },
-  { id: "tasks", label: "มอบหมายงาน" },
-] as const;
-
-type TeamTab = (typeof TEAM_TABS)[number]["id"];
 
 export function CollaborationView() {
   const { data: session } = useSession();
@@ -46,10 +40,13 @@ export function CollaborationView() {
       revalidateOnMount: !bootstrap,
     }
   );
-  const [tab, setTab] = useState<TeamTab>("chat");
+  const [section, setSection] = useState<TeamWorkspaceSection>("chat");
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(
     () => bootstrap?.defaultChannelId ?? null
+  );
+  const [calendarMemberId, setCalendarMemberId] = useState<string | null>(
+    () => session?.user?.id ?? null
   );
 
   useEffect(() => {
@@ -65,7 +62,7 @@ export function CollaborationView() {
   }, [activeChannelId, channels]);
 
   useEffect(() => {
-    if (tab !== "chat" || !activeChannelId) return;
+    if (section !== "chat" || !activeChannelId) return;
 
     void mutateGlobal(
       COLLAB_CHANNELS_KEY,
@@ -76,13 +73,13 @@ export function CollaborationView() {
     void markCollaborationChannelRead(activeChannelId).then(() => {
       void mutateGlobal(COLLAB_CHANNELS_KEY);
     });
-  }, [activeChannelId, tab, mutateGlobal]);
+  }, [activeChannelId, section, mutateGlobal]);
 
   useEffect(() => {
-    if (tab !== "chat") {
+    if (section !== "chat") {
       setMobileChatOpen(false);
     }
-  }, [tab]);
+  }, [section]);
 
   const activeChannel =
     channels.find((channel) => channel.id === activeChannelId) ?? null;
@@ -94,83 +91,65 @@ export function CollaborationView() {
     }
   };
 
-  const hideTopNavOnMobile = isMobile && tab === "chat" && mobileChatOpen;
+  const handleMessageMember = async (userId: string) => {
+    try {
+      const channel = await openDirectMessage(userId);
+      setActiveChannelId(channel.id);
+      setSection("chat");
+      if (isMobile) setMobileChatOpen(true);
+      void mutateGlobal(COLLAB_CHANNELS_KEY);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : t("team.openChatFailed"));
+    }
+  };
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className={cn(hideTopNavOnMobile && "hidden")}>
-        <Header session={session} title={t("team.title")} compact />
-      </div>
-      <div
-        className={cn(
-          "border-b border-stone-200 bg-white px-3 py-2 sm:px-4",
-          hideTopNavOnMobile && "hidden"
-        )}
-      >
-        <Tabs
-          tabs={[
-            { id: "chat", label: t("team.chat") },
-            { id: "members", label: t("team.members") },
-            { id: "meetings", label: t("team.meetings") },
-            { id: "tasks", label: t("team.tasks") },
-          ]}
-          activeTab={tab}
-          onChange={(id) => setTab(id as TeamTab)}
-          className="w-full"
-          compact
-        />
-      </div>
+    <div className="flex h-full min-h-0 overflow-hidden bg-stone-50 text-stone-900">
+      <TeamWorkspaceRail section={section} onChange={setSection} />
 
-      {tab === "chat" && (
-        <div
-          className="flex min-h-0 flex-1 overflow-hidden"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, #d6d3d1 0.8px, transparent 0.8px)",
-            backgroundSize: "18px 18px",
-            backgroundColor: "#f5f5f7",
-          }}
-        >
+      {section === "chat" && (
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
           <CollaborationChannelSidebar
             activeChannelId={activeChannelId}
             onSelect={(channel) => handleSelectChannel(channel.id)}
-            className={cn(
-              "w-full",
-              mobileChatOpen && "hidden md:flex"
-            )}
+            className={cn(mobileChatOpen && "hidden md:flex")}
           />
           {activeChannel ? (
             <CollaborationChatPanel
               channel={activeChannel}
-              className={
-                mobileChatOpen
-                  ? "flex bg-white"
-                  : "m-3 hidden overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm md:flex"
-              }
               onLeave={() => setMobileChatOpen(false)}
+              onOpenCalendar={(peerUserId) => {
+                if (peerUserId) setCalendarMemberId(peerUserId);
+                setSection("calendar");
+              }}
+              className={cn(
+                mobileChatOpen ? "flex" : "hidden md:flex"
+              )}
             />
           ) : (
-            <div className="m-3 hidden flex-1 items-center justify-center rounded-2xl border border-stone-200/80 bg-white text-sm text-stone-400 shadow-sm md:flex">
+            <div className="hidden flex-1 items-center justify-center text-sm text-stone-500 md:flex">
               {t("team.selectChat")}
             </div>
           )}
         </div>
       )}
 
-      {tab === "members" && (
-        <div className="min-h-0 flex-1 overflow-hidden bg-[#f5f5f7]">
+      {section === "calendar" && (
+        <TeamCalendarWorkspace
+          selectedMemberId={calendarMemberId}
+          onSelectMember={setCalendarMemberId}
+          onMessageMember={(userId) => void handleMessageMember(userId)}
+        />
+      )}
+
+      {section === "members" && (
+        <div className="min-h-0 flex-1 overflow-hidden bg-stone-50">
           <TeamMembersPanel />
         </div>
       )}
 
-      {tab === "meetings" && (
-        <div className="min-h-0 flex-1 overflow-hidden bg-[#f5f5f7]">
-          <MeetingsCalendarPanel />
-        </div>
-      )}
-
-      {tab === "tasks" && (
-        <div className="min-h-0 flex-1 overflow-hidden bg-[#f5f5f7]">
+      {section === "tasks" && (
+        <div className="min-h-0 flex-1 overflow-hidden bg-stone-50">
           <TeamTasksPanel />
         </div>
       )}

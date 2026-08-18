@@ -95,7 +95,8 @@ export function useChatSendQueue({
         const next = readChatOutbox().find(
           (entry) =>
             entry.channelId === channelId &&
-            (entry.status === "pending" || entry.status === "failed")
+            entry.authorId === authorId &&
+            entry.status === "pending"
         );
         if (!next) {
           break;
@@ -112,12 +113,35 @@ export function useChatSendQueue({
         } catch {
           upsertChatOutboxEntry({ ...next, status: "failed" });
           syncOutbox();
+          break;
         }
       }
     } finally {
       processingRef.current = false;
     }
   }, [authorId, channelId, syncOutbox]);
+
+  useEffect(() => {
+    if (!authorId) {
+      return;
+    }
+
+    let changed = false;
+    for (const entry of readChatOutbox()) {
+      if (entry.authorId !== authorId) {
+        removeChatOutboxEntry(entry.clientId);
+        changed = true;
+        continue;
+      }
+      if (entry.status === "sending") {
+        upsertChatOutboxEntry({ ...entry, status: "pending" });
+        changed = true;
+      }
+    }
+    if (changed) {
+      syncOutbox();
+    }
+  }, [authorId, syncOutbox]);
 
   useEffect(() => {
     syncOutbox();

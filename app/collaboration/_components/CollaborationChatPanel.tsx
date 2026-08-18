@@ -4,7 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useSWR, { useSWRConfig } from "swr";
 import { useSession } from "next-auth/react";
-import { Check, ArrowLeft, CalendarDays, Pencil, Send, Trash2, X } from "lucide-react";
+import {
+  Check,
+  ArrowLeft,
+  CalendarDays,
+  MoreHorizontal,
+  Pencil,
+  Send,
+  Smile,
+  Trash2,
+  X,
+} from "lucide-react";
+import { sameDay } from "@/app/collaboration/_lib/calendar-utils";
 import type {
   CollaborationChannelItem,
   CollaborationMessageItem,
@@ -12,7 +23,6 @@ import type {
   MeetingCardMetadata,
 } from "@/lib/collaboration/types";
 import { COLLAB_MESSAGES_PAGE_SIZE } from "@/lib/collaboration/types";
-import type { TeamMemberItem } from "@/lib/collaboration/types/team";
 import {
   COLLAB_CHANNELS_KEY,
   patchChannelsUnread,
@@ -38,13 +48,9 @@ import { ChannelCalendarView } from "@/app/collaboration/_components/ChannelCale
 import { GroupMembersDialog } from "@/app/collaboration/_components/GroupMembersDialog";
 import { MemberCalendarView } from "@/app/collaboration/_components/MemberCalendarView";
 import { MeetingCardMessage } from "@/app/collaboration/_components/MeetingCardMessage";
-import {
-  AvatarStack,
-  PersonAvatar,
-} from "@/app/collaboration/_components/PersonAvatar";
-import { Button } from "@/components/ui/Button";
+import { PersonAvatar } from "@/app/collaboration/_components/PersonAvatar";
 import { cn } from "@/lib/shared/utils";
-import { translateStoredMessage, useT } from "@/lib/i18n";
+import { dateLocale, translateStoredMessage, useT } from "@/lib/i18n";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("th-TH", {
@@ -56,14 +62,16 @@ function formatTime(iso: string) {
 export function CollaborationChatPanel({
   channel,
   onLeave,
+  onOpenCalendar,
   className,
 }: {
   channel: CollaborationChannelItem;
   onLeave?: () => void;
+  onOpenCalendar?: (peerUserId?: string) => void;
   className?: string;
 }) {
   const { data: session } = useSession();
-  const { t } = useT();
+  const { t, locale } = useT();
   const bootstrap = useCollaborationBootstrap();
   const { mutate: mutateGlobal } = useSWRConfig();
   const [text, setText] = useState("");
@@ -150,12 +158,16 @@ export function CollaborationChatPanel({
     setText("");
   };
 
-  const scheduleHint =
-    channel.kind === "dm"
-      ? t("team.schedule1on1")
-      : channel.kind === "team"
-        ? t("team.scheduleTeam")
-        : t("team.scheduleGroup");
+  const peerMember = members.find((member) => member.id === channel.peerUserId);
+  const peerOnline = channel.kind === "dm" && peerMember && !peerMember.busy;
+
+  const openCalendar = () => {
+    if (onOpenCalendar) {
+      onOpenCalendar(channel.peerUserId ?? undefined);
+      return;
+    }
+    setShowChannelCalendar(true);
+  };
 
   if (showChannelCalendar) {
     if (channel.kind === "dm" && channel.peerUserId) {
@@ -187,8 +199,8 @@ export function CollaborationChatPanel({
 
   return (
     <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col bg-stone-50", className)}>
-      <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-white px-3 py-3 sm:gap-3 sm:px-5">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           {onLeave ? (
             <button
               type="button"
@@ -199,69 +211,59 @@ export function CollaborationChatPanel({
               <ArrowLeft className="h-5 w-5" />
             </button>
           ) : null}
+          <PersonAvatar
+            name={channel.name}
+            size="lg"
+            letters={2}
+          />
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-sm font-semibold text-stone-900">
-                {channel.name}
-              </h2>
-              {channel.kind === "team" && (
-                <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700">
-                  {memberCount}
-                </span>
-              )}
-              {channel.kind === "group" && (
-                <button
-                  type="button"
-                  onClick={() => setShowMembers(true)}
-                  className="rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-semibold text-violet-700 transition-colors hover:bg-violet-100"
-                >
-                  {memberCount}
-                </button>
-              )}
-            </div>
-            {channel.contentCode && (
-              <p className="text-xs text-stone-500">#{channel.contentCode}</p>
-            )}
-            {channel.kind === "dm" && channel.peerEmail ? (
-              <p className="mt-0.5 block truncate text-xs text-stone-500">
-                {channel.peerEmail}
+            <h2 className="truncate text-sm font-semibold text-stone-900">
+              {channel.name}
+            </h2>
+            {channel.kind === "dm" ? (
+              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-stone-500">
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    peerOnline ? "bg-emerald-500" : "bg-stone-400"
+                  )}
+                />
+                {peerOnline ? t("team.online") : t("team.busyNow")}
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-0.5 text-xs text-stone-500">
+                {t("team.membersCount", { count: memberCount })}
+              </p>
+            )}
           </div>
         </div>
-        <div className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/60 p-1.5">
+        <div className="inline-flex shrink-0 items-center gap-0.5">
           {(channel.kind === "dm" && channel.peerUserId) ||
           channel.kind === "team" ||
           channel.kind === "group" ? (
-            <Button
+            <button
               type="button"
-              size="sm"
-              onClick={() => setShowChannelCalendar(true)}
+              onClick={openCalendar}
               title={
                 channel.kind === "dm"
                   ? t("team.scheduleWith", { name: channel.name })
                   : t("team.scheduleInRoom")
               }
-              className="bg-blue-600 px-3 text-white shadow-none hover:bg-blue-700"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
             >
               <CalendarDays className="h-4 w-4" />
-              {t("team.scheduleMeeting")}
-            </Button>
+            </button>
           ) : null}
-          {channel.kind === "dm" ? (
-            <PersonAvatar name={channel.name} size="md" />
-          ) : channel.kind === "group" ? (
+          {channel.kind === "group" ? (
             <button
               type="button"
               onClick={() => setShowMembers(true)}
-              className="rounded-full transition hover:opacity-80"
               title={t("team.viewGroupMembers")}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
             >
-              <AvatarStack names={headerPeople} max={4} size="sm" />
+              <MoreHorizontal className="h-4 w-4" />
             </button>
-          ) : (
-            <AvatarStack names={headerPeople} max={4} size="sm" />
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -306,45 +308,69 @@ export function CollaborationChatPanel({
             </span>
           </div>
         )}
-        {displayMessages.map((message) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            isSelf={message.authorId === session?.user?.id}
-            sendStatus={message.sendStatus}
-            onRetry={
-              message.sendStatus === "failed"
-                ? () => retry(message.id)
-                : undefined
-            }
-            onChanged={() => {
-              void refreshMessages();
-              void mutateGlobal(COLLAB_CHANNELS_KEY);
-            }}
-          />
-        ))}
+        {displayMessages.map((message, index) => {
+          const previous = displayMessages[index - 1];
+          const created = new Date(message.createdAt);
+          const showDay =
+            !previous || !sameDay(new Date(previous.createdAt), created);
+          const isToday = sameDay(created, new Date());
+          return (
+            <div key={message.id}>
+              {showDay ? (
+                <div className="flex justify-center py-3">
+                  <span className="rounded-full bg-stone-200/80 px-3 py-0.5 text-[11px] font-medium text-stone-500">
+                    {isToday
+                      ? t("common.today")
+                      : created.toLocaleDateString(dateLocale(locale), {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                  </span>
+                </div>
+              ) : null}
+              <MessageBubble
+                message={message}
+                isSelf={message.authorId === session?.user?.id}
+                sendStatus={message.sendStatus}
+                onRetry={
+                  message.sendStatus === "failed"
+                    ? () => retry(message.id)
+                    : undefined
+                }
+                onChanged={() => {
+                  void refreshMessages();
+                  void mutateGlobal(COLLAB_CHANNELS_KEY);
+                }}
+              />
+            </div>
+          );
+        })}
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-stone-200 bg-white p-2.5 sm:p-3">
-        {(channel.kind === "dm" && channel.peerUserId) ||
-        channel.kind === "team" ||
-        channel.kind === "group" ? (
-          <p className="mb-2 hidden flex-wrap items-center gap-1 text-xs text-stone-500 sm:flex">
-            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-blue-600" />
-            <span>{t("team.scheduleHint", { kind: scheduleHint })}</span>
-          </p>
-        ) : null}
-        <form onSubmit={handleSend} className="flex gap-2">
+      <div className="border-t border-stone-200 bg-white px-3 py-3 sm:px-4">
+        <form
+          onSubmit={handleSend}
+          className="flex items-center gap-2 rounded-2xl border border-stone-200 bg-stone-50 px-3 py-1.5 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20"
+        >
+          <span className="text-stone-400">
+            <Smile className="h-4 w-4" />
+          </span>
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={t("team.typeMessage")}
-            className="min-w-0 flex-1 rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            placeholder={t("team.messagePerson", { name: channel.name })}
+            className="min-w-0 flex-1 bg-transparent py-2 text-sm text-stone-900 placeholder:text-stone-400 outline-none"
           />
-          <Button type="submit" size="sm" disabled={!text.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
+          <button
+            type="submit"
+            disabled={!text.trim()}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:opacity-40"
+            aria-label={t("team.chat")}
+          >
+            <Send className="h-3.5 w-3.5" />
+          </button>
         </form>
       </div>
     </div>
@@ -464,7 +490,13 @@ function MessageBubble({
         isSelf ? "justify-end" : "justify-start"
       )}
     >
-      {!isSelf && <PersonAvatar name={message.authorName} size="sm" />}
+      {!isSelf && (
+        <PersonAvatar
+          name={message.authorName}
+          size="sm"
+          letters={2}
+        />
+      )}
       <div
         onContextMenu={(event) => {
           if (!canManage || editing) return;
@@ -472,7 +504,7 @@ function MessageBubble({
           setMenu({ x: event.clientX, y: event.clientY });
         }}
         className={cn(
-          "relative max-w-[85%] rounded-2xl px-3.5 py-2.5 sm:max-w-[70%]",
+          "relative max-w-[85%] rounded-2xl px-3.5 py-2 sm:max-w-[70%]",
           canManage && !editing && "cursor-context-menu",
           isSelf
             ? cn(
@@ -483,7 +515,7 @@ function MessageBubble({
         )}
       >
         {!isSelf && (
-          <p className="mb-0.5 text-[10px] font-medium opacity-70">
+          <p className="mb-0.5 text-[10px] font-medium text-stone-500">
             {message.authorName}
           </p>
         )}

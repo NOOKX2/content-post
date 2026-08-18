@@ -39,7 +39,16 @@ async function requireUser() {
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
-  return session.user;
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, name: true, email: true, role: true },
+  });
+  if (!dbUser) {
+    throw new Error("กรุณาเข้าสู่ระบบใหม่");
+  }
+
+  return { ...session.user, ...dbUser };
 }
 
 export async function fetchMeetings(): Promise<MeetingItem[]> {
@@ -277,6 +286,8 @@ export async function postChannelMeeting(
     meetUrl: string;
     startsAt: string;
     endsAt: string;
+    notes?: string;
+    kind?: "meeting" | "blocked" | "personal";
   }
 ): Promise<CollaborationMessageItem> {
   const user = await requireUser();
@@ -290,6 +301,8 @@ export async function postChannelMeeting(
       meetUrl: payload.meetUrl,
       startsAt: payload.startsAt,
       endsAt: payload.endsAt,
+      notes: payload.notes,
+      kind: payload.kind,
     });
     return toCollaborationMessageItem(message);
   } catch (error) {

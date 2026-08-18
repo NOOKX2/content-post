@@ -289,6 +289,42 @@ export async function updateContent(
   }
 }
 
+export async function updatePostUrl(
+  id: string,
+  postUrl: string
+): Promise<ActionResult<ContentItem>> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const existing = await prisma.content.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false, error: "Not found" };
+    }
+
+    const forbidden = assertCanModifyContent(session, existing, "edit");
+    if (forbidden) {
+      return { success: false, error: forbidden };
+    }
+
+    const record = await prisma.content.update({
+      where: { id },
+      data: { postUrl: postUrl.trim() },
+    });
+
+    updateTag(CONTENTS_CACHE_TAG);
+    updateTag(contentCacheTag(id));
+    revalidatePath(`/content/${id}`);
+
+    return { success: true, data: toContentItem(record) };
+  } catch (error) {
+    logActionError("updatePostUrl", error, { id });
+    return { success: false, error: formatActionError(error) };
+  }
+}
+
 export async function deleteContent(id: string): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) {

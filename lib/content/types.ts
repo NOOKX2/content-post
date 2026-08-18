@@ -100,6 +100,7 @@ export interface ContentItem {
   imageMeta?: ImageMeta;
   googleEventId?: string;
   googleCalendarLink?: string;
+  postUrl?: string;
   createdById?: string | null;
   createdAt: string;
 }

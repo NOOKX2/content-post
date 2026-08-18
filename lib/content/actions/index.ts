@@ -9,4 +9,5 @@ export {
   updateContent,
   deleteContent,
   rejectContent,
+  updatePostUrl,
 } from "./mutate";

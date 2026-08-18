@@ -236,6 +236,8 @@ export async function scheduleChannelMeeting(params: {
   meetUrl?: string;
   startsAt: string;
   endsAt: string;
+  notes?: string;
+  kind?: "meeting" | "blocked" | "personal";
 }) {
   const allowed = await assertCanAccessChannel(params.channelId, params.authorId);
   if (!allowed) {
@@ -260,7 +262,12 @@ export async function scheduleChannelMeeting(params: {
     attendeeCount = attendees.length;
     const created = await createCalendarMeeting({
       title,
-      description: `นัดประชุมโดย ${params.authorName}`,
+      description: [
+        `นัดประชุมโดย ${params.authorName}`,
+        params.notes?.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       startsAt: params.startsAt,
       endsAt: params.endsAt,
       attendees: attendees.map((attendee) => ({
@@ -285,6 +292,8 @@ export async function scheduleChannelMeeting(params: {
     eventId,
     calendarLink,
     attendeeCount,
+    notes: params.notes,
+    kind: params.kind,
   });
 }
 
@@ -299,6 +308,8 @@ export async function postMeetingMessage(params: {
   eventId?: string;
   calendarLink?: string;
   attendeeCount?: number;
+  notes?: string;
+  kind?: "meeting" | "blocked" | "personal";
 }) {
   const message = await prisma.collaborationMessage.create({
     data: {
@@ -315,6 +326,8 @@ export async function postMeetingMessage(params: {
         eventId: params.eventId ?? "",
         calendarLink: params.calendarLink ?? "",
         attendeeCount: params.attendeeCount ?? 0,
+        notes: params.notes ?? "",
+        kind: params.kind ?? "meeting",
       },
     },
   });

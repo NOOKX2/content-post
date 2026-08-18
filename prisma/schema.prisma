@@ -250,6 +250,7 @@ model Content {
   imageMeta      Json          @default("{}")
   googleEventId       String   @default("")
   googleCalendarLink  String   @default("")
+  postUrl             String   @default("")
   createdById    String?
   createdBy      User?         @relation(fields: [createdById], references: [id])
   notifications  Notification[]

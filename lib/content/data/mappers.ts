@@ -74,6 +74,7 @@ export function toContentItem(record: PrismaContent): ContentItem {
     imageMeta: parseImageMeta(record.imageMeta),
     googleEventId: record.googleEventId || undefined,
     googleCalendarLink: record.googleCalendarLink || undefined,
+    postUrl: record.postUrl || undefined,
     createdById: record.createdById,
     createdAt: record.createdAt.toISOString(),
   };

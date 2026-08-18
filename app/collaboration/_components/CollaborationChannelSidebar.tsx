@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
-import { ChevronDown, List, Plus, Search, Users, X } from "lucide-react";
+import { Plus, Search, Users, X } from "lucide-react";
 import type { CollaborationChannelItem } from "@/lib/collaboration/types";
 import type { TeamMemberItem } from "@/lib/collaboration/types/team";
 import {
@@ -22,42 +22,8 @@ import { PersonAvatar } from "@/app/collaboration/_components/PersonAvatar";
 import { translateStoredMessage, useT } from "@/lib/i18n";
 import { cn } from "@/lib/shared/utils";
 
-const VISIBLE_MEMBER_COUNT = 4;
-
 function matchesQuery(text: string, query: string) {
   return text.toLowerCase().includes(query);
-}
-
-function firstName(name: string) {
-  const token = name.trim().split(/\s+/)[0] || name;
-  return token.length > 10 ? `${token.slice(0, 9)}…` : token;
-}
-
-function MemberFace({
-  member,
-  onClick,
-}: {
-  member: TeamMemberItem;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl px-1 py-1 transition hover:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
-      title={`${member.name} (${member.email})`}
-    >
-      <PersonAvatar
-        name={member.name}
-        imageUrl={member.imageUrl}
-        size="xl"
-        className="ring-1 ring-stone-200"
-      />
-      <span className="w-full truncate text-center text-[11px] font-medium text-stone-500">
-        {firstName(member.name)}
-      </span>
-    </button>
-  );
 }
 
 export function CollaborationChannelSidebar({
@@ -72,7 +38,7 @@ export function CollaborationChannelSidebar({
   const { t } = useT();
   const { data: session } = useSession();
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [listTab, setListTab] = useState<"messages" | "groups">("messages");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const query = search.trim().toLowerCase();
@@ -98,26 +64,40 @@ export function CollaborationChannelSidebar({
     [members, session?.user?.id]
   );
 
-  const filteredMembers = useMemo(() => {
-    if (!query) return otherMembers;
-    return otherMembers.filter(
-      (member) =>
-        matchesQuery(member.name, query) || matchesQuery(member.email, query)
+  const dmByPeer = useMemo(() => {
+    const map = new Map<string, CollaborationChannelItem>();
+    for (const channel of channels) {
+      if (channel.kind === "dm" && channel.peerUserId) {
+        map.set(channel.peerUserId, channel);
+      }
+    }
+    return map;
+  }, [channels]);
+
+  const messageRows = useMemo(() => {
+    const list = query
+      ? otherMembers.filter(
+          (member) =>
+            matchesQuery(member.name, query) ||
+            matchesQuery(member.email, query)
+        )
+      : otherMembers;
+
+    return [...list].sort((a, b) => {
+      const aAt = dmByPeer.get(a.id)?.lastMessageAt ?? "";
+      const bAt = dmByPeer.get(b.id)?.lastMessageAt ?? "";
+      return bAt.localeCompare(aAt);
+    });
+  }, [dmByPeer, otherMembers, query]);
+
+  const groupChannels = useMemo(() => {
+    const list = channels.filter(
+      (channel) => channel.kind === "team" || channel.kind === "group"
     );
-  }, [otherMembers, query]);
-
-  const visibleMembers =
-    expanded || query
-      ? filteredMembers
-      : filteredMembers.slice(0, VISIBLE_MEMBER_COUNT);
-  const showToggle = filteredMembers.length > 0;
-
-  const filteredChannels = useMemo(() => {
-    if (!query) return channels;
-    return channels.filter(
+    if (!query) return list;
+    return list.filter(
       (channel) =>
         matchesQuery(channel.name, query) ||
-        matchesQuery(channel.peerEmail ?? "", query) ||
         matchesQuery(channel.lastMessagePreview ?? "", query)
     );
   }, [channels, query]);
@@ -143,6 +123,7 @@ export function CollaborationChannelSidebar({
       await mutate();
       onSelect(channel);
       setShowCreateGroup(false);
+      setListTab("groups");
       setSearch("");
     } catch (error) {
       alert(
@@ -156,7 +137,7 @@ export function CollaborationChannelSidebar({
   return (
     <aside
       className={cn(
-        "flex shrink-0 flex-col gap-3 bg-transparent p-3 md:w-80",
+        "flex h-full min-h-0 w-full shrink-0 flex-col border-r border-stone-200 bg-white md:w-[300px]",
         className
       )}
     >
@@ -169,33 +150,15 @@ export function CollaborationChannelSidebar({
         onCreate={(payload) => void handleCreateGroup(payload)}
       />
 
-      <section className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <List className="h-4 w-4 text-stone-500" />
-            <h2 className="text-sm font-semibold text-stone-800">
-              {t("team.messenger")}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowCreateGroup(true)}
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-stone-600 transition hover:bg-stone-100 hover:text-stone-900"
-            title={t("team.createGroup")}
-          >
-            <Plus className="h-4 w-4" />
-            {t("team.createGroup")}
-          </button>
-        </div>
-
-        <div className="relative mt-3">
+      <div className="border-b border-stone-200 px-4 pt-4 pb-3">
+        <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
           <input
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder={t("team.searchMembers")}
-            className="h-9 w-full rounded-full border border-stone-200 bg-stone-50 py-2 pr-8 pl-8 text-sm text-stone-900 placeholder:text-stone-400 transition-colors focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            placeholder={t("team.searchChats")}
+            className="h-10 w-full rounded-xl border border-stone-200 bg-stone-50 py-2 pr-8 pl-9 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
           />
           {search && (
             <button
@@ -209,108 +172,111 @@ export function CollaborationChannelSidebar({
           )}
         </div>
 
-        {filteredMembers.length === 0 ? (
-          <p className="py-6 text-center text-xs text-stone-400">
-            {query ? t("team.noMembersFound") : t("team.noMembers")}
-          </p>
-        ) : (
-          <div className="mt-4 flex items-start gap-1">
-            <div
+        <div className="mt-3 flex rounded-xl bg-stone-100 p-1">
+          {(["messages", "groups"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setListTab(tab)}
               className={cn(
-                "flex min-w-0 flex-1 gap-1",
-                expanded ? "flex-wrap" : "overflow-hidden"
+                "flex-1 rounded-lg py-1.5 text-xs font-semibold transition",
+                listTab === tab
+                  ? "bg-white text-stone-900 shadow-sm"
+                  : "text-stone-500 hover:text-stone-800"
               )}
             >
-              {visibleMembers.map((member) => (
-                <MemberFace
-                  key={member.id}
-                  member={member}
-                  onClick={() => void openDm(member)}
-                />
-              ))}
-            </div>
-            {showToggle && (
-              <button
-                type="button"
-                onClick={() => {
-                  setExpanded((current) => !current);
-                  if (expanded) setSearch("");
-                }}
-                className="flex w-14 shrink-0 flex-col items-center gap-1.5 rounded-xl px-1 py-1 text-stone-500 transition hover:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
-              >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-stone-100 text-stone-500">
-                  <ChevronDown
-                    className={cn(
-                      "h-5 w-5 transition-transform",
-                      expanded && "rotate-180"
-                    )}
-                  />
-                </span>
-                <span className="text-[11px] font-medium">
-                  {expanded ? t("team.hide") : t("team.show")}
-                </span>
-              </button>
-            )}
-          </div>
-        )}
+              {tab === "messages" ? t("team.messagesTab") : t("team.groupsTab")}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      </section>
-
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
-        <p className="px-4 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-stone-400 uppercase">
-          {t("team.conversations")}
-        </p>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          {filteredChannels.length === 0 ? (
-            <p className="px-2 py-8 text-center text-xs text-stone-400">
-              {query
-                ? t("team.noConversationsFound")
-                : t("team.noConversations")}
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+        {listTab === "messages" ? (
+          messageRows.length === 0 ? (
+            <p className="px-3 py-10 text-center text-xs text-stone-500">
+              {query ? t("team.noMembersFound") : t("team.noMembers")}
             </p>
           ) : (
-            filteredChannels.map((channel) => (
-              <button
-                key={channel.id}
-                type="button"
-                onClick={() => onSelect(channel)}
-                className={cn(
-                  "mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
-                  activeChannelId === channel.id
-                    ? "bg-stone-100"
-                    : "hover:bg-stone-50"
-                )}
-              >
-                {channel.kind === "dm" ? (
-                  <PersonAvatar name={channel.name} size="md" />
-                ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-600">
+            messageRows.map((member) => {
+              const channel = dmByPeer.get(member.id);
+              const selected = channel
+                ? activeChannelId === channel.id
+                : false;
+              return (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => void openDm(member)}
+                  className={cn(
+                    "mb-0.5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition",
+                    selected ? "bg-stone-100" : "hover:bg-stone-50"
+                  )}
+                >
+                  <PersonAvatar
+                    name={member.name}
+                    imageUrl={member.imageUrl}
+                    size="lg"
+                    letters={2}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-medium text-stone-900">
+                        {member.name}
+                      </p>
+                      {channel?.unreadCount ? (
+                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                          {channel.unreadCount > 99 ? "99+" : channel.unreadCount}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-stone-500">
+                      {channel?.lastMessagePreview
+                        ? translateStoredMessage(channel.lastMessagePreview, t)
+                        : member.position || member.email}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
+          )
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowCreateGroup(true)}
+              className="mb-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-stone-500 transition hover:bg-stone-50 hover:text-stone-800"
+            >
+              <Plus className="h-4 w-4" />
+              {t("team.createGroup")}
+            </button>
+            {groupChannels.length === 0 ? (
+              <p className="px-3 py-10 text-center text-xs text-stone-500">
+                {query
+                  ? t("team.noConversationsFound")
+                  : t("team.noConversations")}
+              </p>
+            ) : (
+              groupChannels.map((channel) => (
+                <button
+                  key={channel.id}
+                  type="button"
+                  onClick={() => onSelect(channel)}
+                  className={cn(
+                    "mb-0.5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition",
+                    activeChannelId === channel.id
+                      ? "bg-stone-100"
+                      : "hover:bg-stone-50"
+                  )}
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-500">
                     <Users className="h-4 w-4" />
                   </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p
-                      className={cn(
-                        "truncate text-sm",
-                        channel.unreadCount > 0
-                          ? "font-semibold text-stone-900"
-                          : "font-medium text-stone-900"
-                      )}
-                    >
-                      {channel.name}
-                    </p>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {channel.lastMessageAt && (
-                        <span className="text-[10px] text-stone-400">
-                          {new Date(channel.lastMessageAt).toLocaleTimeString(
-                            "th-TH",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </span>
-                      )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-medium text-stone-900">
+                        {channel.name}
+                      </p>
                       {channel.unreadCount > 0 &&
                         activeChannelId !== channel.id && (
                           <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
@@ -320,39 +286,18 @@ export function CollaborationChannelSidebar({
                           </span>
                         )}
                     </div>
+                    {channel.lastMessagePreview ? (
+                      <p className="mt-0.5 truncate text-xs text-stone-500">
+                        {translateStoredMessage(channel.lastMessagePreview, t)}
+                      </p>
+                    ) : null}
                   </div>
-                  {channel.kind === "dm" && channel.peerEmail ? (
-                    <p className="mt-0.5 block truncate text-[11px] leading-snug text-stone-500">
-                      {channel.peerEmail}
-                    </p>
-                  ) : null}
-                  {channel.kind === "group" && channel.memberCount ? (
-                    <p className="mt-0.5 truncate text-[11px] text-stone-500">
-                      {channel.memberCount}
-                    </p>
-                  ) : null}
-                  {channel.lastMessagePreview && (
-                    <p
-                      className={cn(
-                        "mt-0.5 truncate text-xs",
-                        channel.unreadCount > 0 &&
-                          activeChannelId !== channel.id
-                          ? "font-medium text-stone-700"
-                          : "text-stone-400"
-                      )}
-                    >
-                      {translateStoredMessage(
-                        channel.lastMessagePreview,
-                        t
-                      )}
-                    </p>
-                  )}
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-      </section>
+                </button>
+              ))
+            )}
+          </>
+        )}
+      </div>
     </aside>
   );
 }
