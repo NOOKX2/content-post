@@ -10,7 +10,7 @@ import {
   DAY_END_HOUR,
   type PositionedMeeting,
 } from "@/app/collaboration/_hooks/use-meetings-week-calendar";
-import { dateLocale, useT } from "@/lib/i18n";
+import { dateLocale, useT, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/shared/utils";
 
 const WEEKDAY_KEYS = [
@@ -22,7 +22,7 @@ function timeLabel(iso: string, locale: string) {
   return new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
-function MeetingBlock({ item, locale }: { item: PositionedMeeting; locale: string }) {
+function MeetingBlock({ item, locale }: { item: PositionedMeeting; locale: Locale }) {
   const loc = dateLocale(locale);
   const block = (
     <>
