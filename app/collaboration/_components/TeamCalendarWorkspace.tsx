@@ -35,6 +35,7 @@ export function TeamCalendarWorkspace({
     panelOpen, setPanelOpen,
     prefillStart, prefillEnd,
     submitting,
+    isSelf,
     navigate,
     openPanelFor,
     handleSubmit,
