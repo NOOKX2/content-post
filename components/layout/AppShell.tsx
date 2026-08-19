@@ -28,8 +28,9 @@ function AppShellMain({
   const isDashboard = activePath === "/dashboard";
   const isCollaboration = activePath === "/collaboration";
   const isFullHeightView = isDashboard || isCollaboration;
-  const useStreamedCollaboration =
-    pathname === "/collaboration" && activePath === "/collaboration";
+  // Use pathname only — activePath can lag behind on first navigation,
+  // causing a blank page while DashboardRouter renders instead of children.
+  const useStreamedCollaboration = pathname === "/collaboration";
 
   useEffect(() => {
     if (session?.user) {

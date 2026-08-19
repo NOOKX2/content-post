@@ -39,9 +39,14 @@ export function useCollaborationView() {
   const [activeChannelId, setActiveChannelId] = useState<string | null>(
     () => bootstrap?.defaultChannelId ?? null
   );
-  const [calendarMemberId, setCalendarMemberId] = useState<string | null>(
-    () => session?.user?.id ?? null
-  );
+  const [calendarMemberId, setCalendarMemberId] = useState<string | null>(null);
+
+  // Sync calendarMemberId to currentUser as soon as session is ready
+  useEffect(() => {
+    if (session?.user?.id && !calendarMemberId) {
+      setCalendarMemberId(session.user.id);
+    }
+  }, [session?.user?.id, calendarMemberId]);
 
   // Auto-select team channel when channels load
   useEffect(() => {

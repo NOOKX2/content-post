@@ -77,7 +77,9 @@ export function useTeamCalendarWorkspace(
     if (!selectedMemberId && selected) onSelectMember(selected.id);
   }, [onSelectMember, selected, selectedMemberId]);
 
-  const isSelf = selected?.id === currentUserId;
+  // Treat as self when currentUserId is not yet known (session loading) so we
+  // can use bootstrap?.meetings as fallbackData and avoid a loading flash.
+  const isSelf = !currentUserId || selected?.id === currentUserId;
   const meetingsKey = selected
     ? isSelf ? COLLAB_MEETINGS_KEY : memberMeetingsKey(selected.id)
     : null;
@@ -86,9 +88,15 @@ export function useTeamCalendarWorkspace(
     meetingsKey,
     () =>
       selected
-        ? isSelf ? fetchMeetings() : fetchMemberMeetings(selected.id)
+        ? selected.id === currentUserId ? fetchMeetings() : fetchMemberMeetings(selected.id)
         : Promise.resolve([]),
-    { fallbackData: isSelf ? bootstrap?.meetings : undefined, refreshInterval: 15000 }
+    {
+      fallbackData: isSelf ? bootstrap?.meetings : undefined,
+      refreshInterval: 15000,
+      // Don't keep showing previous key's data while fetching new key —
+      // this causes "test" meeting from self to bleed into other members' views.
+      keepPreviousData: false,
+    }
   );
 
   const memberIds = members.map((m) => m.id).sort().join(",");

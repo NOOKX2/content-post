@@ -38,6 +38,12 @@ function shouldSyncRouter(href: string, previousHref: string): boolean {
     return true;
   }
 
+  // /collaboration uses SSR bootstrap via page.tsx — must sync Next.js router
+  // so children (SSR page) updates when navigating to this route.
+  if (targetPath === "/collaboration") {
+    return true;
+  }
+
   if (href.includes("?")) {
     return true;
   }
