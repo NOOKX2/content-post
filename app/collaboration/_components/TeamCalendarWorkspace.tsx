@@ -146,7 +146,7 @@ export function TeamCalendarWorkspace({
                 {selected.name}
               </h2>
               <span className="text-sm text-stone-500">
-                {roleLabel(selected, t)}
+                {roleLabel(selected)}
               </span>
               <span
                 className={cn(
