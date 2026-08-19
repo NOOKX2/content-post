@@ -2,17 +2,22 @@
 
 import type { MeetingItem } from "@/lib/collaboration/types";
 import {
-  addDays,
   eventAccent,
   hourLabel,
   sameDay,
 } from "@/app/collaboration/_lib/calendar-utils";
+import {
+  useTeamWeekGrid,
+  HOUR_HEIGHT,
+  SLOT_HEIGHT,
+  SLOT_MINUTES,
+  DAY_START_HOUR,
+  DAY_END_HOUR,
+  SLOTS_PER_DAY,
+} from "@/app/collaboration/_hooks/use-team-week-grid";
 import { dateLocale, useT } from "@/lib/i18n";
 import { cn } from "@/lib/shared/utils";
 
-const HOUR_HEIGHT = 64;
-const DAY_START_HOUR = 9;
-const DAY_END_HOUR = 18;
 const WEEKDAY_KEYS = [
   "team.weekdayMon",
   "team.weekdayTue",
@@ -110,11 +115,14 @@ export function TeamWeekGrid({
   const { t, locale } = useT();
   const loc = dateLocale(locale);
   const now = new Date();
-  const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
-  const hours = Array.from(
-    { length: DAY_END_HOUR - DAY_START_HOUR },
-    (_, index) => DAY_START_HOUR + index
-  );
+  const {
+    days,
+    selection,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+  } = useTeamWeekGrid(weekStart, onSelectSlot);
+  const slots = Array.from({ length: SLOTS_PER_DAY }, (_, index) => index);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -146,20 +154,39 @@ export function TeamWeekGrid({
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="grid min-h-full grid-cols-[56px_repeat(7,1fr)]">
           <div>
-            {hours.map((hour) => (
-              <div
-                key={hour}
-                style={{ height: HOUR_HEIGHT }}
-                className="relative border-r border-stone-100"
-              >
-                <span className="absolute -top-2 right-1.5 text-[10px] text-stone-500">
-                  {hourLabel(hour, loc)}
-                </span>
-              </div>
-            ))}
+            {slots.map((slot) => {
+              const minutes = DAY_START_HOUR * 60 + slot * SLOT_MINUTES;
+              const hour = Math.floor(minutes / 60);
+              const minute = minutes % 60;
+              const isEndBoundary = slot === SLOTS_PER_DAY - 1;
+              const label = isEndBoundary
+                ? hourLabel(DAY_END_HOUR, loc)
+                : minute === 0
+                  ? hourLabel(hour, loc)
+                  : "";
+
+              return (
+                <div
+                  key={slot}
+                  style={{ height: SLOT_HEIGHT }}
+                  className="relative border-r border-stone-100"
+                >
+                  {label && (
+                    <span
+                      className={cn(
+                        "absolute right-1.5 text-[10px] text-stone-500",
+                        slot === 0 ? "top-1" : isEndBoundary ? "bottom-1" : "-top-2"
+                      )}
+                    >
+                      {label}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {days.map((day) => {
+          {days.map((day, dayIndex) => {
             const today = sameDay(day, now);
             const items = layoutDay(
               meetings.filter((meeting) => sameDay(new Date(meeting.startsAt), day))
@@ -168,32 +195,48 @@ export function TeamWeekGrid({
               <div
                 key={toKey(day)}
                 className={cn(
-                  "relative border-r border-stone-100 last:border-r-0",
+                  "relative cursor-pointer border-r border-stone-100 select-none last:border-r-0",
                   today && "bg-blue-50/40"
                 )}
+                onPointerDown={(e) => handlePointerDown(dayIndex, e)}
+                onPointerMove={(e) => handlePointerMove(dayIndex, e)}
+                onPointerUp={(e) => handlePointerUp(dayIndex, e)}
               >
-                {hours.map((hour) => (
-                  <button
-                    key={hour}
-                    type="button"
-                    onClick={() => {
-                      const start = new Date(day);
-                      start.setHours(hour, 0, 0, 0);
-                    const end = new Date(start);
-                    end.setMinutes(end.getMinutes() + 60);
-                    onSelectSlot({ start, end });
+                {slots.map((slot) => {
+                  const minutes = DAY_START_HOUR * 60 + slot * SLOT_MINUTES;
+                  const hour = Math.floor(minutes / 60);
+                  const minute = minutes % 60;
+                  const isHourBoundary = minute === 0;
+
+                  return (
+                    <div
+                      key={slot}
+                      style={{ height: SLOT_HEIGHT }}
+                      className={cn(
+                        "pointer-events-none border-b",
+                        isHourBoundary ? "border-stone-200" : "border-stone-100"
+                      )}
+                      aria-hidden
+                    />
+                  );
+                })}
+
+                {selection && selection.dayIndex === dayIndex && (
+                  <div
+                    className="pointer-events-none absolute inset-x-0.5 z-10 rounded-md bg-blue-500/25 ring-1 ring-blue-500/50"
+                    style={{
+                      top: selection.startSlot * SLOT_HEIGHT,
+                      height: (selection.endSlot - selection.startSlot + 1) * SLOT_HEIGHT,
                     }}
-                    style={{ height: HOUR_HEIGHT }}
-                    className="w-full border-b border-stone-100 hover:bg-stone-50"
-                    aria-label={`${day.getDate()} ${hourLabel(hour, loc)}`}
                   />
-                ))}
+                )}
+
                 {items.map((item) => {
                   const accent = eventAccent(item.meeting.title);
                   const href =
                     item.meeting.meetUrl || item.meeting.calendarLink || "";
                   const className = cn(
-                    "absolute z-10 overflow-hidden rounded-lg border-l-2 px-1.5 py-1 text-left shadow-sm",
+                    "absolute z-20 overflow-hidden rounded-lg border-l-2 px-1.5 py-1 text-left shadow-sm",
                     ACCENT_CLASS[accent]
                   );
                   const style = {
@@ -211,6 +254,7 @@ export function TeamWeekGrid({
                       title={item.meeting.title}
                       className={className}
                       style={style}
+                      onPointerDown={(e) => e.stopPropagation()}
                     >
                       <p className="truncate text-[11px] font-semibold leading-tight">
                         {item.meeting.title}
@@ -222,6 +266,7 @@ export function TeamWeekGrid({
                       title={item.meeting.title}
                       className={className}
                       style={style}
+                      onPointerDown={(e) => e.stopPropagation()}
                     >
                       <p className="truncate text-[11px] font-semibold leading-tight">
                         {item.meeting.title}

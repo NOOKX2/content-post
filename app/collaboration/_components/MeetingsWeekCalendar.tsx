@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/Button";
 import type { MeetingItem } from "@/lib/collaboration/types";
 import {
   useMeetingsWeekCalendar,
-  HOUR_HEIGHT,
-  DAY_START_HOUR,
-  DAY_END_HOUR,
+  SLOT_HEIGHT,
+  SLOT_MINUTES,
+  SLOTS_PER_DAY,
   type PositionedMeeting,
 } from "@/app/collaboration/_hooks/use-meetings-week-calendar";
 import { dateLocale, useT, type Locale } from "@/lib/i18n";
@@ -78,7 +78,6 @@ export function MeetingsWeekCalendar({
     weekStart,
     days,
     now,
-    hours,
     rangeLabel,
     layoutByDay,
     selection,
@@ -93,6 +92,8 @@ export function MeetingsWeekCalendar({
     addDays,
     startOfWeek,
   } = useMeetingsWeekCalendar(meetings, onSchedule);
+
+  const slots = Array.from({ length: SLOTS_PER_DAY }, (_, i) => i);
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col rounded-xl border border-stone-200/80 bg-white shadow-sm", className)}>
@@ -152,13 +153,18 @@ export function MeetingsWeekCalendar({
           <div className="grid grid-cols-[56px_repeat(7,1fr)]">
             {/* Hour labels */}
             <div className="relative">
-              {hours.map((hour) => (
-                <div key={hour} style={{ height: HOUR_HEIGHT }} className="relative border-r border-stone-100">
-                  <span className="absolute -top-2 right-1.5 text-[10px] text-stone-400">
-                    {hour === 0 ? "" : `${String(hour).padStart(2, "0")}:00`}
-                  </span>
-                </div>
-              ))}
+              {slots.map((slot) => {
+                const minutes = slot * SLOT_MINUTES;
+                const hour = Math.floor(minutes / 60);
+                const minute = minutes % 60;
+                const label = minute === 0 && hour !== 0 ? `${String(hour).padStart(2, "0")}:00` : "";
+
+                return (
+                  <div key={slot} style={{ height: SLOT_HEIGHT }} className="relative border-r border-stone-100">
+                    {label && <span className="absolute -top-2 right-1.5 text-[10px] text-stone-400">{label}</span>}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Day columns */}
@@ -172,13 +178,17 @@ export function MeetingsWeekCalendar({
                   onPointerMove={onSchedule ? (e) => handlePointerMove(dayIndex, e) : undefined}
                   onPointerUp={onSchedule ? (e) => handlePointerUp(dayIndex, e) : undefined}
                 >
-                  {hours.map((hour) => (
-                    <div key={hour} style={{ height: HOUR_HEIGHT }} className="pointer-events-none border-b border-stone-100" />
+                  {slots.map((slot) => (
+                    <div
+                      key={slot}
+                      style={{ height: SLOT_HEIGHT }}
+                      className="pointer-events-none border-b border-stone-100 last:border-b-0"
+                    />
                   ))}
                   {selection && selection.dayIndex === dayIndex && (
                     <div
                       className="pointer-events-none absolute inset-x-0.5 z-10 rounded-md bg-blue-500/25 ring-1 ring-blue-500/50"
-                      style={{ top: selection.startSlot * (HOUR_HEIGHT / 2), height: (selection.endSlot - selection.startSlot + 1) * (HOUR_HEIGHT / 2) }}
+                      style={{ top: selection.startSlot * SLOT_HEIGHT, height: (selection.endSlot - selection.startSlot + 1) * SLOT_HEIGHT }}
                     />
                   )}
                   {layoutByDay[dayIndex].map((item) => (

@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLink } from "@/components/layout/DashboardLink";
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import type { ContentItem } from "@/lib/types";
 import type { MeetingItem } from "@/lib/collaboration/types";
-import { PlatformBadgeGroup } from "@/components/ui/PlatformIcon";
-import { PLATFORMS } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
-import { CalendarPostLegend } from "@/app/calendar/_components/CalendarPostLegend";
+import {
+  CalendarLegendBar,
+} from "@/app/calendar/_components/CalendarPostLegend";
 import { ContentSummaryCard } from "@/components/content/ContentSummaryCard";
 import { type CalendarDateField } from "@/lib/calendar/domain/filters";
 import { getContentCalendarDate, getMediaTypeCardClass } from "@/lib/calendar/domain/filters";
 import { cn, getDaysInMonth, getWeekNumber } from "@/lib/shared/utils";
-import { useT } from "@/lib/i18n";
+import { dateLocale, useT, type Locale } from "@/lib/i18n";
 
 interface ContentCalendarGridProps {
   contents: ContentItem[];
@@ -22,9 +22,23 @@ interface ContentCalendarGridProps {
   showMeetings?: boolean;
 }
 
-const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-const WEEKDAYS_MOBILE = ["M", "T", "W", "T", "F", "S", "S"];
+const WEEKDAYS_MOBILE_EN = ["M", "T", "W", "T", "F", "S", "S"];
 const MOBILE_VISIBLE_EVENTS = 2;
+
+function weekdayLabels(locale: Locale) {
+  const loc = dateLocale(locale);
+  const format = locale === "en" ? "short" : "long";
+  const labels = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(2024, 0, 1 + index);
+    const label = date.toLocaleDateString(loc, { weekday: format });
+    return locale === "en" ? label.toUpperCase() : label;
+  });
+  const mobile =
+    locale === "en"
+      ? WEEKDAYS_MOBILE_EN
+      : labels.map((label) => label.replace(/\.$/, "").slice(0, 1));
+  return { desktop: labels, mobile };
+}
 
 function meetingDateKey(iso: string) {
   const date = new Date(iso);
@@ -53,13 +67,14 @@ function MeetingEventCard({
         href={href}
         target="_blank"
         rel="noreferrer"
-        className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 transition-colors hover:border-emerald-300"
+        className="flex items-center gap-1 rounded border border-emerald-200 border-l-[3px] border-l-emerald-500 bg-white px-2 py-1.5 transition-colors hover:border-emerald-300 hover:bg-stone-50"
         title={meeting.title}
       >
         <Video className="h-3 w-3 shrink-0 text-emerald-700" />
-        <span className="truncate text-[10px] font-semibold text-emerald-800">
+        <span className="min-w-0 truncate text-[10px] font-semibold text-stone-800">
           {meeting.title}
         </span>
+        <span className="ml-auto shrink-0 text-[10px] text-stone-500">{start}</span>
       </a>
     );
   }
@@ -69,19 +84,16 @@ function MeetingEventCard({
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="block rounded border border-emerald-200 bg-emerald-50 p-1.5 transition-shadow hover:border-emerald-300 hover:shadow-md sm:rounded-md sm:p-1.5"
+      className="block rounded border border-emerald-200 border-l-[3px] border-l-emerald-500 bg-white px-2 py-1.5 transition-shadow hover:border-emerald-300 hover:bg-stone-50 hover:shadow-sm"
       title={meeting.title}
     >
-      <div className="flex items-start gap-1">
+      <div className="flex items-start gap-1.5">
         <Video className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-xs font-bold leading-snug text-emerald-900 sm:text-[11px]">
+          <p className="line-clamp-2 text-[11px] font-bold leading-snug text-stone-900">
             {meeting.title}
           </p>
-          <p className="mt-0.5 truncate text-[10px] text-emerald-700">
-            {start}
-            {meeting.meetUrl ? " · Meet" : ""}
-          </p>
+          <p className="mt-0.5 text-[10px] text-stone-500">{start}</p>
         </div>
       </div>
     </a>
@@ -105,7 +117,7 @@ function CalendarEventCard({
       )}
       title={`${content.name} (#${content.contentId})`}
     >
-      <ContentSummaryCard content={content} compact />
+      <ContentSummaryCard content={content} compact={compact} />
     </DashboardLink>
   );
 }
@@ -140,23 +152,9 @@ function MobileSelectedDayPanel({
       {contents.length === 0 && meetings.length === 0 ? (
         <p className="text-sm text-stone-400">{t("calendar.noJobsToday")}</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {contents.map((content) => (
-            <div
-              key={content.id}
-              className={cn(
-                "rounded-lg p-3",
-                getMediaTypeCardClass(content.mediaType)
-              )}
-            >
-              <ContentSummaryCard content={content} />
-              <DashboardLink
-                href={`/content/${content.id}`}
-                className="mt-3 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700"
-              >
-                {t("workflow.viewDetail")}
-              </DashboardLink>
-            </div>
+            <CalendarEventCard key={content.id} content={content} />
           ))}
           {meetings.map((meeting) => (
             <MeetingEventCard key={meeting.id} meeting={meeting} />
@@ -173,7 +171,9 @@ export function ContentCalendarGrid({
   meetings = [],
   showMeetings = true,
 }: ContentCalendarGridProps) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const loc = dateLocale(locale);
+  const weekdays = useMemo(() => weekdayLabels(locale), [locale]);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -198,15 +198,16 @@ export function ContentCalendarGrid({
   const firstDayOfWeek = new Date(year, month, 1).getDay();
   const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
 
-  const monthLabel = new Date(year, month)
-    .toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    })
-    .toUpperCase();
+  const monthNumber = String(month + 1).padStart(2, "0");
+  const monthDate = new Date(year, month, 1);
+  const monthName = monthDate.toLocaleDateString(loc, { month: "long" });
+  const monthTitle =
+    locale === "en"
+      ? `${monthName.toUpperCase()} ${year}`
+      : `${monthName} ${year + 543}`;
 
   const getContentsForDay = (day: number) => {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dateStr = `${year}-${monthNumber}-${String(day).padStart(2, "0")}`;
     return contents.filter(
       (content) => getContentCalendarDate(content, dateField) === dateStr
     );
@@ -214,7 +215,7 @@ export function ContentCalendarGrid({
 
   const getMeetingsForDay = (day: number) => {
     if (!showMeetings) return [];
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dateStr = `${year}-${monthNumber}-${String(day).padStart(2, "0")}`;
     return meetings.filter(
       (meeting) => meetingDateKey(meeting.startsAt) === dateStr
     );
@@ -256,33 +257,43 @@ export function ContentCalendarGrid({
   }
 
   return (
-    <div className="rounded-xl border border-stone-200/80 bg-white shadow-sm">
-      <div className="flex items-center justify-end border-b border-stone-200 px-4 py-2">
-        <div className="flex items-center gap-1">
+    <div>
+      <div className="flex items-center justify-between gap-3 border-b border-stone-200 pb-4">
+        <div className="min-w-0">
+          <p
+            className={cn(
+              "text-xl font-bold tracking-wide text-stone-900 sm:text-2xl",
+              locale === "en" && "uppercase"
+            )}
+          >
+            {monthTitle}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="min-w-[120px] text-center text-base font-bold tracking-wider text-stone-800 sm:text-sm">
-            {monthLabel}
-          </span>
           <Button variant="ghost" size="sm" onClick={() => navigate(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="p-2 sm:p-3">
-        <div className="w-full min-w-0">
-          <div className="grid grid-cols-7 gap-px rounded-lg bg-stone-200 sm:grid-cols-[44px_repeat(7,minmax(0,1fr))]">
-            <div className="hidden bg-stone-100 px-2 py-2 text-center text-[10px] font-bold text-stone-500 sm:block">
-              Wk
+      <div className="mt-4 overflow-x-auto">
+        <div className="min-w-[720px]">
+          <div className="grid grid-cols-[44px_repeat(7,minmax(0,1fr))]">
+            <div className="border-r border-b border-stone-200 px-2 py-2 text-center text-[10px] font-bold tracking-wide text-stone-400 uppercase">
+              WK
             </div>
-            {WEEKDAYS.map((day, index) => (
+            {weekdays.desktop.map((day, index) => (
               <div
                 key={day}
-                className="bg-stone-100 px-1 py-1.5 text-center text-xs font-bold tracking-wide text-stone-600 sm:px-3 sm:py-2 sm:text-xs sm:tracking-wider"
+                className={cn(
+                  "border-b border-stone-200 py-2.5 text-center text-xs font-bold text-stone-800 sm:text-sm",
+                  index < weekdays.desktop.length - 1 && "border-r border-stone-200"
+                )}
               >
-                <span className="sm:hidden">{WEEKDAYS_MOBILE[index]}</span>
+                <span className="sm:hidden">{weekdays.mobile[index]}</span>
                 <span className="hidden sm:inline">{day}</span>
               </div>
             ))}
@@ -290,10 +301,16 @@ export function ContentCalendarGrid({
             {weeks.map((week, weekIndex) => {
               const firstDay = week.find((day) => day !== null) ?? 1;
               const weekLabel = `W${getWeekNumber(new Date(year, month, firstDay))}`;
+              const isLastWeek = weekIndex === weeks.length - 1;
 
               return (
                 <div key={weekIndex} className="contents">
-                  <div className="hidden min-h-[80px] items-start justify-center bg-stone-50 px-1 py-2 text-xs font-semibold text-stone-400 sm:flex sm:min-h-[96px]">
+                  <div
+                    className={cn(
+                      "flex min-h-[112px] items-start justify-center border-r border-stone-200 px-1 py-3 text-[11px] font-semibold text-stone-400",
+                      !isLastWeek && "border-b border-stone-200"
+                    )}
+                  >
                     {weekLabel}
                   </div>
                   {week.map((day, dayIndex) => {
@@ -307,133 +324,110 @@ export function ContentCalendarGrid({
                       <div
                         key={`${weekIndex}-${dayIndex}`}
                         className={cn(
-                          "min-h-[64px] bg-white p-1 align-top sm:min-h-[96px] sm:p-1.5",
-                          todayFlag &&
-                            "bg-amber-50/30 ring-1 ring-inset ring-amber-700/60 sm:ring-2",
-                          isSelected &&
-                            "ring-2 ring-inset ring-blue-500 sm:ring-0"
+                          "min-h-[112px] p-2 align-top",
+                          dayIndex < week.length - 1 && "border-r border-stone-200",
+                          !isLastWeek && "border-b border-stone-200",
+                          todayFlag && "ring-2 ring-inset ring-emerald-500",
+                          isSelected && !todayFlag && "bg-blue-50/30"
                         )}
                       >
-                        {day && (
-                          <>
-                            <div className="mb-1 flex items-center justify-between gap-0.5">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedDay(day)}
-                                className={cn(
-                                  "rounded px-1 text-sm font-semibold sm:cursor-default sm:px-0",
-                                  todayFlag
-                                    ? "text-amber-800"
-                                    : "text-stone-700",
-                                  isSelected && "bg-blue-100 text-blue-700"
+                          {day && (
+                            <>
+                              <div className="mb-1.5 flex items-start justify-end gap-1.5">
+                                {todayFlag && (
+                                  <span className="rounded bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold text-white uppercase">
+                                    {locale === "en" ? "TODAY" : t("calendar.today")}
+                                  </span>
                                 )}
-                              >
-                                {day}
-                              </button>
-                              {todayFlag && (
-                                <span className="hidden rounded bg-amber-700 px-1.5 py-0.5 text-[10px] font-bold text-white sm:inline">
-                                  TODAY
-                                </span>
-                              )}
-                            </div>
-                            <div className="space-y-0.5 sm:space-y-1">
-                              <div className="space-y-0.5 sm:hidden">
-                                {dayContents
-                                  .slice(0, MOBILE_VISIBLE_EVENTS)
-                                  .map((content) => (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedDay(day)}
+                                  className={cn(
+                                    "text-sm font-semibold sm:cursor-default",
+                                    todayFlag ? "text-emerald-700" : "text-stone-700"
+                                  )}
+                                >
+                                  {String(day).padStart(2, "0")}
+                                </button>
+                              </div>
+                              <div className="-mx-2 mt-1 space-y-1 px-2">
+                                <div className="sm:hidden">
+                                  {dayContents
+                                    .slice(0, MOBILE_VISIBLE_EVENTS)
+                                    .map((content) => (
+                                      <CalendarEventCard
+                                        key={content.id}
+                                        content={content}
+                                        compact
+                                      />
+                                    ))}
+                                  {dayMeetings
+                                    .slice(
+                                      0,
+                                      Math.max(
+                                        0,
+                                        MOBILE_VISIBLE_EVENTS - dayContents.length
+                                      )
+                                    )
+                                    .map((meeting) => (
+                                      <MeetingEventCard
+                                        key={meeting.id}
+                                        meeting={meeting}
+                                        compact
+                                      />
+                                    ))}
+                                  {dayEventCount > MOBILE_VISIBLE_EVENTS ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedDay(day)}
+                                      className="w-full px-2 py-1 text-left text-[10px] font-medium text-blue-600"
+                                    >
+                                      {t("calendar.moreJobs", {
+                                        count:
+                                          dayEventCount - MOBILE_VISIBLE_EVENTS,
+                                      })}
+                                    </button>
+                                  ) : null}
+                                </div>
+                                <div className="hidden sm:block">
+                                  {dayContents.map((content) => (
                                     <CalendarEventCard
                                       key={content.id}
                                       content={content}
-                                      compact
                                     />
                                   ))}
-                                {dayMeetings
-                                  .slice(
-                                    0,
-                                    Math.max(
-                                      0,
-                                      MOBILE_VISIBLE_EVENTS - dayContents.length
-                                    )
-                                  )
-                                  .map((meeting) => (
+                                  {dayMeetings.map((meeting) => (
                                     <MeetingEventCard
                                       key={meeting.id}
                                       meeting={meeting}
-                                      compact
                                     />
                                   ))}
-                                {dayEventCount > MOBILE_VISIBLE_EVENTS ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedDay(day)}
-                                    className="text-[10px] font-medium text-blue-600"
-                                  >
-                                    {t("calendar.moreJobs", {
-                                      count:
-                                        dayEventCount - MOBILE_VISIBLE_EVENTS,
-                                    })}
-                                  </button>
-                                ) : null}
+                                </div>
                               </div>
-                              <div className="hidden space-y-1 sm:block">
-                                {dayContents.map((content) => (
-                                  <CalendarEventCard
-                                    key={content.id}
-                                    content={content}
-                                  />
-                                ))}
-                                {dayMeetings.map((meeting) => (
-                                  <MeetingEventCard
-                                    key={meeting.id}
-                                    meeting={meeting}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {selectedDay !== null ? (
-          <MobileSelectedDayPanel
-            day={selectedDay}
-            month={month}
-            year={year}
-            contents={getContentsForDay(selectedDay)}
-            meetings={getMeetingsForDay(selectedDay)}
-          />
-        ) : null}
-      </div>
+      {selectedDay !== null ? (
+        <MobileSelectedDayPanel
+          day={selectedDay}
+          month={month}
+          year={year}
+          contents={getContentsForDay(selectedDay)}
+          meetings={getMeetingsForDay(selectedDay)}
+        />
+      ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-200 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
-        <div className="flex flex-wrap items-center gap-3">
-          <CalendarPostLegend />
-          {showMeetings ? (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-700">
-              <Video className="h-3.5 w-3.5" />
-              {t("calendar.meetingsLegend")}
-            </span>
-          ) : null}
-        </div>
-        <div className="hidden flex-wrap items-center gap-4 sm:flex">
-          <span className="text-xs font-medium text-stone-500">Platform:</span>
-          {PLATFORMS.map((platform) => (
-            <span
-              key={platform.id}
-              className="flex items-center gap-1.5 text-xs text-stone-600"
-            >
-              <PlatformBadgeGroup platforms={[platform.id]} size="sm" />
-              {platform.shortLabel}
-            </span>
-          ))}
-        </div>
+      <div className="pt-4">
+        <CalendarLegendBar />
       </div>
     </div>
   );

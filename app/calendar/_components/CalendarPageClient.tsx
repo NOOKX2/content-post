@@ -7,6 +7,7 @@ import { CalendarView } from "@/app/calendar/_components/CalendarView";
 import { ContentCalendarGrid } from "@/app/calendar/_components/ContentCalendarGrid";
 import { CalendarToolbar } from "@/app/calendar/_components/CalendarToolbar";
 import { CalendarSummary } from "@/app/calendar/_components/CalendarSummary";
+import { CalendarMonthlyPlan } from "@/app/calendar/_components/CalendarMonthlyPlan";
 import { Header } from "@/components/layout/Header";
 import { useContents } from "@/lib/content/client/contents-provider";
 import {
@@ -18,33 +19,28 @@ import {
   type DateRangePreset,
   type PostStatusFilter,
 } from "@/lib/calendar/domain/filters";
+import type { MediaType } from "@/lib/types";
 import { fetchMeetings } from "@/lib/collaboration/actions/fetch";
 import {
   getGoogleCalendarStatusAction,
   syncContentCalendarToGoogleAction,
 } from "@/lib/content/actions/google-calendar";
-import { useT } from "@/lib/i18n";
+import { dateLocale, useT } from "@/lib/i18n";
 
-const VIEW_TABS = [
-  { id: "month", label: "รายเดือน" },
-  { id: "week", label: "รายสัปดาห์" },
-] as const;
-
-type CalendarViewMode = (typeof VIEW_TABS)[number]["id"];
+type CalendarViewMode = "month" | "week";
+type MediaTypeFilter = "all" | MediaType;
 
 export function CalendarPageClient() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [mode, setMode] = useState<CalendarMode>("post");
   const [view, setView] = useState<CalendarViewMode>("month");
   const [search, setSearch] = useState("");
   const [dateField, setDateField] = useState<CalendarDateField>("post");
   const [statusFilter, setStatusFilter] = useState<PostStatusFilter>("all");
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<MediaTypeFilter>("all");
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
-  const [activePreset, setActivePreset] = useState<DateRangePreset | null>(
-    null
-  );
-  const [showMeetings, setShowMeetings] = useState(true);
+  const [activePreset, setActivePreset] = useState<DateRangePreset | null>(null);
   const [syncingGoogle, setSyncingGoogle] = useState(false);
 
   const { contents, mutateContents } = useContents();
@@ -65,18 +61,27 @@ export function CalendarPageClient() {
     }
   };
 
-  const filteredContents = useMemo(
-    () =>
-      filterCalendarContents(contents, {
-        mode,
-        search,
-        dateField,
-        rangeStart: rangeStart || undefined,
-        rangeEnd: rangeEnd || undefined,
-        statusFilter,
-      }),
-    [contents, mode, search, dateField, rangeStart, rangeEnd, statusFilter]
-  );
+  const filteredContents = useMemo(() => {
+    const base = filterCalendarContents(contents, {
+      mode,
+      search,
+      dateField,
+      rangeStart: rangeStart || undefined,
+      rangeEnd: rangeEnd || undefined,
+      statusFilter,
+    });
+    if (mediaTypeFilter === "all") return base;
+    return base.filter((content) => content.mediaType === mediaTypeFilter);
+  }, [
+    contents,
+    mode,
+    search,
+    dateField,
+    rangeStart,
+    rangeEnd,
+    statusFilter,
+    mediaTypeFilter,
+  ]);
 
   const summarySource = useMemo(
     () =>
@@ -95,6 +100,20 @@ export function CalendarPageClient() {
     () => getCalendarSummary(summarySource),
     [summarySource]
   );
+
+  const summaryMonthLabel = useMemo(() => {
+    const now = new Date();
+    const loc = dateLocale(locale);
+    if (locale === "en") {
+      return now
+        .toLocaleDateString("en-US", { month: "short", year: "numeric" })
+        .toUpperCase()
+        .replace(" ", " / ");
+    }
+    const month = now.toLocaleDateString(loc, { month: "short" });
+    const year = now.toLocaleDateString(loc, { year: "numeric" });
+    return `${month} / ${year}`;
+  }, [locale]);
 
   const handleClearRange = () => {
     setRangeStart("");
@@ -144,12 +163,8 @@ export function CalendarPageClient() {
 
   return (
     <>
-      <Header
-        session={session}
-        title={mode === "post" ? t("calendar.postTitle") : t("calendar.prepostTitle")}
-        compact
-      />
-      <div className="space-y-3 px-4 py-3">
+      <Header session={session} title={t("calendar.pageTitle")} compact />
+      <div className="space-y-4 bg-white px-4 py-4 sm:px-6">
         <CalendarToolbar
           mode={mode}
           onModeChange={handleModeChange}
@@ -159,6 +174,8 @@ export function CalendarPageClient() {
           onDateFieldChange={setDateField}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
+          mediaTypeFilter={mediaTypeFilter}
+          onMediaTypeFilterChange={setMediaTypeFilter}
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
           onRangeStartChange={(value) => {
@@ -178,8 +195,6 @@ export function CalendarPageClient() {
             { id: "month", label: t("calendar.month") },
             { id: "week", label: t("calendar.week") },
           ]}
-          showMeetings={showMeetings}
-          onShowMeetingsChange={setShowMeetings}
           googleConfigured={Boolean(googleStatus?.configured)}
           syncingGoogle={syncingGoogle}
           onSyncGoogle={() => void handleSyncGoogle()}
@@ -192,17 +207,26 @@ export function CalendarPageClient() {
             contents={filteredContents}
             dateField={dateField}
             meetings={meetings}
-            showMeetings={showMeetings}
+            showMeetings
           />
         )}
 
         {mode === "post" && (
-          <CalendarSummary
-            total={summary.total}
-            waiting={summary.waiting}
-            posted={summary.posted}
-            needsEdit={summary.needsEdit}
-          />
+          <div className="grid gap-6 pt-2 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
+            <CalendarMonthlyPlan
+              posted={summary.posted}
+              total={summary.total}
+              className="border-b border-stone-200 pb-6 lg:border-r lg:border-b-0 lg:pr-8"
+            />
+            <CalendarSummary
+              total={summary.total}
+              waiting={summary.waiting}
+              posted={summary.posted}
+              needsEdit={summary.needsEdit}
+              monthLabel={summaryMonthLabel}
+              className="lg:pl-0"
+            />
+          </div>
         )}
       </div>
     </>

@@ -24,7 +24,7 @@ import {
   type CalendarDateField,
 } from "@/lib/calendar/domain/filters";
 import { cn, formatLocations } from "@/lib/shared/utils";
-import { useT } from "@/lib/i18n";
+import { dateLocale, useT } from "@/lib/i18n";
 
 interface EventModalProps {
   open: boolean;
@@ -186,16 +186,8 @@ export function CalendarView({
   contents,
   dateField = "post",
 }: CalendarViewProps) {
-  const { t } = useT();
-  const days = [
-    t("calendar.dayMon"),
-    t("calendar.dayTue"),
-    t("calendar.dayWed"),
-    t("calendar.dayThu"),
-    t("calendar.dayFri"),
-    t("calendar.daySat"),
-    t("calendar.daySun"),
-  ];
+  const { locale } = useT();
+  const loc = dateLocale(locale);
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(
@@ -231,7 +223,7 @@ export function CalendarView({
 
   return (
     <>
-      <div className="flex h-full flex-col rounded-xl border border-stone-200/80 bg-white">
+      <div className="flex flex-col">
         <div className="flex items-center justify-between border-b border-stone-200 px-2 py-2 sm:px-4 sm:py-3">
           <div className="flex items-center gap-1 sm:gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -268,8 +260,10 @@ export function CalendarView({
                   isToday && "bg-blue-50"
                 )}
               >
-                <div className="text-[11px] text-stone-500 sm:text-xs">
-                  {days[i]}
+                <div className="text-xs font-bold text-stone-800 sm:text-sm">
+                  {day.toLocaleDateString(loc, {
+                    weekday: locale === "en" ? "short" : "long",
+                  })}
                 </div>
                 <div
                   className={cn(
