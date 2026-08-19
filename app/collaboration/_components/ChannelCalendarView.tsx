@@ -3,15 +3,9 @@
 import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { ArrowLeft, Users } from "lucide-react";
-import {
-  fetchChannelMeetings,
-  postChannelMeeting,
-} from "@/lib/collaboration/actions/fetch";
+import { fetchChannelMeetings, postChannelMeeting } from "@/lib/collaboration/actions/fetch";
 import { MeetingsWeekCalendar } from "@/app/collaboration/_components/MeetingsWeekCalendar";
-import {
-  ScheduleMeetingDialog,
-  type MeetingDraft,
-} from "@/app/collaboration/_components/ScheduleMeetingDialog";
+import { ScheduleMeetingDialog, type MeetingDraft } from "@/app/collaboration/_components/ScheduleMeetingDialog";
 import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 
@@ -28,30 +22,23 @@ export function ChannelCalendarView({
 }) {
   const { t } = useT();
   const { mutate: mutateGlobal } = useSWRConfig();
-  const {
-    data: meetings = [],
-    isLoading,
-    mutate,
-  } = useSWR(`channel-meetings:${channelId}`, () =>
-    fetchChannelMeetings(channelId), {
-    refreshInterval: 15000,
-  });
+
+  const { data: meetings = [], isLoading, mutate } = useSWR(
+    `channel-meetings:${channelId}`,
+    () => fetchChannelMeetings(channelId),
+    { refreshInterval: 15000 }
+  );
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [prefill, setPrefill] = useState<{ start: Date; end: Date }>({
-    start: new Date(),
-    end: new Date(),
-  });
+  const [prefill, setPrefill] = useState<{ start: Date; end: Date }>({ start: new Date(), end: new Date() });
 
   const title =
     channelKind === "team"
       ? t("team.channelCalendar", { name: channelName })
       : t("team.groupCalendar", { name: channelName });
   const subtitle =
-    channelKind === "team"
-      ? t("team.teamMeetingHint")
-      : t("team.groupMeetingHint");
+    channelKind === "team" ? t("team.teamMeetingHint") : t("team.groupMeetingHint");
 
   const handleSchedule = (next: { start: Date; end: Date }) => {
     setPrefill(next);
@@ -89,12 +76,7 @@ export function ChannelCalendarView({
           className="h-full w-full flex-1 rounded-none border-0 shadow-none"
           headerLeading={
             <>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="shrink-0"
-                onClick={onBack}
-              >
+              <Button variant="ghost" size="sm" className="shrink-0" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4" />
                 {t("common.back")}
               </Button>
@@ -102,18 +84,13 @@ export function ChannelCalendarView({
                 <Users className="h-4 w-4" />
               </span>
               <div className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-stone-900">
-                  {title}
-                </span>
-                <span className="block truncate text-[11px] font-normal text-stone-500">
-                  {subtitle}
-                </span>
+                <span className="block truncate text-sm font-semibold text-stone-900">{title}</span>
+                <span className="block truncate text-[11px] font-normal text-stone-500">{subtitle}</span>
               </div>
             </>
           }
         />
       </div>
-
       <ScheduleMeetingDialog
         open={dialogOpen}
         prefillStart={prefill.start}

@@ -1,116 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
-import useSWR, { useSWRConfig } from "swr";
+import { useCollaborationView } from "@/app/collaboration/_hooks/use-collaboration-view";
 import { CollaborationChannelSidebar } from "@/app/collaboration/_components/CollaborationChannelSidebar";
 import { CollaborationChatPanel } from "@/app/collaboration/_components/CollaborationChatPanel";
 import { TeamCalendarWorkspace } from "@/app/collaboration/_components/TeamCalendarWorkspace";
 import { TeamMembersPanel } from "@/app/collaboration/_components/TeamMembersPanel";
 import { TeamTasksPanel } from "@/app/collaboration/_components/TeamTasksPanel";
-import {
-  TeamWorkspaceRail,
-  type TeamWorkspaceSection,
-} from "@/app/collaboration/_components/TeamWorkspaceRail";
-import {
-  COLLAB_CHANNELS_KEY,
-  patchChannelsUnread,
-  useCollaborationBootstrap,
-} from "@/lib/collaboration/client/collaboration-provider";
-import { prefetchCollaboration } from "@/lib/collaboration/client/prefetch-collaboration";
-import {
-  fetchCollaborationChannels,
-  markCollaborationChannelRead,
-  openDirectMessage,
-} from "@/lib/collaboration/actions/fetch";
-import { useIsMobile } from "@/lib/hooks/use-is-mobile";
+import { TeamWorkspaceRail } from "@/app/collaboration/_components/TeamWorkspaceRail";
 import { cn } from "@/lib/shared/utils";
 import { useT } from "@/lib/i18n";
 
 export function CollaborationView() {
-  const { data: session } = useSession();
   const { t } = useT();
-  const isMobile = useIsMobile();
-  const bootstrap = useCollaborationBootstrap();
-  const { mutate: mutateGlobal } = useSWRConfig();
-  const { data: channels = [], isLoading: channelsLoading } = useSWR(
-    COLLAB_CHANNELS_KEY,
-    fetchCollaborationChannels,
-    {
-      fallbackData: bootstrap?.channels,
-      revalidateOnMount: !bootstrap,
-    }
-  );
-  const [section, setSection] = useState<TeamWorkspaceSection>("chat");
-  const [mobileChatOpen, setMobileChatOpen] = useState(false);
-  const [activeChannelId, setActiveChannelId] = useState<string | null>(
-    () => bootstrap?.defaultChannelId ?? null
-  );
-  const [calendarMemberId, setCalendarMemberId] = useState<string | null>(
-    () => session?.user?.id ?? null
-  );
-
-  useEffect(() => {
-    if (
-      activeChannelId &&
-      channels.some((channel) => channel.id === activeChannelId)
-    ) {
-      return;
-    }
-
-    const teamChannel = channels.find((channel) => channel.kind === "team");
-    setActiveChannelId(teamChannel?.id ?? channels[0]?.id ?? null);
-  }, [activeChannelId, channels]);
-
-  useEffect(() => {
-    if (section !== "chat" || !activeChannelId) return;
-
-    void mutateGlobal(
-      COLLAB_CHANNELS_KEY,
-      (current) => patchChannelsUnread(current, activeChannelId, 0),
-      { revalidate: false }
-    );
-
-    void markCollaborationChannelRead(activeChannelId).then(() => {
-      void mutateGlobal(COLLAB_CHANNELS_KEY);
-    });
-  }, [activeChannelId, section, mutateGlobal]);
-
-  useEffect(() => {
-    if (section !== "chat") {
-      setMobileChatOpen(false);
-    }
-  }, [section]);
-
-  useEffect(() => {
-    if (bootstrap || channels.length > 0) {
-      return;
-    }
-
-    void prefetchCollaboration();
-  }, [bootstrap, channels.length]);
-
-  const activeChannel =
-    channels.find((channel) => channel.id === activeChannelId) ?? null;
-
-  const handleSelectChannel = (channelId: string) => {
-    setActiveChannelId(channelId);
-    if (isMobile) {
-      setMobileChatOpen(true);
-    }
-  };
-
-  const handleMessageMember = async (userId: string) => {
-    try {
-      const channel = await openDirectMessage(userId);
-      setActiveChannelId(channel.id);
-      setSection("chat");
-      if (isMobile) setMobileChatOpen(true);
-      void mutateGlobal(COLLAB_CHANNELS_KEY);
-    } catch (error) {
-      alert(error instanceof Error ? error.message : t("team.openChatFailed"));
-    }
-  };
+  const {
+    channels,
+    channelsLoading,
+    activeChannel,
+    section,
+    setSection,
+    activeChannelId,
+    handleSelectChannel,
+    mobileChatOpen,
+    setMobileChatOpen,
+    calendarMemberId,
+    setCalendarMemberId,
+    handleMessageMember,
+  } = useCollaborationView();
 
   return (
     <div className="flex h-full min-h-0 overflow-hidden bg-stone-50 text-stone-900">
@@ -132,9 +47,7 @@ export function CollaborationView() {
                 if (peerUserId) setCalendarMemberId(peerUserId);
                 setSection("calendar");
               }}
-              className={cn(
-                mobileChatOpen ? "flex" : "hidden md:flex"
-              )}
+              className={cn(mobileChatOpen ? "flex" : "hidden md:flex")}
             />
           ) : channelsLoading && channels.length === 0 ? (
             <div className="hidden flex-1 animate-pulse flex-col gap-3 p-4 md:flex">

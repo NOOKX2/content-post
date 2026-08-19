@@ -146,7 +146,13 @@ export function usePaginatedChannelMessages(channelId: string) {
       setHasMoreOlder(true);
       hasMoreOlderRef.current = true;
       syncMessagesCache(channelId, resolvedSeed);
-      revalidateInBackground(() => cancelled);
+      // revalidate เฉพาะถ้า seed เก่ากว่า 30 วินาที
+      // (poll ทุก 5 วินาทีจะดึงข้อมูลใหม่อยู่แล้ว ไม่จำเป็นต้อง revalidate ทุกครั้งที่สลับ)
+      const newestAt = resolvedSeed[resolvedSeed.length - 1]?.createdAt;
+      const ageMs = newestAt ? Date.now() - new Date(newestAt).getTime() : Infinity;
+      if (ageMs > 30_000) {
+        revalidateInBackground(() => cancelled);
+      }
     } else {
       setMessages([]);
       setHasMoreOlder(true);
