@@ -57,7 +57,11 @@ export function DashboardRouter() {
     case "settings":
       return <SettingsView />;
     case "content-detail":
-      return <ContentDetailViewPage key={route.id} id={route.id} />;
+      return (
+        <div className="min-h-full bg-white">
+          <ContentDetailViewPage key={route.id} id={route.id} />
+        </div>
+      );
     default:
       return null;
   }

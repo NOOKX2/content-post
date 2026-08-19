@@ -108,7 +108,7 @@ export function ContentHistoryPanel({
   return (
     <div className="space-y-3">
       {variant === "timeline" ? (
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-800 uppercase">
+        <p className="text-xs font-semibold tracking-[0.14em] text-stone-600 uppercase">
           {t("content.activityLog")}
         </p>
       ) : (

@@ -37,7 +37,14 @@ function CommentTypeIcon({ type }: { type: string }) {
   }
 }
 
-export function ContentComments({ contentId }: { contentId: string }) {
+export function ContentComments({
+  contentId,
+  theme = "light",
+}: {
+  contentId: string;
+  theme?: "light" | "dark";
+}) {
+  const isDark = theme === "dark";
   const { t, locale } = useT();
   const [body, setBody] = useState("");
   const [commentType, setCommentType] = useState<CommentType>("comment");
@@ -76,15 +83,46 @@ export function ContentComments({ contentId }: { contentId: string }) {
     }
   };
 
+  const commentsTitleRaw = t("content.commentsTitle", { count: comments.length });
+  const match = commentsTitleRaw.match(/^(.*)\s*\((\d+)\)\s*$/);
+  const commentsTitle = match ? match[1].trim() : commentsTitleRaw;
+  const commentsCount = match ? match[2] : String(comments.length);
+
   return (
-    <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center gap-2.5">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-          <MessageSquare className="h-5 w-5" strokeWidth={2.25} />
+    <section
+      className={cn(
+        "rounded-none border-0 bg-transparent p-0 shadow-none"
+      )}
+    >
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+              isDark
+                ? "bg-stone-900 text-stone-200"
+                : "bg-transparent text-stone-500"
+            )}
+          >
+            <MessageSquare className="h-5 w-5" strokeWidth={2.25} />
+          </span>
+          <h3
+            className={cn(
+              "text-xl font-bold tracking-tight",
+              isDark ? "text-stone-200" : "text-stone-900"
+            )}
+          >
+            {commentsTitle}
+          </h3>
+        </div>
+        <span
+          className={cn(
+            "text-xs font-medium",
+            isDark ? "text-stone-500" : "text-stone-500"
+          )}
+        >
+          {commentsCount}
         </span>
-        <h3 className="text-xl font-bold tracking-tight text-slate-900">
-          {t("content.commentsTitle", { count: comments.length })}
-        </h3>
       </div>
 
       <div>
@@ -128,10 +166,20 @@ export function ContentComments({ contentId }: { contentId: string }) {
           </ul>
         ) : (
           <div className="mb-4 py-8 text-center">
-            <p className="text-sm font-medium text-stone-600">
+            <p
+              className={cn(
+                "text-sm font-medium",
+                isDark ? "text-stone-300" : "text-stone-600"
+              )}
+            >
               {t("content.emptyComments")}
             </p>
-            <p className="mt-1 text-xs text-stone-400">
+            <p
+              className={cn(
+                "mt-1 text-xs",
+                isDark ? "text-stone-500" : "text-stone-400"
+              )}
+            >
               {t("content.emptyCommentsHint")}
             </p>
           </div>
@@ -142,7 +190,12 @@ export function ContentComments({ contentId }: { contentId: string }) {
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition",
+                isDark
+                  ? "border-stone-700 bg-stone-900/40 text-stone-100 hover:bg-stone-900"
+                  : "border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100"
+              )}
             >
               <Pencil className="h-3.5 w-3.5" />
               {t("content.writeComment")}

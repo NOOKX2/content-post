@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useRef, useState, useCallback } from "react";
 import {
   ArrowLeft,
   Check,
   ChevronRight,
   Copy,
+  CalendarDays,
   ExternalLink,
   FileDown,
   Link2,
+  Play,
   Pencil,
+  Package,
+  ShieldCheck,
+  Tag,
+  User,
   Trash2,
   X,
 } from "lucide-react";
@@ -88,18 +94,29 @@ const STATUS_CONFIG: Record<ContentItem["status"], { dotClass: string; labelClas
   },
 };
 
+function formatVideoDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const totalSeconds = Math.floor(seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${minutes}:${String(secs).padStart(2, "0")}`;
+}
+
 // ─── Post link section ────────────────────────────────────────────────────────
 
 function PostLinkSection({
   content,
   canEdit,
   onSaved,
+  theme = "light",
 }: {
   content: ContentItem;
   canEdit: boolean;
   onSaved: (updated: ContentItem) => void;
+  theme?: "light" | "dark";
 }) {
   const { t } = useT();
+  const isDark = theme === "dark";
   const [url, setUrl] = useState(content.postUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -127,7 +144,12 @@ function PostLinkSection({
 
   return (
     <div className="space-y-1.5">
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-widest text-stone-400 uppercase">
+      <p
+        className={cn(
+          "flex items-center gap-1.5 text-xs font-semibold tracking-widest uppercase",
+          isDark ? "text-stone-400" : "text-stone-600"
+        )}
+      >
         <Link2 className="h-3 w-3" />
         {t("content.postLinkLabel")}
       </p>
@@ -142,15 +164,22 @@ function PostLinkSection({
             className={cn(
               "h-9 w-full rounded-lg border px-3 pr-9 text-sm outline-none transition",
               canEdit
-                ? "border-stone-200 bg-white text-stone-900 placeholder:text-stone-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
-                : "border-stone-100 bg-stone-50 text-stone-500 cursor-default"
+                ? isDark
+                  ? "border-stone-800 bg-stone-950/40 text-stone-100 placeholder:text-stone-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  : "border-stone-200 bg-white text-stone-900 placeholder:text-stone-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                : isDark
+                  ? "border-stone-800 bg-stone-950/20 text-stone-500 cursor-default"
+                  : "border-stone-100 bg-stone-50 text-stone-500 cursor-default"
             )}
           />
           {url && (
             <button
               type="button"
               onClick={handleCopy}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-stone-400 hover:text-stone-600"
+              className={cn(
+                "absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 transition",
+                isDark ? "text-stone-500 hover:text-stone-200" : "text-stone-400 hover:text-stone-600"
+              )}
               title={t("content.copyLink")}
             >
               {copied ? (
@@ -166,7 +195,12 @@ function PostLinkSection({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 hover:text-stone-800 transition"
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition",
+              isDark
+                ? "border-stone-800 bg-stone-950/40 text-stone-300 hover:bg-stone-900/50 hover:text-stone-100"
+                : "border-stone-200 bg-white text-stone-500 hover:text-stone-800"
+            )}
             title={t("content.openLink")}
           >
             <ExternalLink className="h-3.5 w-3.5" />
@@ -179,7 +213,7 @@ function PostLinkSection({
         )}
       </div>
       {url && (
-        <p className="text-[11px] text-stone-400">
+        <p className={cn("text-[11px]", isDark ? "text-stone-500" : "text-stone-400")}>
           {t("content.postLinkHint")}
         </p>
       )}
@@ -189,91 +223,122 @@ function PostLinkSection({
 
 // ─── Assignment details ───────────────────────────────────────────────────────
 
-function AssignmentDetails({ content }: { content: ContentItem }) {
+function AssignmentDetails({
+  content,
+  theme = "light",
+}: {
+  content: ContentItem;
+  theme?: "light" | "dark";
+}) {
   const { t, locale } = useT();
   const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
+  const isDark = theme === "dark";
   const scheduleLabel = content.scheduledDate
     ? `${formatLocalizedDate(content.scheduledDate, locale)}${content.scheduledTime ? ` · ${content.scheduledTime}` : ""}`
     : null;
 
-  const rows: { label: string; value: React.ReactNode }[] = [];
-  if (content.channel)
-    rows.push({
-      label: t("create.channel"),
-      value: (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
-          <span
-            className={cn(
-              "inline-block h-2 w-2 rounded-full",
-              mediaConfig.accentBg.replace("bg-", "bg-")
-            )}
-          />
-          {content.channel}
-        </span>
-      ),
-    });
-  if (content.ideaCreator)
+  const rows: Array<{
+    label: string;
+    value: React.ReactNode;
+    icon?: React.ComponentType<{ className?: string }>;
+  }> = [];
+
+  // Match reference layout: icon + label (left) and value (right).
+  if (content.ideaCreator) {
     rows.push({
       label: t("content.createdBy"),
-      value: (
-        <span className="inline-flex items-center gap-1.5">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-[10px] font-bold text-white">
-            {content.ideaCreator.charAt(0)}
-          </span>
-          <span className="text-sm text-stone-800">{content.ideaCreator}</span>
-        </span>
-      ),
+      value: <span className="text-sm font-medium text-stone-900">{content.ideaCreator}</span>,
+      icon: User,
     });
-  if (scheduleLabel)
-    rows.push({ label: t("content.postDate"), value: scheduleLabel });
-  if (content.category)
+  }
+
+  if (scheduleLabel) {
+    rows.push({
+      label: t("content.postDate"),
+      value: <span className="text-sm text-stone-800">{scheduleLabel}</span>,
+      icon: CalendarDays,
+    });
+  }
+
+  if (content.category) {
     rows.push({
       label: t("content.category"),
       value: (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-          {content.category}
-        </span>
+        <span className="text-sm font-medium text-emerald-600">{content.category}</span>
       ),
+      icon: Tag,
     });
-  if (content.platforms.length > 0)
+  }
+
+  if (content.platforms.length > 0) {
     rows.push({
       label: t("content.platforms"),
       value: <PlatformBadgeGroup platforms={content.platforms} size="sm" />,
+      icon: Package,
     });
-  if (content.approver)
-    rows.push({ label: t("content.approvedBy"), value: content.approver });
+  }
+
+  if (content.approver) {
+    rows.push({
+      label: t("content.approvedBy"),
+      value: <span className="text-sm text-stone-800">{content.approver}</span>,
+      icon: ShieldCheck,
+    });
+  }
 
   return (
     <div className="space-y-0.5">
-      <p className="mb-2 text-[10px] font-semibold tracking-widest text-stone-400 uppercase">
+      <p
+        className={cn(
+          "mb-2 text-xs font-semibold tracking-[0.14em] uppercase",
+          isDark ? "text-stone-400" : "text-stone-600"
+        )}
+      >
         {t("content.assignmentDetails")}
       </p>
-      <dl className="divide-y divide-stone-100">
-        {rows.map(({ label, value }) => (
-          <div
-            key={label}
-            className="flex items-center justify-between gap-3 py-2"
-          >
-            <dt className="shrink-0 text-xs text-stone-500">{label}</dt>
-            <dd className="text-right text-xs text-stone-800">{value}</dd>
+      <div className={cn("divide-y", isDark ? "divide-stone-800" : "divide-stone-100")}>
+        {rows.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="flex items-center justify-between gap-6 py-3">
+            <dt className={cn("flex shrink-0 items-center gap-2 text-xs font-medium", isDark ? "text-stone-300" : "text-stone-700")}>
+              {Icon && <Icon className="h-3.5 w-3.5 text-stone-500" />}
+              {label}
+            </dt>
+            <dd className="text-right">{value}</dd>
           </div>
         ))}
-      </dl>
+      </div>
     </div>
   );
 }
 
 // ─── Post objective / details ─────────────────────────────────────────────────
 
-function PostObjective({ content }: { content: ContentItem }) {
+function PostObjective({
+  content,
+  theme = "light",
+}: {
+  content: ContentItem;
+  theme?: "light" | "dark";
+}) {
   const { t } = useT();
+  const isDark = theme === "dark";
   if (!content.details) return null;
   return (
     <div className="space-y-1.5">
-      <p className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase">
+      <p
+        className={cn(
+          "text-xs font-semibold tracking-widest uppercase",
+          isDark ? "text-stone-400" : "text-stone-600"
+        )}
+      >
         {t("content.objectiveTitle")}
       </p>
-      <p className="text-sm leading-relaxed text-stone-600">
+      <p
+        className={cn(
+          "text-sm leading-relaxed",
+          isDark ? "text-stone-200" : "text-stone-600"
+        )}
+      >
         {content.details}
       </p>
     </div>
@@ -282,29 +347,82 @@ function PostObjective({ content }: { content: ContentItem }) {
 
 // ─── Hero media (left column) ─────────────────────────────────────────────────
 
-function HeroMediaPanel({ content }: { content: ContentItem }) {
+function HeroMediaPanel({
+  content,
+  theme = "light",
+}: {
+  content: ContentItem;
+  theme?: "light" | "dark";
+}) {
   const { t } = useT();
+  const isDark = theme === "dark";
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [durationText, setDurationText] = useState("0:00");
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
   const heroUrl = content.attachments.find((url) => url.trim()) ?? "";
   const heroIsVideo = heroUrl ? isVideoMediaUrl(heroUrl) : false;
   const heroIsImage = heroUrl ? isImageAttachment(heroUrl) : false;
 
+  const handleLoadedMetadata = () => {
+    const duration = videoRef.current?.duration;
+    if (duration == null || !Number.isFinite(duration)) return;
+    setDurationText(formatVideoDuration(duration));
+  };
+
+  const togglePlay = async () => {
+    const el = videoRef.current;
+    if (!el) return;
+    try {
+      if (el.paused) {
+        await el.play();
+        setIsPlaying(true);
+      } else {
+        el.pause();
+        setIsPlaying(false);
+      }
+    } catch {
+      // ignore autoplay/play restrictions; UI still should work
+    }
+  };
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-100 shadow-sm">
+    <div className="overflow-hidden">
       {heroIsVideo ? (
-        <video
-          src={heroUrl}
-          poster={content.coverImage || undefined}
-          controls
-          className="aspect-4/5 w-full bg-black object-contain sm:aspect-video"
-          preload="metadata"
-        />
+        <div className="relative">
+          <video
+            ref={videoRef}
+            src={heroUrl}
+            poster={content.coverImage || undefined}
+            controls={false}
+            className={cn(
+              "aspect-video w-full bg-black object-cover"
+            )}
+            preload="metadata"
+            onLoadedMetadata={handleLoadedMetadata}
+          />
+          {/* Always render green-tint + play badge (matches the reference UI). */}
+          <div className="pointer-events-none absolute inset-0 bg-emerald-500/15" />
+          <button
+            type="button"
+            onClick={togglePlay}
+            className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded border border-stone-600/20 bg-black/50 px-3 py-2 text-[11px] font-medium text-stone-50 backdrop-blur"
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            <Play className="h-3.5 w-3.5" />
+            <span className="font-mono">{durationText}</span>
+          </button>
+        </div>
       ) : heroIsImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={heroUrl}
           alt={content.name}
-          className="aspect-4/5 w-full object-cover sm:aspect-video"
+          className={cn(
+            "w-full object-cover",
+            isDark ? "aspect-video" : "aspect-4/5 sm:aspect-video"
+          )}
         />
       ) : (
         <div
@@ -313,7 +431,9 @@ function HeroMediaPanel({ content }: { content: ContentItem }) {
             mediaConfig.accentBg
           )}
         >
-          <p className="text-sm text-stone-500">{t("content.previewMissing")}</p>
+          <p className={cn("text-sm", isDark ? "text-stone-400" : "text-stone-500")}>
+            {t("content.previewMissing")}
+          </p>
         </div>
       )}
     </div>
@@ -328,15 +448,15 @@ function CaptionPreview({ content }: { content: ContentItem }) {
   if (!caption) return null;
 
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold tracking-widest text-stone-400 uppercase">
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold tracking-widest text-stone-600 uppercase">
         {t("content.captionPreview")}
       </p>
       <p className="whitespace-pre-wrap text-sm leading-relaxed text-stone-700">
         {caption}
       </p>
       {content.tags.length > 0 && (
-        <p className="mt-3 text-sm text-blue-500">
+        <p className="mt-2 text-sm text-blue-500">
           {content.tags.map((t) => `#${t}`).join(" ")}
         </p>
       )}
@@ -521,9 +641,9 @@ export function ContentDetailView({
 
   if (editing) {
     return (
-      <div className="min-h-full bg-[#f5f5f7]">
+      <div className="min-h-full bg-white">
         {/* Edit sub-nav */}
-        <nav className="sticky top-0 z-20 border-b border-stone-200/80 bg-[#f5f5f7]/90 backdrop-blur">
+        <nav className="sticky top-0 z-20 border-b border-stone-200/80 bg-white/90 backdrop-blur">
           <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <button
               type="button"
@@ -553,11 +673,10 @@ export function ContentDetailView({
   const canEdit = canEditContent(session, content);
 
   return (
-    <div className="min-h-full bg-[#f5f5f7]">
+    <div className="min-h-screen bg-white">
       {/* ── Top nav ── */}
-      <nav className="sticky top-0 z-20 border-b border-stone-200/80 bg-[#f5f5f7]/90 backdrop-blur">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          {/* Breadcrumb */}
+      <nav className="sticky top-0 z-20 border-b border-stone-200/80 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2 text-xs text-stone-500">
             <button
               type="button"
@@ -574,8 +693,6 @@ export function ContentDetailView({
               {t("content.contentIdLabel")}: #{content.contentId}
             </span>
           </div>
-
-          {/* Right: actions + user */}
           <div className="flex shrink-0 items-center gap-2">
             <ActionButtons
               content={content}
@@ -597,47 +714,55 @@ export function ContentDetailView({
       </nav>
 
       {/* ── Page body ── */}
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Title row */}
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
+        <div className="mb-6">
+          <p className="text-xs font-semibold tracking-[0.14em] text-stone-400 uppercase">
+            CONTENT DETAIL / #{content.contentId}
+          </p>
+          <div className="mt-2 flex items-start justify-between gap-4">
+            <h1 className="text-3xl font-semibold tracking-tight text-stone-900">
               {content.name}
             </h1>
-          </div>
-          <div className="flex items-center gap-2">
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold",
-                statusCfg.labelClass,
-                "bg-white border border-stone-200 shadow-sm"
+                "mt-1 inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold",
+                statusCfg.labelClass
               )}
             >
-              <span
-                className={cn("h-2 w-2 rounded-full", statusCfg.dotClass)}
-              />
+              <span className={cn("h-2 w-2 rounded-full", statusCfg.dotClass)} />
               {statusText}
             </span>
           </div>
         </div>
 
-        {/* Two-column layout */}
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          {/* ── LEFT: media + caption ── */}
-          <div className="space-y-4">
-            <HeroMediaPanel content={content} />
-            <CaptionPreview content={content} />
+        <div className="border-t border-stone-200" />
+
+        {/* Vertical divider between columns */}
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_320px]">
+          {/* LEFT: media + caption + comments */}
+          <div className="space-y-0 pr-0 lg:pr-10">
+            <div className="pb-8">
+              <HeroMediaPanel content={content} />
+            </div>
+            <div className="border-t border-stone-200 py-6">
+              <CaptionPreview content={content} />
+            </div>
+            <div className="border-t border-stone-200 pt-6">
+              <ContentComments contentId={content.id} />
+            </div>
           </div>
 
-          {/* ── RIGHT: sidebar panels ── */}
-          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-            {/* Assignment Details */}
-            <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          {/* Vertical divider */}
+          <div className="hidden lg:block bg-stone-200" />
+
+          {/* RIGHT: sidebar */}
+          <aside className="space-y-0 pl-0 lg:pl-10">
+            <div className="pb-6 pt-8">
               <AssignmentDetails content={content} />
             </div>
 
-            {/* Post Link */}
-            <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="border-t border-stone-200 py-6">
               <PostLinkSection
                 content={content}
                 canEdit={canEdit}
@@ -645,20 +770,15 @@ export function ContentDetailView({
               />
             </div>
 
-            {/* Post objective */}
             {content.details && (
-              <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+              <div className="border-t border-stone-200 py-6">
                 <PostObjective content={content} />
               </div>
             )}
 
-            {/* Version History */}
-            <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="border-t border-stone-200 py-6">
               <ContentHistoryPanel contentId={content.id} variant="timeline" />
             </div>
-
-            {/* Review Comments */}
-            <ContentComments contentId={content.id} />
           </aside>
         </div>
       </div>
