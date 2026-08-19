@@ -199,6 +199,7 @@ export function useTeamCalendarWorkspace(
     selectedDate,
     monthName,
     eventsThisMonth,
+    currentUserId,
     isSelf,
     isMobile,
     // panel
