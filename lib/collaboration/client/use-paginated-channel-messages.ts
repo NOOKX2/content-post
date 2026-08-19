@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { mutate } from "swr";
+import { mutate, useSWRConfig } from "swr";
 import type { CollaborationMessageItem } from "@/lib/collaboration/types";
 import {
   fetchChannelMessagesPage,
@@ -11,11 +11,7 @@ import {
   collabMessagesKey,
   useCollaborationBootstrap,
 } from "@/lib/collaboration/client/collaboration-provider";
-import {
-  getCachedChannelMessages,
-  resolveChannelMessageSeed,
-} from "@/lib/collaboration/client/channel-message-seed";
-import { prefetchCollaboration } from "@/lib/collaboration/client/prefetch-collaboration";
+import { getPrefetchedCollaborationBootstrap, prefetchCollaboration } from "@/lib/collaboration/client/prefetch-collaboration";
 
 function mergeUniqueMessages(
   existing: CollaborationMessageItem[],
@@ -48,10 +44,42 @@ function syncMessagesCache(
   void mutate(collabMessagesKey(channelId), messages, { revalidate: false });
 }
 
+type SwrCacheMap = Map<string, { data?: unknown }>;
+
+function resolveInitialSeed(
+  swrCache: SwrCacheMap,
+  channelId: string,
+  bootstrapMessages: CollaborationMessageItem[] | undefined
+): CollaborationMessageItem[] | undefined {
+  // Priority 1: SSR bootstrap context (fastest - already in React tree)
+  if (bootstrapMessages !== undefined) return bootstrapMessages;
+
+  // Priority 2: SWR cache — exact same key used by syncMessagesCache
+  const key = collabMessagesKey(channelId);
+  const entry = swrCache.get(key);
+  if (entry?.data !== undefined) {
+    return entry.data as CollaborationMessageItem[];
+  }
+
+  // Priority 3: module-level prefetch cache
+  const prefetched = getPrefetchedCollaborationBootstrap();
+  if (prefetched && channelId in prefetched.initialMessagesByChannelId) {
+    return prefetched.initialMessagesByChannelId[channelId];
+  }
+
+  return undefined;
+}
+
 export function usePaginatedChannelMessages(channelId: string) {
   const bootstrap = useCollaborationBootstrap();
   const bootstrapMessages = bootstrap?.initialMessagesByChannelId[channelId];
-  const seedMessages = resolveChannelMessageSeed(channelId, bootstrapMessages);
+  const { cache } = useSWRConfig();
+
+  const seedMessages = resolveInitialSeed(
+    cache as SwrCacheMap,
+    channelId,
+    bootstrapMessages
+  );
   const hasSeed = seedMessages !== undefined;
 
   const [messages, setMessages] = useState<CollaborationMessageItem[]>(
@@ -104,7 +132,13 @@ export function usePaginatedChannelMessages(channelId: string) {
   useEffect(() => {
     let cancelled = false;
 
-    const resolvedSeed = resolveChannelMessageSeed(channelId, bootstrapMessages);
+    // Re-resolve seed inside effect so it picks up SWR cache populated after
+    // mount (e.g. from a prefetch that finished just before navigation).
+    const resolvedSeed = resolveInitialSeed(
+      cache as SwrCacheMap,
+      channelId,
+      bootstrapMessages
+    );
 
     if (resolvedSeed !== undefined) {
       setMessages(resolvedSeed);
@@ -118,10 +152,14 @@ export function usePaginatedChannelMessages(channelId: string) {
       setHasMoreOlder(true);
       hasMoreOlderRef.current = true;
 
+      // Try prefetch first; if already done it resolves in <1ms
       void prefetchCollaboration().then(() => {
         if (cancelled) return;
 
-        const cached = getCachedChannelMessages(channelId);
+        const prefetched = getPrefetchedCollaborationBootstrap();
+        const cached =
+          prefetched?.initialMessagesByChannelId[channelId];
+
         if (cached !== undefined) {
           setMessages(cached);
           setLoadingInitial(false);
@@ -142,6 +180,7 @@ export function usePaginatedChannelMessages(channelId: string) {
   }, [
     channelId,
     bootstrapMessages,
+    cache,
     loadInitial,
     revalidateInBackground,
   ]);

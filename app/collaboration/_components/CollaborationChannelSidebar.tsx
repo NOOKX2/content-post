@@ -30,10 +30,12 @@ export function CollaborationChannelSidebar({
   activeChannelId,
   onSelect,
   className,
+  loading = false,
 }: {
   activeChannelId: string | null;
   onSelect: (channel: CollaborationChannelItem) => void;
   className?: string;
+  loading?: boolean;
 }) {
   const { t } = useT();
   const { data: session } = useSession();
@@ -192,7 +194,19 @@ export function CollaborationChannelSidebar({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-        {listTab === "messages" ? (
+        {loading ? (
+          <div className="animate-pulse space-y-1 px-1 py-1">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-xl px-3 py-2.5">
+                <div className="h-9 w-9 shrink-0 rounded-full bg-stone-200" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3 w-2/3 rounded bg-stone-200" />
+                  <div className="h-2.5 w-1/2 rounded bg-stone-100" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : listTab === "messages" ? (
           messageRows.length === 0 ? (
             <p className="px-3 py-10 text-center text-xs text-stone-500">
               {query ? t("team.noMembersFound") : t("team.noMembers")}
@@ -301,3 +315,4 @@ export function CollaborationChannelSidebar({
     </aside>
   );
 }
+

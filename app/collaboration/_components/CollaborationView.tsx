@@ -12,7 +12,6 @@ import {
   TeamWorkspaceRail,
   type TeamWorkspaceSection,
 } from "@/app/collaboration/_components/TeamWorkspaceRail";
-import { CollaborationShell } from "@/app/collaboration/_components/CollaborationShell";
 import {
   COLLAB_CHANNELS_KEY,
   patchChannelsUnread,
@@ -91,10 +90,6 @@ export function CollaborationView() {
     void prefetchCollaboration();
   }, [bootstrap, channels.length]);
 
-  if (channelsLoading && !bootstrap && channels.length === 0) {
-    return <CollaborationShell />;
-  }
-
   const activeChannel =
     channels.find((channel) => channel.id === activeChannelId) ?? null;
 
@@ -127,6 +122,7 @@ export function CollaborationView() {
             activeChannelId={activeChannelId}
             onSelect={(channel) => handleSelectChannel(channel.id)}
             className={cn(mobileChatOpen && "hidden md:flex")}
+            loading={channelsLoading && channels.length === 0}
           />
           {activeChannel ? (
             <CollaborationChatPanel
@@ -140,6 +136,12 @@ export function CollaborationView() {
                 mobileChatOpen ? "flex" : "hidden md:flex"
               )}
             />
+          ) : channelsLoading && channels.length === 0 ? (
+            <div className="hidden flex-1 animate-pulse flex-col gap-3 p-4 md:flex">
+              <div className="h-10 w-48 rounded-lg bg-stone-200" />
+              <div className="h-32 rounded-2xl bg-stone-200" />
+              <div className="h-64 rounded-2xl bg-stone-200" />
+            </div>
           ) : (
             <div className="hidden flex-1 items-center justify-center text-sm text-stone-500 md:flex">
               {t("team.selectChat")}
