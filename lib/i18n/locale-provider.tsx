@@ -8,7 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { DEFAULT_LOCALE, LOCALE_COOKIE, type Locale } from "./config";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, type Locale } from "./config";
 import { createTranslator, type TFunction } from "./translate";
 
 type LocaleContextValue = {
@@ -24,6 +24,15 @@ function persistLocale(locale: Locale) {
   document.documentElement.lang = locale;
 }
 
+function readLocaleCookie(): Locale {
+  if (typeof document === "undefined") return DEFAULT_LOCALE;
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`)
+  );
+  const value = match?.[1] ? decodeURIComponent(match[1]) : null;
+  return isLocale(value) ? value : DEFAULT_LOCALE;
+}
+
 export function LocaleProvider({
   children,
   initialLocale = DEFAULT_LOCALE,
@@ -32,6 +41,16 @@ export function LocaleProvider({
   initialLocale?: Locale;
 }) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
+
+  useEffect(() => {
+    const fromCookie = readLocaleCookie();
+    if (fromCookie !== locale) {
+      setLocaleState(fromCookie);
+    }
+    document.documentElement.lang = fromCookie;
+    // Only sync cookie → state on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = locale;

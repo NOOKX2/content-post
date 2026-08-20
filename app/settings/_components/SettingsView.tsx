@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
@@ -43,7 +43,7 @@ export function SettingsView() {
   const [uploading, setUploading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
-  const [error, setError] = useState(profile ? "" : t("profile.loadFailed"));
+  const [error, setError] = useState("");
 
   const profileForm = useForm({
     resolver: zodResolver(profileFormSchema),
@@ -59,6 +59,13 @@ export function SettingsView() {
   });
 
   const imageUrl = profileForm.watch("imageUrl");
+
+  useEffect(() => {
+    if (profile) {
+      profileForm.reset(formFromProfile(profile));
+      setError("");
+    }
+  }, [profile, profileForm]);
 
   function applyProfile(next: UserProfile) {
     setProfile(next);

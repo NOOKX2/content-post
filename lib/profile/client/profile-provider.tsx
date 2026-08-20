@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useSession } from "next-auth/react";
+import { fetchMyProfile } from "@/lib/profile/actions";
 import type { UserProfile } from "@/lib/profile/types";
 
 type ProfileContextValue = {
@@ -12,12 +20,31 @@ const ProfileContext = createContext<ProfileContextValue | null>(null);
 
 export function ProfileProvider({
   children,
-  initialProfile = null,
 }: {
   children: React.ReactNode;
-  initialProfile?: UserProfile | null;
 }) {
-  const [profile, setProfile] = useState<UserProfile | null>(initialProfile);
+  const { status } = useSession();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      setProfile(null);
+      return;
+    }
+
+    let cancelled = false;
+    void fetchMyProfile().then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        setProfile(result.data);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
+
   const value = useMemo(
     () => ({ profile, setProfile }),
     [profile]

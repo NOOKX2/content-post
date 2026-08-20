@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useSession } from "next-auth/react";
+import { fetchArchive } from "@/lib/archive/actions";
 import type {
   ArchivePayload,
   ArchiveProductRecord,
@@ -34,17 +42,35 @@ const ArchiveContext = createContext<ArchiveContextValue | null>(null);
 
 export function ArchiveProvider({
   children,
-  initialArchive = EMPTY_ARCHIVE,
-  initialError = "",
 }: {
   children: React.ReactNode;
-  initialArchive?: ArchivePayload | null;
-  initialError?: string;
 }) {
-  const [archive, setArchive] = useState<ArchivePayload>(
-    initialArchive ?? EMPTY_ARCHIVE
-  );
-  const [error] = useState(initialError);
+  const { status } = useSession();
+  const [archive, setArchive] = useState<ArchivePayload>(EMPTY_ARCHIVE);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      setArchive(EMPTY_ARCHIVE);
+      setError("");
+      return;
+    }
+
+    let cancelled = false;
+    void fetchArchive().then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        setArchive(result.data);
+        setError("");
+      } else {
+        setError(result.error);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
 
   const value = useMemo<ArchiveContextValue>(
     () => ({
