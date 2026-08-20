@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Header } from "@/components/layout/Header";
 import { Tabs } from "@/components/ui/Tabs";
@@ -13,31 +14,20 @@ import { useT } from "@/lib/i18n";
 
 type ArchiveTab = "history" | "brand" | "products";
 
-function readArchiveTab(): ArchiveTab {
-  if (typeof window === "undefined") {
-    return "history";
-  }
-
-  const tab = new URLSearchParams(window.location.search).get("tab");
+function readArchiveTab(tab: string | null): ArchiveTab {
   if (tab === "brand" || tab === "products") {
     return tab;
   }
-
   return "history";
 }
 
-export function ArchiveView() {
+function ArchiveViewContent() {
   const { data: session } = useSession();
   const { t } = useT();
   const { navigate } = useDashboardNav();
+  const searchParams = useSearchParams();
   const { archive, setHistory, setAssets, setProducts, error } = useArchive();
-  const [tab, setTab] = useState<ArchiveTab>(readArchiveTab);
-
-  useEffect(() => {
-    const syncTab = () => setTab(readArchiveTab());
-    window.addEventListener("popstate", syncTab);
-    return () => window.removeEventListener("popstate", syncTab);
-  }, []);
+  const tab = readArchiveTab(searchParams.get("tab"));
 
   return (
     <>
@@ -52,7 +42,6 @@ export function ArchiveView() {
           activeTab={tab}
           onChange={(id) => {
             const next = id as ArchiveTab;
-            setTab(next);
             navigate(next === "history" ? "/archive" : `/archive?tab=${next}`);
           }}
         />
@@ -79,5 +68,13 @@ export function ArchiveView() {
         )}
       </div>
     </>
+  );
+}
+
+export function ArchiveView() {
+  return (
+    <Suspense fallback={null}>
+      <ArchiveViewContent />
+    </Suspense>
   );
 }

@@ -38,13 +38,15 @@ export function ScheduleMeetingDialog({
   onSubmit: (draft: MeetingDraft) => void;
 }) {
   const { t } = useT();
-  const {
-    title, setTitle,
-    meetUrl, setMeetUrl,
-    startsAt, setStartsAt,
-    endsAt, setEndsAt,
-    handleSubmit,
-  } = useScheduleMeetingDialog(open, prefillStart, prefillEnd, onSubmit);
+  const { register, watch, handleSubmit } = useScheduleMeetingDialog(
+    open,
+    prefillStart,
+    prefillEnd,
+    onSubmit
+  );
+  const title = watch("title");
+  const startsAt = watch("startsAt");
+  const endsAt = watch("endsAt");
 
   if (!open) return null;
 
@@ -70,22 +72,22 @@ export function ScheduleMeetingDialog({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3 p-5">
           <FieldShell icon={Type}>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("team.meetingTitle")} className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 outline-none" required autoFocus />
+            <input {...register("title")} placeholder={t("team.meetingTitle")} className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 outline-none" autoFocus />
           </FieldShell>
           <FieldShell icon={Link2}>
-            <input value={meetUrl} onChange={(e) => setMeetUrl(e.target.value)} placeholder={t("team.meetUrlPlaceholder")} className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 outline-none" />
+            <input {...register("meetUrl")} placeholder={t("team.meetUrlPlaceholder")} className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 outline-none" />
           </FieldShell>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="text-xs font-medium text-stone-600">{t("team.startTime")}</label>
               <FieldShell icon={Calendar}>
-                <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 outline-none" required />
+                <input type="datetime-local" {...register("startsAt")} className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 outline-none" />
               </FieldShell>
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-stone-600">{t("team.endTime")}</label>
               <FieldShell icon={Calendar}>
-                <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 outline-none" required />
+                <input type="datetime-local" {...register("endsAt")} className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 outline-none" />
               </FieldShell>
             </div>
           </div>

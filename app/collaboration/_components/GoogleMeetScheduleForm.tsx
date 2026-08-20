@@ -1,7 +1,10 @@
 "use client";
 
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Link2, Type, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { meetingDraftSchema } from "@/lib/content/domain/form-schema";
 import { cn } from "@/lib/shared/utils";
 
 function FieldShell({
@@ -51,9 +54,20 @@ export function GoogleMeetSchedulePanel({
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
 }) {
+  const { register, handleSubmit, watch } = useForm({
+    resolver: zodResolver(meetingDraftSchema),
+    values: {
+      title: meetingTitle,
+      meetUrl,
+      startsAt,
+      endsAt,
+    },
+  });
+  const titleValue = watch("title");
+
   return (
     <form
-      onSubmit={onSubmit}
+      onSubmit={handleSubmit(() => onSubmit({ preventDefault() {} } as React.FormEvent))}
       className="mb-3 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm"
     >
       <div className="flex items-center justify-between gap-3 border-b border-stone-100 px-3 py-2.5">
@@ -79,19 +93,20 @@ export function GoogleMeetSchedulePanel({
       <div className="space-y-2.5 p-3">
         <FieldShell icon={Type}>
           <input
-            value={meetingTitle}
-            onChange={(e) => setMeetingTitle(e.target.value)}
+            {...register("title", {
+              onChange: (e) => setMeetingTitle(e.target.value),
+            })}
             placeholder="Meeting Title"
             className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 outline-none"
-            required
             autoFocus
           />
         </FieldShell>
 
         <FieldShell icon={Link2}>
           <input
-            value={meetUrl}
-            onChange={(e) => setMeetUrl(e.target.value)}
+            {...register("meetUrl", {
+              onChange: (e) => setMeetUrl(e.target.value),
+            })}
             placeholder="ลิงก์ Meet (เว้นว่างเพื่อสร้างอัตโนมัติ)"
             className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 outline-none"
           />
@@ -108,10 +123,10 @@ export function GoogleMeetSchedulePanel({
             <FieldShell icon={Calendar}>
               <input
                 type="datetime-local"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
+                {...register("startsAt", {
+                  onChange: (e) => setStartsAt(e.target.value),
+                })}
                 className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 outline-none"
-                required
               />
             </FieldShell>
           </div>
@@ -122,10 +137,10 @@ export function GoogleMeetSchedulePanel({
             <FieldShell icon={Calendar}>
               <input
                 type="datetime-local"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
+                {...register("endsAt", {
+                  onChange: (e) => setEndsAt(e.target.value),
+                })}
                 className="min-w-0 flex-1 bg-transparent text-sm text-stone-900 outline-none"
-                required
               />
             </FieldShell>
           </div>
@@ -145,7 +160,7 @@ export function GoogleMeetSchedulePanel({
           type="submit"
           size="sm"
           className="bg-slate-900 px-4 hover:bg-slate-800"
-          disabled={submitting || !meetingTitle.trim() || !startsAt || !endsAt}
+          disabled={submitting || !titleValue.trim() || !startsAt || !endsAt}
         >
           Schedule Meeting
         </Button>

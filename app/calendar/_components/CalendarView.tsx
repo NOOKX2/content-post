@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLink } from "@/components/layout/DashboardLink";
 import {
   ChevronLeft,
@@ -24,6 +26,7 @@ import {
   type CalendarDateField,
 } from "@/lib/calendar/domain/filters";
 import { cn, formatLocations } from "@/lib/shared/utils";
+import { calendarEventSchema } from "@/lib/content/domain/form-schema";
 import { dateLocale, useT } from "@/lib/i18n";
 
 interface EventModalProps {
@@ -49,17 +52,23 @@ export function EventModal({
   defaultDate,
   onSave,
 }: EventModalProps) {
-  const [name, setName] = useState(content?.name ?? "");
-  const [scheduledDate, setScheduledDate] = useState(
-    content?.scheduledDate ?? defaultDate ?? ""
-  );
-  const [scheduledTime, setScheduledTime] = useState(
-    content?.scheduledTime ?? "10:00"
-  );
-  const [endTime, setEndTime] = useState(content?.endTime ?? "11:00");
-  const [channel, setChannel] = useState(content?.channel ?? "");
-  const [details, setDetails] = useState(content?.details ?? "");
-  const [ideaCreator, setIdeaCreator] = useState(content?.ideaCreator ?? "");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(calendarEventSchema),
+    defaultValues: {
+      name: content?.name ?? "",
+      scheduledDate: content?.scheduledDate ?? defaultDate ?? "",
+      scheduledTime: content?.scheduledTime ?? "10:00",
+      endTime: content?.endTime ?? "11:00",
+      channel: content?.channel ?? "",
+      details: content?.details ?? "",
+      ideaCreator: content?.ideaCreator ?? "",
+    },
+  });
   const { data: postingData } = useSWR("/api/posting-channels", (url: string) =>
     fetch(url).then((res) => res.json())
   );
@@ -69,20 +78,25 @@ export function EventModal({
       label: item.label,
     })) ?? [];
 
+  useEffect(() => {
+    if (!open) return;
+    reset({
+      name: content?.name ?? "",
+      scheduledDate: content?.scheduledDate ?? defaultDate ?? "",
+      scheduledTime: content?.scheduledTime ?? "10:00",
+      endTime: content?.endTime ?? "11:00",
+      channel: content?.channel ?? "",
+      details: content?.details ?? "",
+      ideaCreator: content?.ideaCreator ?? "",
+    });
+  }, [open, content, defaultDate, reset]);
+
   if (!open) return null;
 
-  const handleSave = () => {
-    onSave?.({
-      name,
-      scheduledDate,
-      scheduledTime,
-      endTime,
-      channel,
-      details,
-      ideaCreator,
-    });
+  const onSubmit = handleSubmit((values) => {
+    onSave?.(values);
     onClose();
-  };
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -104,49 +118,42 @@ export function EventModal({
           </button>
         </div>
 
+        <form onSubmit={onSubmit}>
         <div className="space-y-4 p-6">
           <Input
             label="ชื่อ Event"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
             placeholder="Product Design"
+            error={errors.name?.message}
+            {...register("name")}
           />
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="วันที่"
               type="date"
-              value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value)}
+              {...register("scheduledDate")}
             />
             <Input
               label="เวลา post"
               type="time"
-              value={scheduledTime}
-              onChange={(e) => {
-                setScheduledTime(e.target.value);
-                setEndTime("");
-              }}
+              {...register("scheduledTime")}
             />
           </div>
           <Select
             label="ช่อง"
             options={channelOptions}
             placeholder="เลือก..."
-            value={channel}
-            onChange={(e) => setChannel(e.target.value)}
+            {...register("channel")}
           />
           <Select
             label="ผู้รับผิดชอบ"
             options={TEAM_MEMBERS}
             placeholder="เลือก..."
-            value={ideaCreator}
-            onChange={(e) => setIdeaCreator(e.target.value)}
+            {...register("ideaCreator")}
           />
           <Textarea
             label="รายละเอียด"
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
             rows={3}
+            {...register("details")}
           />
 
           {content && (
@@ -166,11 +173,12 @@ export function EventModal({
         </div>
 
         <div className="flex justify-end gap-3 border-t border-stone-200 px-6 py-4">
-          <Button variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={onClose}>
             ยกเลิก
           </Button>
-          <Button onClick={handleSave}>บันทึก</Button>
+          <Button type="submit">บันทึก</Button>
         </div>
+        </form>
       </div>
     </div>
   );

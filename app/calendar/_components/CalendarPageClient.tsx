@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { CalendarView } from "@/app/calendar/_components/CalendarView";
@@ -19,7 +20,13 @@ import {
   type DateRangePreset,
   type PostStatusFilter,
 } from "@/lib/calendar/domain/filters";
-import type { MediaType } from "@/lib/types";
+import {
+  calendarStateToSearchParams,
+  parseCalendarSearchParams,
+  type CalendarUrlState,
+  type CalendarViewMode,
+  type MediaTypeFilter,
+} from "@/lib/calendar/domain/url-state";
 import { fetchMeetings } from "@/lib/collaboration/actions/fetch";
 import {
   getGoogleCalendarStatusAction,
@@ -27,21 +34,26 @@ import {
 } from "@/lib/content/actions/google-calendar";
 import { dateLocale, useT } from "@/lib/i18n";
 
-type CalendarViewMode = "month" | "week";
-type MediaTypeFilter = "all" | MediaType;
-
-export function CalendarPageClient() {
+function CalendarPageContent() {
   const { t, locale } = useT();
-  const [mode, setMode] = useState<CalendarMode>("post");
-  const [view, setView] = useState<CalendarViewMode>("month");
-  const [search, setSearch] = useState("");
-  const [dateField, setDateField] = useState<CalendarDateField>("post");
-  const [statusFilter, setStatusFilter] = useState<PostStatusFilter>("all");
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<MediaTypeFilter>("all");
-  const [rangeStart, setRangeStart] = useState("");
-  const [rangeEnd, setRangeEnd] = useState("");
-  const [activePreset, setActivePreset] = useState<DateRangePreset | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const state = useMemo(
+    () => parseCalendarSearchParams(searchParams),
+    [searchParams]
+  );
   const [syncingGoogle, setSyncingGoogle] = useState(false);
+
+  const replaceState = useCallback(
+    (patch: Partial<CalendarUrlState>) => {
+      const next = { ...state, ...patch };
+      const params = calendarStateToSearchParams(next);
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, router, state]
+  );
 
   const { contents, mutateContents } = useContents();
   const { data: session } = useSession();
@@ -54,46 +66,37 @@ export function CalendarPageClient() {
   );
 
   const handleModeChange = (nextMode: CalendarMode) => {
-    setMode(nextMode);
-    setDateField(nextMode === "post" ? "post" : "ideaFinished");
-    if (nextMode === "prepost") {
-      setStatusFilter("all");
-    }
+    replaceState({
+      mode: nextMode,
+      dateField: nextMode === "post" ? "post" : "ideaFinished",
+      statusFilter: nextMode === "prepost" ? "all" : state.statusFilter,
+    });
   };
 
   const filteredContents = useMemo(() => {
     const base = filterCalendarContents(contents, {
-      mode,
-      search,
-      dateField,
-      rangeStart: rangeStart || undefined,
-      rangeEnd: rangeEnd || undefined,
-      statusFilter,
+      mode: state.mode,
+      search: state.search,
+      dateField: state.dateField,
+      rangeStart: state.rangeStart || undefined,
+      rangeEnd: state.rangeEnd || undefined,
+      statusFilter: state.statusFilter,
     });
-    if (mediaTypeFilter === "all") return base;
-    return base.filter((content) => content.mediaType === mediaTypeFilter);
-  }, [
-    contents,
-    mode,
-    search,
-    dateField,
-    rangeStart,
-    rangeEnd,
-    statusFilter,
-    mediaTypeFilter,
-  ]);
+    if (state.mediaTypeFilter === "all") return base;
+    return base.filter((content) => content.mediaType === state.mediaTypeFilter);
+  }, [contents, state]);
 
   const summarySource = useMemo(
     () =>
       filterCalendarContents(contents, {
         mode: "post",
-        search,
+        search: state.search,
         dateField: "post",
-        rangeStart: rangeStart || undefined,
-        rangeEnd: rangeEnd || undefined,
+        rangeStart: state.rangeStart || undefined,
+        rangeEnd: state.rangeEnd || undefined,
         statusFilter: "all",
       }),
-    [contents, search, rangeStart, rangeEnd]
+    [contents, state.search, state.rangeStart, state.rangeEnd]
   );
 
   const summary = useMemo(
@@ -116,21 +119,25 @@ export function CalendarPageClient() {
   }, [locale]);
 
   const handleClearRange = () => {
-    setRangeStart("");
-    setRangeEnd("");
-    setActivePreset(null);
+    replaceState({
+      rangeStart: "",
+      rangeEnd: "",
+      activePreset: null,
+    });
   };
 
   const handlePresetChange = (preset: Exclude<DateRangePreset, "custom">) => {
-    if (activePreset === preset) {
+    if (state.activePreset === preset) {
       handleClearRange();
       return;
     }
 
     const range = getDateRangeForPreset(preset);
-    setRangeStart(range.start);
-    setRangeEnd(range.end);
-    setActivePreset(preset);
+    replaceState({
+      rangeStart: range.start,
+      rangeEnd: range.end,
+      activePreset: preset,
+    });
   };
 
   const handleSyncGoogle = async () => {
@@ -166,31 +173,35 @@ export function CalendarPageClient() {
       <Header session={session} title={t("calendar.pageTitle")} compact />
       <div className="space-y-4 bg-white px-4 py-4 sm:px-6">
         <CalendarToolbar
-          mode={mode}
+          mode={state.mode}
           onModeChange={handleModeChange}
-          search={search}
-          onSearchChange={setSearch}
-          dateField={dateField}
-          onDateFieldChange={setDateField}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          mediaTypeFilter={mediaTypeFilter}
-          onMediaTypeFilterChange={setMediaTypeFilter}
-          rangeStart={rangeStart}
-          rangeEnd={rangeEnd}
+          search={state.search}
+          onSearchChange={(value) => replaceState({ search: value })}
+          dateField={state.dateField}
+          onDateFieldChange={(value: CalendarDateField) =>
+            replaceState({ dateField: value })
+          }
+          statusFilter={state.statusFilter}
+          onStatusFilterChange={(value: PostStatusFilter) =>
+            replaceState({ statusFilter: value })
+          }
+          mediaTypeFilter={state.mediaTypeFilter}
+          onMediaTypeFilterChange={(value: MediaTypeFilter) =>
+            replaceState({ mediaTypeFilter: value })
+          }
+          rangeStart={state.rangeStart}
+          rangeEnd={state.rangeEnd}
           onRangeStartChange={(value) => {
-            setRangeStart(value);
-            setActivePreset("custom");
+            replaceState({ rangeStart: value, activePreset: "custom" });
           }}
           onRangeEndChange={(value) => {
-            setRangeEnd(value);
-            setActivePreset("custom");
+            replaceState({ rangeEnd: value, activePreset: "custom" });
           }}
-          activePreset={activePreset}
+          activePreset={state.activePreset}
           onPresetChange={handlePresetChange}
           onClearRange={handleClearRange}
-          view={view}
-          onViewChange={(id) => setView(id as CalendarViewMode)}
+          view={state.view}
+          onViewChange={(id) => replaceState({ view: id as CalendarViewMode })}
           viewTabs={[
             { id: "month", label: t("calendar.month") },
             { id: "week", label: t("calendar.week") },
@@ -200,18 +211,18 @@ export function CalendarPageClient() {
           onSyncGoogle={() => void handleSyncGoogle()}
         />
 
-        {view === "week" ? (
-          <CalendarView contents={filteredContents} dateField={dateField} />
+        {state.view === "week" ? (
+          <CalendarView contents={filteredContents} dateField={state.dateField} />
         ) : (
           <ContentCalendarGrid
             contents={filteredContents}
-            dateField={dateField}
+            dateField={state.dateField}
             meetings={meetings}
             showMeetings
           />
         )}
 
-        {mode === "post" && (
+        {state.mode === "post" && (
           <div className="grid gap-6 pt-2 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
             <CalendarMonthlyPlan
               posted={summary.posted}
@@ -230,5 +241,13 @@ export function CalendarPageClient() {
         )}
       </div>
     </>
+  );
+}
+
+export function CalendarPageClient() {
+  return (
+    <Suspense fallback={null}>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

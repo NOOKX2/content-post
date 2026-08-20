@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import type { MeetingItem } from "@/lib/collaboration/types";
 import type { TeamMemberItem } from "@/lib/collaboration/types/team";
 import type { MeetingKind, NewMeetingDraft } from "@/app/collaboration/_components/NewMeetingPanel";
@@ -11,6 +14,12 @@ import {
   startOfMondayWeek,
 } from "@/app/collaboration/_lib/calendar-utils";
 import { useT } from "@/lib/i18n";
+
+const newMeetingFieldsSchema = z.object({
+  title: z.string(),
+  kind: z.enum(["meeting", "blocked", "personal"]),
+  notes: z.string(),
+});
 
 export function useNewMeetingPanel(
   selectedDate: Date,
@@ -27,8 +36,17 @@ export function useNewMeetingPanel(
   const weekStart = startOfMondayWeek(selectedDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const [title, setTitle] = useState("");
-  const [kind, setKind] = useState<MeetingKind>("meeting");
+  const form = useForm({
+    resolver: zodResolver(newMeetingFieldsSchema),
+    defaultValues: { title: "", kind: "meeting" as MeetingKind, notes: "" },
+  });
+  const title = form.watch("title");
+  const kind = form.watch("kind");
+  const notes = form.watch("notes");
+  const setTitle = (value: string) => form.setValue("title", value);
+  const setKind = (value: MeetingKind) => form.setValue("kind", value);
+  const setNotes = (value: string) => form.setValue("notes", value);
+
   const [day, setDay] = useState(selectedDate);
   const [startHour, setStartHour] = useState(prefillStart?.getHours() ?? 10);
   const [startMinute, setStartMinute] = useState(0);
@@ -37,7 +55,6 @@ export function useNewMeetingPanel(
   );
   const [endMinute, setEndMinute] = useState(0);
   const [attendeeIds, setAttendeeIds] = useState<string[]>(defaultAttendeeIds);
-  const [notes, setNotes] = useState("");
 
   useEffect(() => { setDay(selectedDate); }, [selectedDate]);
   useEffect(() => {
@@ -97,16 +114,22 @@ export function useNewMeetingPanel(
     );
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = form.handleSubmit((values) => {
     const fallbackTitle =
-      kind === "blocked" ? t("team.meetingKindBlocked")
-      : kind === "personal" ? t("team.meetingKindPersonal")
-      : title.trim();
-    const resolved = title.trim() || fallbackTitle;
+      values.kind === "blocked" ? t("team.meetingKindBlocked")
+      : values.kind === "personal" ? t("team.meetingKindPersonal")
+      : values.title.trim();
+    const resolved = values.title.trim() || fallbackTitle;
     if (!resolved) return;
-    onSubmit({ title: resolved, kind, startsAt, endsAt, attendeeIds, notes: notes.trim() });
-  };
+    onSubmit({
+      title: resolved,
+      kind: values.kind,
+      startsAt,
+      endsAt,
+      attendeeIds,
+      notes: values.notes.trim(),
+    });
+  });
 
   const kinds: { id: MeetingKind; label: string }[] = [
     { id: "meeting", label: t("team.meetingKindMeeting") },

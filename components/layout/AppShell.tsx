@@ -4,11 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { MobileBottomNav } from "./MobileBottomNav";
-import { DashboardRouter } from "./DashboardRouter";
-import {
-  DashboardNavProvider,
-  useDashboardNav,
-} from "@/lib/navigation/client/dashboard-nav";
+import { DashboardNavProvider } from "@/lib/navigation/client/dashboard-nav";
 import { AppSessionProvider } from "@/lib/auth/client/app-session";
 import { prefetchCollaboration } from "@/lib/collaboration/client/prefetch-collaboration";
 import { cn } from "@/lib/shared/utils";
@@ -24,13 +20,8 @@ function AppShellMain({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { activePath } = useDashboardNav();
-  const isDashboard = activePath === "/dashboard";
-  const isCollaboration = activePath === "/collaboration";
-  const isFullHeightView = isDashboard || isCollaboration;
-  // Use pathname only — activePath can lag behind on first navigation,
-  // causing a blank page while DashboardRouter renders instead of children.
-  const useStreamedCollaboration = pathname === "/collaboration";
+  const isFullHeightView =
+    pathname === "/dashboard" || pathname === "/collaboration";
 
   useEffect(() => {
     if (session?.user) {
@@ -48,7 +39,7 @@ function AppShellMain({
             isFullHeightView ? "overflow-hidden" : "overflow-y-auto"
           )}
         >
-          {useStreamedCollaboration ? children : <DashboardRouter />}
+          {children}
         </main>
         <MobileBottomNav session={session} />
       </div>

@@ -1,15 +1,9 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import { CollaborationPageClient } from "@/app/collaboration/_components/CollaborationPageClient";
-import { getCollaborationBootstrap } from "@/lib/collaboration/data/queries";
 
-export default async function CollaborationPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  const bootstrap = await getCollaborationBootstrap(session.user.id);
-
-  return <CollaborationPageClient bootstrap={bootstrap} />;
+export default function CollaborationPage() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <CollaborationPageClient />
+    </div>
+  );
 }

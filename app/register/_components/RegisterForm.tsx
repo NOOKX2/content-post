@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -12,37 +14,28 @@ import {
   AuthFormPanel,
 } from "@/components/auth/AuthLayout";
 import { AuthField } from "@/components/auth/AuthField";
+import { registerSchema } from "@/lib/content/domain/form-schema";
 import { useT } from "@/lib/i18n";
 
 export function RegisterForm() {
   const router = useRouter();
   const { t } = useT();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting, errors },
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = handleSubmit(async ({ name, email, password }) => {
     setError("");
-
-    if (password !== confirmPassword) {
-      setError(t("auth.passwordMismatch"));
-      return;
-    }
-
-    setLoading(true);
-
     try {
       const result = await registerUser({ name, email, password });
 
       if (!result.success) {
-        console.warn("[register] registerUser returned error", {
-          email,
-          error: result.error,
-        });
         setError(result.error);
         return;
       }
@@ -54,25 +47,16 @@ export function RegisterForm() {
       });
 
       if (signInResult?.error) {
-        console.error("[register] signIn failed", {
-          email,
-          signInError: signInResult.error,
-        });
         setError(t("auth.registerThenLoginFailed"));
         return;
       }
 
       router.push("/create");
       router.refresh();
-    } catch (err) {
-      const msg =
-        err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : { err };
-      console.error("[register] unexpected error", { email, ...msg });
+    } catch {
       setError(t("auth.serverError"));
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
   return (
     <AuthShell
@@ -108,7 +92,7 @@ export function RegisterForm() {
             </p>
           }
         >
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-4">
             {error && (
               <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
                 {error}
@@ -117,54 +101,49 @@ export function RegisterForm() {
 
             <AuthField
               label={t("auth.name")}
-              value={name}
-              onChange={setName}
               placeholder={t("auth.namePlaceholder")}
-              required
               autoComplete="name"
               icon={<User className="h-4 w-4" />}
+              error={errors.name?.message}
+              {...register("name")}
             />
 
             <AuthField
               label={t("auth.email")}
               type="email"
-              value={email}
-              onChange={setEmail}
               placeholder="you@example.com"
-              required
               autoComplete="email"
               icon={<Mail className="h-4 w-4" />}
+              error={errors.email?.message}
+              {...register("email")}
             />
 
             <AuthField
               label={t("auth.password")}
               type="password"
-              value={password}
-              onChange={setPassword}
               placeholder={t("auth.passwordMinHint")}
-              required
-              minLength={8}
               autoComplete="new-password"
               showPasswordToggle
+              error={errors.password?.message}
+              {...register("password")}
             />
 
             <AuthField
               label={t("auth.confirmPassword")}
               type="password"
-              value={confirmPassword}
-              onChange={setConfirmPassword}
               placeholder="••••••••"
-              required
               autoComplete="new-password"
               showPasswordToggle
+              error={errors.confirmPassword?.message}
+              {...register("confirmPassword")}
             />
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isSubmitting}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-sm font-semibold text-white transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none mt-2"
             >
-              {loading ? (
+              {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {t("auth.creatingAccount")}

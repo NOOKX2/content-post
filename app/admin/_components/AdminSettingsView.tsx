@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import {
@@ -31,6 +33,7 @@ import {
 } from "@/lib/auth/domain/roles";
 import type { TeamMemberItem } from "@/lib/collaboration/types/team";
 import { useT } from "@/lib/i18n";
+import { adminUserSchema } from "@/lib/content/domain/form-schema";
 import { cn } from "@/lib/shared/utils";
 import type { Role } from "@prisma/client";
 
@@ -66,12 +69,16 @@ export function AdminSettingsView() {
   const [query, setQuery] = useState("");
   const [menuId, setMenuId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState<AssignableRole>("USER");
+  const addUserForm = useForm({
+    resolver: zodResolver(adminUserSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: "USER" as AssignableRole,
+    },
+  });
 
   const currentUserId = session?.user?.id;
   const filtered = useMemo(() => {
@@ -88,26 +95,20 @@ export function AdminSettingsView() {
 
   const resetForm = () => {
     setAdding(false);
-    setName("");
-    setEmail("");
-    setPassword("");
-    setRole("USER");
     setError("");
+    addUserForm.reset();
   };
 
-  const handleCreate = async () => {
-    setSaving(true);
+  const handleCreate = addUserForm.handleSubmit(async (values) => {
     setError("");
     try {
-      await createAdminUser({ name, email, password, role });
+      await createAdminUser(values);
       await mutate();
       resetForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   const handleRole = async (userId: string, nextRole: Role) => {
     try {
@@ -193,31 +194,31 @@ export function AdminSettingsView() {
           </div>
 
           {adding && (
-            <div className="mt-5 grid gap-3 rounded-xl border border-stone-200 bg-stone-50 p-4 md:grid-cols-2 xl:grid-cols-4">
+            <form
+              onSubmit={handleCreate}
+              className="mt-5 grid gap-3 rounded-xl border border-stone-200 bg-stone-50 p-4 md:grid-cols-2 xl:grid-cols-4"
+            >
               <Input
                 label={t("admin.username")}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
+                error={addUserForm.formState.errors.name?.message}
+                {...addUserForm.register("name")}
               />
               <Input
                 label={t("auth.email")}
                 type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                error={addUserForm.formState.errors.email?.message}
+                {...addUserForm.register("email")}
               />
               <Input
                 label={t("admin.tempPassword")}
                 type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                error={addUserForm.formState.errors.password?.message}
+                {...addUserForm.register("password")}
               />
               <Select
                 label={t("admin.roleColumn")}
                 options={roleOptions}
-                value={role}
-                onChange={(event) =>
-                  setRole(event.target.value as AssignableRole)
-                }
+                {...addUserForm.register("role")}
               />
               {error && (
                 <p className="text-sm text-red-600 md:col-span-2 xl:col-span-4">
@@ -225,18 +226,16 @@ export function AdminSettingsView() {
                 </p>
               )}
               <div className="flex gap-2 md:col-span-2 xl:col-span-4">
-                <Button
-                  type="button"
-                  onClick={() => void handleCreate()}
-                  disabled={saving}
-                >
-                  {saving ? t("common.saving") : t("admin.addUser")}
+                <Button type="submit" disabled={addUserForm.formState.isSubmitting}>
+                  {addUserForm.formState.isSubmitting
+                    ? t("common.saving")
+                    : t("admin.addUser")}
                 </Button>
                 <Button type="button" variant="ghost" onClick={resetForm}>
                   {t("common.cancel")}
                 </Button>
               </div>
-            </div>
+            </form>
           )}
 
           <div className="mt-5 overflow-x-auto">

@@ -1,18 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type InputHTMLAttributes } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/shared/utils";
 
-interface AuthFieldProps {
+interface AuthFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
-  type?: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  required?: boolean;
-  autoComplete?: string;
-  minLength?: number;
+  error?: string;
   icon?: React.ReactNode;
   showPasswordToggle?: boolean;
 }
@@ -20,14 +14,11 @@ interface AuthFieldProps {
 export function AuthField({
   label,
   type = "text",
-  value,
-  onChange,
-  placeholder,
-  required,
-  autoComplete,
-  minLength,
   icon,
   showPasswordToggle,
+  error,
+  className,
+  ...props
 }: AuthFieldProps) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
@@ -39,17 +30,13 @@ export function AuthField({
       <div className="relative">
         <input
           type={inputType}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          required={required}
-          autoComplete={autoComplete}
-          minLength={minLength}
           className={cn(
             "h-12 w-full rounded-xl bg-slate-100 px-4 text-sm text-slate-900 placeholder:text-slate-400",
             "transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500",
-            (icon || showPasswordToggle) && "pr-11"
+            (icon || showPasswordToggle) && "pr-11",
+            className
           )}
+          {...props}
         />
         {(icon || (isPassword && showPasswordToggle)) && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -72,6 +59,7 @@ export function AuthField({
           </div>
         )}
       </div>
+      {error ? <p className="text-xs text-red-600">{error}</p> : null}
     </div>
   );
 }

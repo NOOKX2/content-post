@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, FileImage, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,6 +12,7 @@ import {
   updateArchiveProduct,
 } from "@/lib/archive/actions";
 import type { ArchiveProductRecord } from "@/lib/archive/types";
+import { productFormSchema } from "@/lib/content/domain/form-schema";
 import { cn } from "@/lib/shared/utils";
 import { uploadBrowserFile } from "@/lib/shared/storage/upload-browser";
 import { useT } from "@/lib/i18n";
@@ -46,16 +49,27 @@ export function ProductForm({
   onSaved: (product: ArchiveProductRecord) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [name, setName] = useState(product?.name ?? "");
-  const [sku, setSku] = useState(product?.sku ?? "");
-  const [description, setDescription] = useState(product?.description ?? "");
-  const [imageUrl, setImageUrl] = useState(product?.imageUrl ?? "");
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { isSubmitting, errors },
+  } = useForm({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: {
+      name: product?.name ?? "",
+      sku: product?.sku ?? "",
+      description: product?.description ?? "",
+      imageUrl: product?.imageUrl ?? "",
+    },
+  });
+  const imageUrl = watch("imageUrl");
   const [fileName, setFileName] = useState(
     product?.imageUrl ? (product.imageUrl.split("/").pop() ?? "") : ""
   );
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const { t } = useT();
 
@@ -69,7 +83,7 @@ export function ProductForm({
     setError("");
     setFileName(file.name);
     try {
-      setImageUrl(await uploadBrowserFile(file));
+      setValue("imageUrl", await uploadBrowserFile(file), { shouldDirty: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("archive.uploadFailed"));
       setFileName("");
@@ -78,14 +92,11 @@ export function ProductForm({
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
+  const onSubmit = handleSubmit(async (payload) => {
     setError("");
-    const payload = { name, sku, description, imageUrl };
     const result = product
       ? await updateArchiveProduct(product.id, payload)
       : await createArchiveProduct(payload);
-    setSaving(false);
 
     if (!result.success) {
       setError(result.error);
@@ -93,7 +104,7 @@ export function ProductForm({
     }
 
     onSaved(result.data);
-  };
+  });
 
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-7">
@@ -111,20 +122,19 @@ export function ProductForm({
         </button>
       </div>
 
-      <div className="space-y-7">
+      <form onSubmit={onSubmit} className="space-y-7">
         <FormStep step={1} title={t("archive.basicDetails")}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Input
                   label={t("archive.name")}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
                   placeholder={t("archive.namePlaceholder")}
+                  error={errors.name?.message}
+                  {...register("name")}
                 />
                 <Input
                   label={t("archive.sku")}
-                  value={sku}
-                  onChange={(event) => setSku(event.target.value)}
                   placeholder={t("archive.skuPlaceholder")}
+                  {...register("sku")}
                 />
               </div>
             </FormStep>
@@ -132,10 +142,9 @@ export function ProductForm({
             <FormStep step={2} title={t("archive.properties")}>
               <Textarea
                 label={t("archive.description")}
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
                 rows={5}
                 placeholder={t("archive.descriptionPlaceholder")}
+                {...register("description")}
               />
             </FormStep>
 
@@ -226,7 +235,6 @@ export function ProductForm({
             </div>
           )}
         </FormStep>
-      </div>
 
       {error && <p className="mt-5 text-sm text-red-600">{error}</p>}
 
@@ -234,14 +242,11 @@ export function ProductForm({
         <Button type="button" variant="ghost" onClick={onClose}>
           {t("common.cancel")}
         </Button>
-        <Button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={saving || uploading}
-        >
-          {saving ? t("common.saving") : t("archive.saveProduct")}
+        <Button type="submit" disabled={isSubmitting || uploading}>
+          {isSubmitting ? t("common.saving") : t("archive.saveProduct")}
         </Button>
       </div>
+      </form>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import { ImagePlus, Loader2, Save } from "lucide-react";
 import { Header } from "@/components/layout/Header";
@@ -13,6 +15,10 @@ import {
   updateMyProfile,
 } from "@/lib/profile/actions";
 import { PHONE_COUNTRIES, type UserProfile } from "@/lib/profile/types";
+import {
+  changePasswordSchema,
+  profileFormSchema,
+} from "@/lib/content/domain/form-schema";
 import { uploadBrowserFile } from "@/lib/shared/storage/upload-browser";
 import { cn } from "@/lib/shared/utils";
 
@@ -34,37 +40,29 @@ export function SettingsView() {
   const { t } = useT();
   const { profile, setProfile } = useProfile();
   const fileRef = useRef<HTMLInputElement>(null);
-  const initial = formFromProfile(profile);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
-  const [error, setError] = useState(
-    profile ? "" : t("profile.loadFailed")
-  );
-  const [firstName, setFirstName] = useState(initial.firstName);
-  const [lastName, setLastName] = useState(initial.lastName);
-  const [displayName, setDisplayName] = useState(initial.displayName);
-  const [phone, setPhone] = useState(initial.phone);
-  const [phoneCountry, setPhoneCountry] = useState(initial.phoneCountry);
-  const [position, setPosition] = useState(initial.position);
-  const [email, setEmail] = useState(initial.email);
-  const [imageUrl, setImageUrl] = useState(initial.imageUrl);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState(profile ? "" : t("profile.loadFailed"));
+
+  const profileForm = useForm({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: formFromProfile(profile),
+  });
+  const passwordForm = useForm({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  const imageUrl = profileForm.watch("imageUrl");
 
   function applyProfile(next: UserProfile) {
     setProfile(next);
-    setFirstName(next.firstName);
-    setLastName(next.lastName);
-    setDisplayName(next.displayName);
-    setPhone(next.phone);
-    setPhoneCountry(next.phoneCountry || "+66");
-    setPosition(next.position);
-    setEmail(next.email);
-    setImageUrl(next.imageUrl);
+    profileForm.reset(formFromProfile(next));
   }
 
   const handleUpload = async (file: File) => {
@@ -72,7 +70,7 @@ export function SettingsView() {
     setError("");
     try {
       const url = await uploadBrowserFile(file);
-      setImageUrl(url);
+      profileForm.setValue("imageUrl", url, { shouldDirty: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("archive.uploadFailed"));
     } finally {
@@ -80,21 +78,11 @@ export function SettingsView() {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
+  const onSaveProfile = profileForm.handleSubmit(async (values) => {
     setError("");
     setMessage("");
     try {
-      const result = await updateMyProfile({
-        firstName,
-        lastName,
-        displayName,
-        phone,
-        phoneCountry,
-        position,
-        imageUrl,
-        email,
-      });
+      const result = await updateMyProfile(values);
       if (!result.success) {
         setError(result.error);
         return;
@@ -113,39 +101,28 @@ export function SettingsView() {
       setMessage(t("profile.saved"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      setError(t("profile.passwordMismatch"));
-      return;
-    }
-    setChangingPassword(true);
+  const onChangePassword = passwordForm.handleSubmit(async (values) => {
     setError("");
     setMessage("");
     try {
       const result = await changeMyPassword({
-        currentPassword,
-        newPassword,
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
       });
       if (!result.success) {
         setError(result.error);
         return;
       }
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      passwordForm.reset();
       setShowPassword(false);
       setMessage(t("profile.passwordChanged"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setChangingPassword(false);
     }
-  };
+  });
 
   return (
     <>
@@ -153,7 +130,7 @@ export function SettingsView() {
       <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-5 sm:px-6 md:px-8 md:py-8">
         <h2 className="text-2xl font-bold text-stone-900">{t("profile.title")}</h2>
 
-        <div className="space-y-6">
+        <form onSubmit={onSaveProfile} className="space-y-6">
           <div>
             <p className="mb-2 text-sm font-medium text-stone-700">
               {t("profile.photo")}
@@ -196,13 +173,11 @@ export function SettingsView() {
           <div className="grid gap-4 md:grid-cols-3">
             <Input
               label={t("profile.firstName")}
-              value={firstName}
-              onChange={(event) => setFirstName(event.target.value)}
+              {...profileForm.register("firstName")}
             />
             <Input
               label={t("profile.lastName")}
-              value={lastName}
-              onChange={(event) => setLastName(event.target.value)}
+              {...profileForm.register("lastName")}
             />
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-stone-700">
@@ -210,8 +185,7 @@ export function SettingsView() {
               </label>
               <div className="flex gap-2">
                 <select
-                  value={phoneCountry}
-                  onChange={(event) => setPhoneCountry(event.target.value)}
+                  {...profileForm.register("phoneCountry")}
                   className="h-10 w-30 shrink-0 rounded-lg border border-stone-200 bg-white px-2 text-sm"
                 >
                   {PHONE_COUNTRIES.map((item) => (
@@ -221,10 +195,9 @@ export function SettingsView() {
                   ))}
                 </select>
                 <input
-                  value={phone}
-                  onChange={(event) =>
-                    setPhone(event.target.value.replace(/[^\d]/g, ""))
-                  }
+                  {...profileForm.register("phone", {
+                    setValueAs: (value: string) => value.replace(/[^\d]/g, ""),
+                  })}
                   inputMode="tel"
                   className="h-10 min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
@@ -236,14 +209,12 @@ export function SettingsView() {
             <Input
               label={t("profile.displayName")}
               hint={t("profile.displayNameHint")}
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
+              {...profileForm.register("displayName")}
             />
             <Input
               label={t("profile.position")}
-              value={position}
-              onChange={(event) => setPosition(event.target.value)}
               placeholder={t("userMenu.accountOwner")}
+              {...profileForm.register("position")}
             />
           </div>
 
@@ -251,8 +222,8 @@ export function SettingsView() {
             <Input
               label={t("profile.email")}
               type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              error={profileForm.formState.errors.email?.message}
+              {...profileForm.register("email")}
             />
             <button
               type="button"
@@ -268,29 +239,29 @@ export function SettingsView() {
               <Input
                 label={t("profile.currentPassword")}
                 type="password"
-                value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
+                error={passwordForm.formState.errors.currentPassword?.message}
+                {...passwordForm.register("currentPassword")}
               />
               <Input
                 label={t("profile.newPassword")}
                 type="password"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
+                error={passwordForm.formState.errors.newPassword?.message}
+                {...passwordForm.register("newPassword")}
               />
               <div className="flex flex-col gap-1.5">
                 <Input
                   label={t("profile.confirmPassword")}
                   type="password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  error={passwordForm.formState.errors.confirmPassword?.message}
+                  {...passwordForm.register("confirmPassword")}
                 />
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => void handleChangePassword()}
-                  disabled={changingPassword}
+                  onClick={() => void onChangePassword()}
+                  disabled={passwordForm.formState.isSubmitting}
                 >
-                  {changingPassword
+                  {passwordForm.formState.isSubmitting
                     ? t("common.saving")
                     : t("profile.changePassword")}
                 </Button>
@@ -311,20 +282,23 @@ export function SettingsView() {
 
           <div className="flex justify-end">
             <Button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={saving || uploading || !profile}
+              type="submit"
+              disabled={
+                profileForm.formState.isSubmitting || uploading || !profile
+              }
               className="bg-orange-500 shadow-orange-500/20 hover:bg-orange-600"
             >
-              {saving ? (
+              {profileForm.formState.isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              {saving ? t("common.saving") : t("profile.save")}
+              {profileForm.formState.isSubmitting
+                ? t("common.saving")
+                : t("profile.save")}
             </Button>
           </div>
-        </div>
+        </form>
       </div>
     </>
   );

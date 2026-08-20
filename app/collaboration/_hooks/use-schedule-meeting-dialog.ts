@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import type { MeetingDraft } from "@/app/collaboration/_components/ScheduleMeetingDialog";
+import { meetingDraftSchema } from "@/lib/content/domain/form-schema";
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -17,35 +20,39 @@ export function useScheduleMeetingDialog(
   prefillEnd: Date,
   onSubmit: (draft: MeetingDraft) => void
 ) {
-  const [title, setTitle] = useState("");
-  const [meetUrl, setMeetUrl] = useState("");
-  const [startsAt, setStartsAt] = useState("");
-  const [endsAt, setEndsAt] = useState("");
+  const form = useForm({
+    resolver: zodResolver(meetingDraftSchema),
+    defaultValues: {
+      title: "",
+      meetUrl: "",
+      startsAt: toLocalInputValue(prefillStart),
+      endsAt: toLocalInputValue(prefillEnd),
+    },
+  });
 
   useEffect(() => {
     if (open) {
-      setTitle("");
-      setMeetUrl("");
-      setStartsAt(toLocalInputValue(prefillStart));
-      setEndsAt(toLocalInputValue(prefillEnd));
+      form.reset({
+        title: "",
+        meetUrl: "",
+        startsAt: toLocalInputValue(prefillStart),
+        endsAt: toLocalInputValue(prefillEnd),
+      });
     }
-  }, [open, prefillStart, prefillEnd]);
+  }, [open, prefillStart, prefillEnd, form]);
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = form.handleSubmit((values) => {
     onSubmit({
-      title: title.trim(),
-      meetUrl: meetUrl.trim(),
-      startsAt: new Date(startsAt).toISOString(),
-      endsAt: new Date(endsAt).toISOString(),
+      title: values.title.trim(),
+      meetUrl: values.meetUrl.trim(),
+      startsAt: new Date(values.startsAt).toISOString(),
+      endsAt: new Date(values.endsAt).toISOString(),
     });
-  };
+  });
 
   return {
-    title, setTitle,
-    meetUrl, setMeetUrl,
-    startsAt, setStartsAt,
-    endsAt, setEndsAt,
+    register: form.register,
+    watch: form.watch,
     handleSubmit,
   };
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -12,22 +14,24 @@ import {
   AuthFormPanel,
 } from "@/components/auth/AuthLayout";
 import { AuthField } from "@/components/auth/AuthField";
+import { loginSchema } from "@/lib/content/domain/form-schema";
 import { useT } from "@/lib/i18n";
 
 export function LoginForm() {
   const router = useRouter();
   const { t } = useT();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "", remember: false },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = handleSubmit(async ({ email, password }) => {
     setError("");
-    setLoading(true);
-
     try {
       const result = await signIn("credentials", {
         email,
@@ -45,10 +49,8 @@ export function LoginForm() {
       router.refresh();
     } catch {
       setError(t("auth.serverError"));
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
   return (
     <AuthShell
@@ -81,7 +83,7 @@ export function LoginForm() {
             </p>
           }
         >
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={onSubmit} className="space-y-5">
             {error && (
               <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
                 {error}
@@ -91,31 +93,26 @@ export function LoginForm() {
             <AuthField
               label={t("auth.email")}
               type="email"
-              value={email}
-              onChange={setEmail}
               placeholder="you@example.com"
-              required
               autoComplete="email"
               icon={<Mail className="h-4 w-4" />}
+              {...register("email")}
             />
 
             <AuthField
               label={t("auth.password")}
               type="password"
-              value={password}
-              onChange={setPassword}
               placeholder="••••••••"
-              required
               autoComplete="current-password"
               showPasswordToggle
+              {...register("password")}
             />
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
+                  {...register("remember")}
                   className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
                 />
                 <span className="text-sm text-slate-600">{t("auth.remember")}</span>
@@ -130,10 +127,10 @@ export function LoginForm() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isSubmitting}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-sm font-semibold text-white transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
             >
-              {loading ? (
+              {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {t("auth.loggingIn")}

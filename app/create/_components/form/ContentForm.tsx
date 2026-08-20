@@ -6,6 +6,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import useSWR from "swr";
 import { MediaTypeToggle } from "./MediaTypeToggle";
 import type { PostingChannelOption as PostingChannelSelectOption } from "@/app/create/_components/form/PostingChannelSelect";
@@ -35,6 +37,7 @@ import {
 } from "@/app/create/_lib/submit-for-approval";
 import { resolveNextContentIdFromList } from "@/lib/content/data/content-id";
 import { contentItemToFormData } from "@/lib/content/data/mappers";
+import { contentFormSchema } from "@/lib/content/domain/form-schema";
 import { useContents } from "@/lib/content/client/contents-provider";
 import { useT } from "@/lib/i18n";
 import { generateId } from "@/lib/shared/utils";
@@ -142,11 +145,13 @@ export function ContentForm({
 }: ContentFormProps) {
   const { t } = useT();
   const isEdit = Boolean(initialContent);
-  const [form, setForm] = useState<ContentFormData>(() =>
-    initialContent
+  const { watch, setValue, reset, handleSubmit: submitForm } = useForm({
+    resolver: zodResolver(contentFormSchema),
+    defaultValues: initialContent
       ? contentItemToFormData(initialContent)
-      : { ...EMPTY_FORM, mediaType: initialMediaType }
-  );
+      : { ...EMPTY_FORM, mediaType: initialMediaType },
+  });
+  const form = watch();
   const [contentId, setContentId] = useState(
     () => initialContent?.contentId ?? ""
   );
@@ -184,28 +189,27 @@ export function ContentForm({
     key: K,
     value: ContentFormData[K]
   ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setValue(key, value as never, { shouldDirty: true });
   };
 
   const updateImageMeta = <K extends keyof ImageMeta>(
     key: K,
     value: ImageMeta[K]
   ) => {
-    setForm((prev) => ({
-      ...prev,
-      imageMeta: { ...prev.imageMeta, [key]: value },
-    }));
+    setValue(
+      "imageMeta",
+      { ...form.imageMeta, [key]: value },
+      { shouldDirty: true }
+    );
   };
 
   const handleMediaTypeChange = (mediaType: MediaType) => {
-    setForm((prev) => ({
-      ...prev,
-      mediaType,
-      script: isStillMedia(mediaType) ? [] : prev.script,
-      imageMeta: isStillMedia(mediaType)
-        ? prev.imageMeta
-        : { ...EMPTY_IMAGE_META },
-    }));
+    setValue("mediaType", mediaType, { shouldDirty: true });
+    if (isStillMedia(mediaType)) {
+      setValue("script", [], { shouldDirty: true });
+    } else {
+      setValue("imageMeta", { ...EMPTY_IMAGE_META }, { shouldDirty: true });
+    }
     onMediaTypeChange?.(mediaType);
   };
 
@@ -253,12 +257,13 @@ export function ContentForm({
       }));
 
       setChannelTargetSlugs(slugs);
-      setForm((prev) => ({
-        ...prev,
-        postingTargets,
-        channel: formatChannelLabelFromTargets(postingTargets),
-        platforms: platformsFromPostingTargets(postingTargets),
-      }));
+      setValue("postingTargets", postingTargets, { shouldDirty: true });
+      setValue("channel", formatChannelLabelFromTargets(postingTargets), {
+        shouldDirty: true,
+      });
+      setValue("platforms", platformsFromPostingTargets(postingTargets), {
+        shouldDirty: true,
+      });
 
       if (isEdit) return;
 
@@ -286,14 +291,13 @@ export function ContentForm({
     const nextAvailable = nextChannel?.platforms ?? [];
 
     setChannelTargetSlugs(slug ? [slug] : []);
-    setForm((prev) => ({
-      ...prev,
-      postingTargets: [],
-      channel: slug,
-      platforms: prev.platforms.filter((platform) =>
-        nextAvailable.includes(platform)
-      ),
-    }));
+    setValue("postingTargets", [], { shouldDirty: true });
+    setValue("channel", slug, { shouldDirty: true });
+    setValue(
+      "platforms",
+      form.platforms.filter((platform) => nextAvailable.includes(platform)),
+      { shouldDirty: true }
+    );
     if (isEdit) return;
 
     if (!slug || !nextChannel) {
@@ -340,7 +344,7 @@ export function ContentForm({
     setSubmittedItem(null);
     setContentId("");
     setChannelTargetSlugs([]);
-    setForm({ ...EMPTY_FORM, mediaType });
+    reset({ ...EMPTY_FORM, mediaType });
     onMediaTypeChange?.(mediaType);
   };
 
@@ -364,21 +368,20 @@ export function ContentForm({
     return t("create.saveEdits");
   })();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name.trim() || submitting) return;
+  const handleSubmit = submitForm(async (values) => {
+    if (!values.name.trim() || submitting) return;
     if (
       !isEdit &&
-      !form.channel.trim() &&
-      form.postingTargets.length === 0
+      !values.channel.trim() &&
+      values.postingTargets.length === 0
     ) {
       alert(t("create.pickChannel"));
       return;
     }
     if (
       !isEdit &&
-      form.postingTargets.length === 0 &&
-      form.platforms.length === 0
+      values.postingTargets.length === 0 &&
+      values.platforms.length === 0
     ) {
       alert(t("create.pickPlatform"));
       return;
@@ -387,7 +390,7 @@ export function ContentForm({
     setSubmitting(true);
     try {
       const result = await submitCreateContentForm({
-        form,
+        form: values,
         initialContent,
       });
 
@@ -445,7 +448,7 @@ export function ContentForm({
     } finally {
       setSubmitting(false);
     }
-  };
+  });
 
   if (submittedItem && !isEdit) {
     return (
@@ -540,7 +543,7 @@ export function ContentForm({
         onCancel={onCancel}
         onClear={() => {
           setChannelTargetSlugs([]);
-          setForm({ ...EMPTY_FORM, mediaType: form.mediaType });
+          reset({ ...EMPTY_FORM, mediaType: form.mediaType });
         }}
       />
     </form>
