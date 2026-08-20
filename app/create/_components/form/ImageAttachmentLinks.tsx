@@ -179,10 +179,8 @@ export function ImageAttachmentLinks({
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         className={cn(
-          "rounded-lg border border-dashed px-4 py-6 transition-colors cursor-pointer",
-          uploading
-            ? "border-pink-300 bg-pink-50/50"
-            : "border-pink-200 bg-pink-50/30 hover:border-pink-300 hover:bg-pink-50/50"
+          "border-b border-dashed border-stone-200 px-0 py-6 transition-colors cursor-pointer",
+          uploading && "border-teal-300"
         )}
       >
         <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:text-left">
@@ -242,7 +240,7 @@ export function ImageAttachmentLinks({
           {fileRows.map(({ link, index }) => (
             <div
               key={`${link}-${index}`}
-              className="overflow-hidden rounded-lg border border-stone-200 bg-white"
+              className="overflow-hidden border-b border-stone-100 pb-3"
             >
               {isImageAttachment(link) ? (
                 // eslint-disable-next-line @next/next/no-img-element

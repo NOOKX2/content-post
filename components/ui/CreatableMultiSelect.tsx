@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { flatFieldClass, flatLabelClass } from "@/lib/shared/form-field-styles";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/shared/utils";
 
@@ -20,6 +21,7 @@ interface CreatableMultiSelectProps {
   placeholder?: string;
   addPlaceholder?: string;
   className?: string;
+  variant?: "default" | "flat";
 }
 
 export function CreatableMultiSelect({
@@ -32,8 +34,10 @@ export function CreatableMultiSelect({
   placeholder = "เลือก...",
   addPlaceholder = "พิมพ์เพื่อเพิ่มเอง...",
   className,
+  variant = "default",
 }: CreatableMultiSelectProps) {
   const [customText, setCustomText] = useState("");
+  const isFlat = variant === "flat";
 
   const flatOptions = useMemo(() => {
     if (optionGroups?.length) {
@@ -74,7 +78,11 @@ export function CreatableMultiSelect({
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <span className="text-sm font-medium text-stone-700">
+      <span
+        className={cn(
+          isFlat ? flatLabelClass : "text-sm font-medium text-stone-700"
+        )}
+      >
         {label}
         {optional && (
           <span className="ml-1 font-normal text-stone-400">(ไม่บังคับ)</span>
@@ -87,7 +95,11 @@ export function CreatableMultiSelect({
           onChange={(e) => {
             if (e.target.value) addValue(e.target.value);
           }}
-          className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className={cn(
+            isFlat
+              ? flatFieldClass
+              : "h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          )}
         >
           <option value="">{placeholder}</option>
           {availableGroups
@@ -119,7 +131,11 @@ export function CreatableMultiSelect({
               }
             }}
             placeholder={addPlaceholder}
-            className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className={cn(
+            isFlat
+              ? flatFieldClass
+              : "h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          )}
           />
           <Button
             type="button"

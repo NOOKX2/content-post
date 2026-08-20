@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/shared/utils";
+import { flatFieldClass } from "@/lib/shared/form-field-styles";
 
 const CUSTOM_VALUE = "__custom__";
 
@@ -13,6 +14,7 @@ interface CreatableSingleSelectProps {
   customPlaceholder?: string;
   customOptionLabel?: string;
   className?: string;
+  variant?: "default" | "flat";
 }
 
 export function CreatableSingleSelect({
@@ -23,9 +25,11 @@ export function CreatableSingleSelect({
   customPlaceholder = "ระบุเอง...",
   customOptionLabel = "ระบุเอง...",
   className,
+  variant = "default",
 }: CreatableSingleSelectProps) {
   const valueIsCustom = Boolean(value) && !options.includes(value);
   const [customMode, setCustomMode] = useState(valueIsCustom);
+  const isFlat = variant === "flat";
 
   useEffect(() => {
     if (valueIsCustom) {
@@ -35,8 +39,9 @@ export function CreatableSingleSelect({
     }
   }, [value, valueIsCustom]);
 
-  const controlClass =
-    "absolute inset-0 box-border h-9 w-full max-w-full min-w-0 rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20";
+  const controlClass = isFlat
+    ? cn(flatFieldClass, "absolute inset-0 box-border h-9 w-full max-w-full min-w-0")
+    : "absolute inset-0 box-border h-9 w-full max-w-full min-w-0 rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20";
 
   return (
     <div className={cn("relative h-9 w-full max-w-full min-w-0", className)}>

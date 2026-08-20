@@ -258,18 +258,16 @@ export function ContentCalendarGrid({
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 border-b border-stone-200 pb-4">
-        <div className="min-w-0">
-          <p
-            className={cn(
-              "text-xl font-bold tracking-wide text-stone-900 sm:text-2xl",
-              locale === "en" && "uppercase"
-            )}
-          >
-            {monthTitle}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
+      <div className="flex items-center gap-2 border-b border-stone-200 pb-4">
+        <p
+          className={cn(
+            "text-xl font-bold tracking-wide text-stone-900 sm:text-2xl",
+            locale === "en" && "uppercase"
+          )}
+        >
+          {monthTitle}
+        </p>
+        <div className="flex shrink-0 items-center">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>

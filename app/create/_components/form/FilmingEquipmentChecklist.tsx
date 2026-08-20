@@ -7,6 +7,7 @@ import {
   FILMING_EQUIPMENT_GROUPS,
   type FilmingEquipmentGroup,
 } from "@/lib/constants";
+import { flatFieldClass } from "@/lib/shared/form-field-styles";
 import { cn } from "@/lib/shared/utils";
 
 function groupSelectableItems(group: FilmingEquipmentGroup): string[] {
@@ -39,10 +40,17 @@ function CheckboxRow({
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300 text-blue-600 focus:ring-blue-500/30"
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300 text-teal-600 focus:ring-teal-500/30"
       />
       <span className="text-sm leading-6">{label}</span>
     </label>
+  );
+}
+
+export function getFilmingEquipmentTotalCount(): number {
+  return FILMING_EQUIPMENT_GROUPS.reduce(
+    (total, group) => total + groupSelectableItems(group).length,
+    0
   );
 }
 
@@ -78,10 +86,8 @@ export function FilmingEquipmentChecklist({
   const customSelected = value.filter((item) => !knownItems.has(item));
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
-      <span className="text-sm font-medium text-stone-700">อุปกรณ์ถ่าย</span>
-
-      <div className="space-y-4 rounded-xl border border-stone-200 bg-white px-4 py-4">
+    <div className={cn("flex flex-col gap-4", className)}>
+      <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
         {FILMING_EQUIPMENT_GROUPS.map((group) => {
           const isKitOnly = group.items.length === 0;
 
@@ -103,7 +109,7 @@ export function FilmingEquipmentChecklist({
               <p className="text-sm font-semibold text-stone-900">
                 {group.label}
               </p>
-              <ul className="space-y-1 pl-1">
+              <ul className="space-y-1">
                 {group.items.map((item) => (
                   <li key={item}>
                     <CheckboxRow
@@ -120,7 +126,7 @@ export function FilmingEquipmentChecklist({
         })}
       </div>
 
-      <div className="flex w-full gap-2">
+      <div className="flex w-full gap-2 border-t border-stone-100 pt-4">
         <input
           type="text"
           value={customText}
@@ -132,7 +138,7 @@ export function FilmingEquipmentChecklist({
             }
           }}
           placeholder="อื่นๆ..."
-          className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className={flatFieldClass}
         />
         <Button
           type="button"
@@ -152,13 +158,13 @@ export function FilmingEquipmentChecklist({
           {customSelected.map((item) => (
             <span
               key={item}
-              className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700"
+              className="inline-flex items-center gap-1 text-xs font-medium text-stone-700"
             >
               {item}
               <button
                 type="button"
                 onClick={() => toggleItem(item)}
-                className="rounded-full p-0.5 text-stone-400 hover:bg-stone-200 hover:text-stone-700"
+                className="rounded-full p-0.5 text-stone-400 hover:text-stone-700"
                 aria-label={`ลบ ${item}`}
               >
                 <X className="h-3 w-3" />

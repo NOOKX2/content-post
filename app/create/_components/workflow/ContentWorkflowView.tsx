@@ -119,10 +119,16 @@ export function ContentWorkflowView() {
     return (
       <div className="space-y-6">
         <WorkflowBackBar />
-        <ContentWorkflowStatusPanel
-          content={activeContent}
-          onContentChange={(item) => setResumeContent(item)}
+        <ContentWorkflowStepper
+          currentStep={getContentWorkflowStep(activeContent)}
+          fullyPublished={activeContent.status === "posted"}
         />
+        <div className="mx-auto max-w-5xl">
+          <ContentWorkflowStatusPanel
+            content={activeContent}
+            onContentChange={(item) => setResumeContent(item)}
+          />
+        </div>
       </div>
     );
   }

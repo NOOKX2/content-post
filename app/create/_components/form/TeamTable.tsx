@@ -3,6 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { CreatableSingleSelect } from "@/components/ui/CreatableSingleSelect";
+import { flatLabelClass } from "@/lib/shared/form-field-styles";
 import { TEAM_MEMBERS, RESPONSIBILITIES } from "@/lib/constants";
 import type { TeamRow } from "@/lib/types";
 import { generateId } from "@/lib/shared/utils";
@@ -34,7 +35,7 @@ export function TeamTable({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {!hideAddButton && (
         <div className="flex justify-end">
           <Button type="button" variant="ghost" size="sm" onClick={addRow}>
@@ -45,68 +46,52 @@ export function TeamTable({
       )}
 
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-stone-200 py-6 text-center text-sm text-stone-400">
+        <p className="py-4 text-center text-sm text-stone-400">
           ยังไม่มีผู้เข้าร่วม — กด &quot;เพิ่มแถว&quot; เพื่อเพิ่ม
         </p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-stone-200">
-          <table className="w-full table-fixed text-sm">
-            <colgroup>
-              <col className="w-[46%]" />
-              <col className="w-[46%]" />
-              <col className="w-[8%]" />
-            </colgroup>
-            <thead>
-              <tr className="bg-stone-50 text-left">
-                <th className="px-3 py-2.5 font-medium text-stone-600">
-                  ผู้เข้าร่วม
-                </th>
-                <th className="px-3 py-2.5 font-medium text-stone-600">
-                  หน้าที่รับผิดชอบ
-                </th>
-                <th className="w-10 px-2 py-2.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id} className="border-t border-stone-100">
-                  <td className="overflow-hidden px-3 py-2">
-                    <CreatableSingleSelect
-                      options={TEAM_MEMBERS}
-                      value={row.participant}
-                      onChange={(value) =>
-                        updateRow(row.id, "participant", value)
-                      }
-                      placeholder="เลือกชื่อ..."
-                      customPlaceholder="อื่นๆ..."
-                      customOptionLabel="ระบุเอง..."
-                    />
-                  </td>
-                  <td className="overflow-hidden px-3 py-2">
-                    <CreatableSingleSelect
-                      options={RESPONSIBILITIES}
-                      value={row.responsibility}
-                      onChange={(value) =>
-                        updateRow(row.id, "responsibility", value)
-                      }
-                      placeholder="เลือกหน้าที่..."
-                      customPlaceholder="อื่นๆ..."
-                      customOptionLabel="ระบุเอง..."
-                    />
-                  </td>
-                  <td className="px-2 py-2">
-                    <button
-                      type="button"
-                      onClick={() => removeRow(row.id)}
-                      className="rounded p-1 text-stone-400 hover:bg-red-50 hover:text-red-500"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-4">
+          {rows.length > 0 && (
+            <div className="hidden gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+              <span className={flatLabelClass}>ผู้เข้าร่วม</span>
+              <span className={flatLabelClass}>หน้าที่รับผิดชอบ</span>
+              <span className="w-8" />
+            </div>
+          )}
+          {rows.map((row) => (
+            <div
+              key={row.id}
+              className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center"
+            >
+              <CreatableSingleSelect
+                options={TEAM_MEMBERS}
+                value={row.participant}
+                onChange={(value) => updateRow(row.id, "participant", value)}
+                placeholder="เลือกชื่อ..."
+                customPlaceholder="อื่นๆ..."
+                customOptionLabel="ระบุเอง..."
+                variant="flat"
+              />
+              <CreatableSingleSelect
+                options={RESPONSIBILITIES}
+                value={row.responsibility}
+                onChange={(value) =>
+                  updateRow(row.id, "responsibility", value)
+                }
+                placeholder="เลือกหน้าที่..."
+                customPlaceholder="อื่นๆ..."
+                customOptionLabel="ระบุเอง..."
+                variant="flat"
+              />
+              <button
+                type="button"
+                onClick={() => removeRow(row.id)}
+                className="rounded p-1 text-stone-400 hover:text-red-500"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>

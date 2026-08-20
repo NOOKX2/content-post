@@ -2,7 +2,10 @@
 
 import { Calendar, Eye, ImageIcon, Info, Users } from "lucide-react";
 import { ImageAttachmentLinks } from "@/app/create/_components/form/ImageAttachmentLinks";
-import { ContentFormSection } from "@/app/create/_components/form/ContentFormSection";
+import {
+  ContentFormSection,
+  ContentFormSectionAction,
+} from "@/app/create/_components/form/ContentFormSection";
 import { PlatformSelect } from "@/app/create/_components/form/PlatformSelect";
 import { TeamTable } from "@/app/create/_components/form/TeamTable";
 import { Input } from "@/components/ui/Input";
@@ -11,7 +14,6 @@ import { PostingChannelSelect } from "@/app/create/_components/form/PostingChann
 import type { PostingChannelOption } from "@/app/create/_components/form/PostingChannelSelect";
 import { Select } from "@/components/ui/Select";
 import { CreatableMultiSelect } from "@/components/ui/CreatableMultiSelect";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
   TEAM_MEMBERS,
   PRODUCTS,
@@ -58,24 +60,28 @@ export function ImageContentFormFields({
 }) {
   const { t } = useT();
   const config = MEDIA_FORM_CONFIG[form.mediaType === "graphic" ? "graphic" : "image"];
-  const accentBorder =
-    form.mediaType === "graphic" ? "border-pink-100" : "border-emerald-100";
   const previewImage =
     form.attachments.find((url) => url.trim() && isImageAttachment(url)) ?? "";
 
+  const addTeamRow = () => {
+    update("team", [
+      ...form.team,
+      { id: generateId(), participant: "", responsibility: "" },
+    ]);
+  };
+
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-      <div className="min-w-0 space-y-4">
-        <Card padding="none">
-          <div className="flex items-center gap-2.5 border-b border-stone-200 px-6 py-4">
-            <Info className="h-5 w-5 shrink-0 text-stone-900" strokeWidth={2.25} />
-            <h3 className="text-xl font-bold tracking-tight text-stone-900">
-              ข้อมูลคอนเทนต์
-            </h3>
-          </div>
-          <div className="p-6">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+      <div className="min-w-0 space-y-8">
+        <ContentFormSection
+          step="02"
+          stepLabel="CONTENT"
+          title="ข้อมูลคอนเทนต์"
+          icon={Info}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
+              variant="flat"
               label="ชื่อคอนเทนต์ *"
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
@@ -83,14 +89,16 @@ export function ImageContentFormFields({
               required
             />
             <Input
+              variant="flat"
               label="รหัสคอนเทนต์"
               value={contentId}
               readOnly
               placeholder={isEdit ? "" : "เลือกช่องเพื่อรันรหัสอัตโนมัติ"}
-              className="bg-stone-50 font-mono"
+              className="font-mono"
             />
             <div>
               <PostingChannelSelect
+                variant="flat"
                 label="ช่องทาง *"
                 options={channelOptions}
                 placeholder="เลือกช่อง..."
@@ -106,6 +114,7 @@ export function ImageContentFormFields({
               />
             </div>
             <Select
+              variant="flat"
               label="วัตถุประสงค์"
               options={CONTENT_OBJECTIVES}
               placeholder="เลือกวัตถุประสงค์..."
@@ -114,17 +123,18 @@ export function ImageContentFormFields({
             />
           </div>
           {!hidePlatformSelect && (
-          <div className="mt-4">
-            <PlatformSelect
-              selected={form.platforms}
-              availablePlatforms={availablePlatforms}
-              disabled={channelTargetSlugs.length === 0}
-              onChange={(platforms: Platform[]) => update("platforms", platforms)}
-            />
-          </div>
+            <div className="mt-4">
+              <PlatformSelect
+                selected={form.platforms}
+                availablePlatforms={availablePlatforms}
+                disabled={channelTargetSlugs.length === 0}
+                onChange={(platforms: Platform[]) => update("platforms", platforms)}
+              />
+            </div>
           )}
           <div className="mt-4">
             <Textarea
+              variant="flat"
               label="รายละเอียด"
               value={form.details}
               onChange={(e) => update("details", e.target.value)}
@@ -132,14 +142,14 @@ export function ImageContentFormFields({
               rows={3}
             />
           </div>
-          </div>
-        </Card>
+        </ContentFormSection>
 
         <ContentFormSection
+          step="03"
+          stepLabel="REFERENCE"
           title="ตัวอย่างรูปภาพ"
           description="อัปโหลดรูป reference หรือแนบลิงก์ภาพตัวอย่าง"
           icon={ImageIcon}
-          className={accentBorder}
         >
           <ImageAttachmentLinks
             links={form.attachments}
@@ -148,25 +158,23 @@ export function ImageContentFormFields({
           />
         </ContentFormSection>
 
-        <Card padding="none" className={accentBorder}>
-          <div className="flex items-center gap-2.5 border-b border-stone-200 px-6 py-4">
-            <ImageIcon
-              className="h-5 w-5 shrink-0 text-stone-900"
-              strokeWidth={2.25}
-            />
-            <h3 className="text-xl font-bold tracking-tight text-stone-900">
-              องค์ประกอบ &amp; ขนาดงาน
-            </h3>
-          </div>
-          <div className="space-y-5 p-6">
+        <ContentFormSection
+          step="04"
+          stepLabel="DESIGN"
+          title="องค์ประกอบ & ขนาดงาน"
+          icon={ImageIcon}
+        >
+          <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
+                variant="flat"
                 label="Headline"
                 value={form.imageMeta.headline}
                 onChange={(e) => updateImageMeta("headline", e.target.value)}
                 placeholder="หัวข้อหลักบนภาพ"
               />
               <Input
+                variant="flat"
                 label="Sub Head"
                 value={form.imageMeta.subHead}
                 onChange={(e) => updateImageMeta("subHead", e.target.value)}
@@ -174,6 +182,7 @@ export function ImageContentFormFields({
               />
               <div className="sm:col-span-2">
                 <Input
+                  variant="flat"
                   label="Call to Action"
                   value={form.imageMeta.callToAction}
                   onChange={(e) =>
@@ -212,39 +221,22 @@ export function ImageContentFormFields({
               addPlaceholder="พิมพ์องค์ประกอบเพิ่มเอง..."
             />
           </div>
-        </Card>
+        </ContentFormSection>
 
-        <Card padding="none">
-          <div className="flex items-center justify-between gap-3 border-b border-stone-200 px-6 py-4">
-            <div className="flex items-center gap-2.5">
-              <Users
-                className="h-5 w-5 shrink-0 text-stone-900"
-                strokeWidth={2.25}
-              />
-              <h3 className="text-xl font-bold tracking-tight text-stone-900">
-                ผู้สร้างคอนเทนต์ &amp; หน้าที่รับผิดชอบ
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                update("team", [
-                  ...form.team,
-                  {
-                    id: generateId(),
-                    participant: "",
-                    responsibility: "",
-                  },
-                ])
-              }
-              className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-700"
-            >
+        <ContentFormSection
+          step="05"
+          stepLabel="TEAM"
+          title="ผู้สร้างคอนเทนต์ & หน้าที่รับผิดชอบ"
+          icon={Users}
+          actions={
+            <ContentFormSectionAction onClick={addTeamRow}>
               + เพิ่มแถว
-            </button>
-          </div>
-          <div className="p-6">
+            </ContentFormSectionAction>
+          }
+        >
           <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Select
+              variant="flat"
               label="ผู้คิดไอเดีย"
               options={TEAM_MEMBERS}
               placeholder="เลือก..."
@@ -252,6 +244,7 @@ export function ImageContentFormFields({
               onChange={(e) => update("ideaCreator", e.target.value)}
             />
             <Select
+              variant="flat"
               label={config.photographerLabel}
               options={TEAM_MEMBERS}
               placeholder="เลือก..."
@@ -260,6 +253,7 @@ export function ImageContentFormFields({
             />
             {config.showEditor && (
               <Select
+                variant="flat"
                 label="ผู้ตัดต่อ"
                 options={TEAM_MEMBERS}
                 placeholder="เลือก..."
@@ -268,11 +262,11 @@ export function ImageContentFormFields({
               />
             )}
             <Input
+              variant="flat"
               label="ผู้อนุมัติ"
               value=""
               readOnly
               placeholder="— กำหนดเมื่อผู้ดูแลอนุมัติ —"
-              className="bg-stone-50"
             />
           </div>
           <TeamTable
@@ -280,53 +274,42 @@ export function ImageContentFormFields({
             onChange={(rows) => update("team", rows)}
             hideAddButton
           />
-          </div>
-        </Card>
+        </ContentFormSection>
       </div>
 
-      <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-        <Card padding="none" className={accentBorder}>
-          <div className="flex items-center gap-2.5 border-b border-stone-200 px-6 py-4">
-            <Calendar
-              className="h-5 w-5 shrink-0 text-stone-900"
-              strokeWidth={2.25}
-            />
-            <h3 className="text-xl font-bold tracking-tight text-stone-900">
-              วันที่โพสต์คอนเทนต์
-            </h3>
-          </div>
-          <div className="space-y-3 p-6">
-            <Input
-              label="วันที่โพสต์"
-              type="date"
-              value={form.scheduledDate}
-              onChange={(e) => update("scheduledDate", e.target.value)}
-              required
-            />
-            <Input
-              label="เวลา"
-              type="time"
-              value={form.scheduledTime}
-              onChange={(e) => update("scheduledTime", e.target.value)}
-              required
-            />
-            <div className="flex gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-xs text-blue-800">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <p>
-                วันและเวลานี้จะใช้สำหรับลงโพสต์อัตโนมัติ และแสดงในปฏิทินคอนเทนต์
-              </p>
-            </div>
-          </div>
-        </Card>
+      <aside className="space-y-8 lg:sticky lg:top-20 lg:self-start">
+        <ContentFormSection
+          title="วันที่โพสต์คอนเทนต์"
+          icon={Calendar}
+          bodyClassName="space-y-3"
+        >
+          <Input
+            variant="flat"
+            label="วันที่โพสต์"
+            type="date"
+            value={form.scheduledDate}
+            onChange={(e) => update("scheduledDate", e.target.value)}
+            required
+          />
+          <Input
+            variant="flat"
+            label="เวลา"
+            type="time"
+            value={form.scheduledTime}
+            onChange={(e) => update("scheduledTime", e.target.value)}
+            required
+          />
+          <p className="text-xs leading-relaxed text-stone-500">
+            วันและเวลานี้จะใช้สำหรับลงโพสต์อัตโนมัติ และแสดงในปฏิทินคอนเทนต์
+          </p>
+        </ContentFormSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-stone-500" />
-              พรีวิว
-            </CardTitle>
-          </CardHeader>
-          <div className="overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
+        <section className="space-y-3">
+          <h3 className="flex items-center gap-2 text-base font-bold text-stone-900">
+            <Eye className="h-4 w-4 text-stone-500" />
+            พรีวิว
+          </h3>
+          <div className="overflow-hidden rounded-xl bg-stone-100">
             <div className="relative aspect-square w-full bg-stone-200">
               {previewImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -353,10 +336,10 @@ export function ImageContentFormFields({
               </div>
             </div>
           </div>
-          <p className="mt-2 text-[11px] text-stone-400">
+          <p className="text-[11px] text-stone-400">
             ตัวอย่างการแสดงผลเบื้องต้นของหัวข้อและภาพ
           </p>
-        </Card>
+        </section>
       </aside>
     </div>
   );

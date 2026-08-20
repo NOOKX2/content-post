@@ -21,9 +21,11 @@ import {
 import { PlatformSelect } from "@/app/create/_components/form/PlatformSelect";
 import { ScriptTable } from "@/app/create/_components/form/ScriptTable";
 import { TeamTable } from "@/app/create/_components/form/TeamTable";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { CreatableMultiSelect } from "@/components/ui/CreatableMultiSelect";
-import { FilmingEquipmentChecklist } from "@/app/create/_components/form/FilmingEquipmentChecklist";
+import {
+  FilmingEquipmentChecklist,
+  getFilmingEquipmentTotalCount,
+} from "@/app/create/_components/form/FilmingEquipmentChecklist";
 import { Input } from "@/components/ui/Input";
 import { PostingChannelSelect } from "@/app/create/_components/form/PostingChannelSelect";
 import type { PostingChannelOption } from "@/app/create/_components/form/PostingChannelSelect";
@@ -115,6 +117,10 @@ export function VideoContentFormFields({
       ? previewFallbackImage
       : "");
   const isProducePhase = workflowPhase === "produce";
+  const equipmentTotal = getFilmingEquipmentTotalCount();
+  const equipmentSelected = form.filmingEquipment.filter((item) =>
+    item.trim()
+  ).length;
   const showClipUpload = isProducePhase
     ? true
     : workflowPhase === "plan"
@@ -122,8 +128,13 @@ export function VideoContentFormFields({
       : showFinalClipSection(isEdit, contentStatus);
 
   const briefSummary = (
-    <ContentFormSection title={t("create.contentInfo")} icon={Info}>
-      <div className="space-y-3 rounded-xl border border-stone-200 bg-stone-50/80 p-4 text-sm">
+    <ContentFormSection
+      step="02"
+      stepLabel="CONTENT"
+      title={t("create.contentInfo")}
+      icon={Info}
+    >
+      <div className="space-y-3 text-sm">
         <div>
           <p className="text-xs text-stone-500">{t("create.contentName")}</p>
           <p className="font-semibold text-stone-900">{form.name || "—"}</p>
@@ -131,7 +142,7 @@ export function VideoContentFormFields({
         {form.details && (
           <div>
             <p className="text-xs text-stone-500">{t("create.details")}</p>
-            <p className="text-stone-700 whitespace-pre-wrap">{form.details}</p>
+            <p className="whitespace-pre-wrap text-stone-700">{form.details}</p>
           </div>
         )}
         {form.category && (
@@ -145,16 +156,17 @@ export function VideoContentFormFields({
   );
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-      <div className="min-w-0 space-y-5">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+      <div className="min-w-0 space-y-8">
       {isProducePhase ? (
         <>
           {briefSummary}
           <ContentFormSection
+            step="03"
+            stepLabel="MEDIA"
             title={t("create.uploadEditedVideo")}
             description={t("create.videoFileHint")}
             icon={Video}
-            className="border-amber-100"
           >
             <AttachmentLinks
               links={form.attachments}
@@ -185,9 +197,15 @@ export function VideoContentFormFields({
         </>
       ) : (
         <>
-      <ContentFormSection title={t("create.contentInfo")} icon={Info}>
+      <ContentFormSection
+        step="02"
+        stepLabel="CONTENT"
+        title={t("create.contentInfo")}
+        icon={Info}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
+            variant="flat"
             label={`${t("create.contentName")} *`}
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
@@ -195,14 +213,16 @@ export function VideoContentFormFields({
             required
           />
           <Input
+            variant="flat"
             label={t("create.contentCode")}
             value={contentId}
             readOnly
             placeholder={isEdit ? "" : t("create.autoCode")}
-            className="bg-stone-50 font-mono"
+            className="font-mono"
           />
           <div>
             <PostingChannelSelect
+              variant="flat"
               label={`${t("create.channel")} *`}
               options={channelOptions}
               placeholder={t("create.channelPlaceholder")}
@@ -218,6 +238,7 @@ export function VideoContentFormFields({
             />
           </div>
           <Select
+            variant="flat"
             label={t("create.purpose")}
             options={CONTENT_OBJECTIVES}
             placeholder={t("create.purposePlaceholder")}
@@ -237,6 +258,7 @@ export function VideoContentFormFields({
         )}
         <div className="mt-4">
           <Textarea
+            variant="flat"
             label={t("create.details")}
             value={form.details}
             onChange={(e) => update("details", e.target.value)}
@@ -247,8 +269,9 @@ export function VideoContentFormFields({
       </ContentFormSection>
 
       <ContentFormSection
+        step="03"
+        stepLabel="REFERENCE"
         title="แนบรูป/คลิปวิดีโอตัวอย่าง (10 MB)"
-        className="border-amber-100"
       >
         <ImageAttachmentLinks
           links={form.exampleAttachments}
@@ -259,10 +282,11 @@ export function VideoContentFormFields({
 
       {showClipUpload && (
         <ContentFormSection
+          step="03"
+          stepLabel="MEDIA"
           title={t("create.finalClip")}
           description={t("create.finalClipHint")}
           icon={Video}
-          className="border-amber-100"
         >
           <AttachmentLinks
             links={form.attachments}
@@ -292,16 +316,36 @@ export function VideoContentFormFields({
         </ContentFormSection>
       )}
 
-      <ContentFormSection title={t("create.shootDate")} icon={CalendarRange} className="border-amber-100">
-        <Input
-          label={t("create.shootDate")}
-          type="date"
-          value={form.shootDate}
-          onChange={(e) => update("shootDate", e.target.value)}
-        />
+      <ContentFormSection
+        step="04"
+        stepLabel="SHOOT DAY"
+        title={t("create.shootDate")}
+        icon={CalendarRange}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            variant="flat"
+            label={t("create.shootDate")}
+            type="date"
+            value={form.shootDate}
+            onChange={(e) => update("shootDate", e.target.value)}
+          />
+          <CreatableMultiSelect
+            variant="flat"
+            label="สถานที่"
+            options={LOCATIONS}
+            value={form.location}
+            onChange={(locations) => update("location", locations)}
+            optional={config.locationOptional}
+            placeholder="ระบุสถานที่ถ่ายทำ"
+            addPlaceholder="อื่นๆ..."
+          />
+        </div>
       </ContentFormSection>
 
       <ContentFormSection
+        step="05"
+        stepLabel="PEOPLE"
         title={t("create.participants")}
         icon={Users}
         actions={
@@ -317,17 +361,8 @@ export function VideoContentFormFields({
         />
       </ContentFormSection>
 
-      <ContentFormSection title={t("create.prep")} icon={Package}>
+      <ContentFormSection step="06" stepLabel="PREP" title={t("create.prep")} icon={Package}>
         <div className="space-y-4">
-          <CreatableMultiSelect
-            label="เลือกสถานที่..."
-            options={LOCATIONS}
-            value={form.location}
-            onChange={(locations) => update("location", locations)}
-            optional={config.locationOptional}
-            placeholder="เลือกสถานที่..."
-            addPlaceholder="อื่นๆ..."
-          />
           <CreatableMultiSelect
             label="สินค้า"
             options={PRODUCTS}
@@ -337,23 +372,37 @@ export function VideoContentFormFields({
             addPlaceholder="อื่นๆ..."
           />
           <Input
+            variant="flat"
             label="อุปกรณ์ประกอบฉาก"
             value={form.itemsToPrepare}
             onChange={(e) => update("itemsToPrepare", e.target.value)}
             placeholder="อื่นๆ..."
           />
-          <FilmingEquipmentChecklist
-            value={form.filmingEquipment}
-            onChange={(items) => update("filmingEquipment", items)}
-          />
         </div>
       </ContentFormSection>
 
       <ContentFormSection
+        step="07"
+        stepLabel="EQUIPMENT"
+        title="อุปกรณ์ถ่าย"
+        meta={
+          <span className="text-xs text-stone-400">
+            {equipmentSelected}/{equipmentTotal} รายการ
+          </span>
+        }
+      >
+        <FilmingEquipmentChecklist
+          value={form.filmingEquipment}
+          onChange={(items) => update("filmingEquipment", items)}
+        />
+      </ContentFormSection>
+
+      <ContentFormSection
+        step="08"
+        stepLabel="SCRIPT"
         title={t("create.script")}
         description={t("create.scriptHint")}
         icon={Clapperboard}
-        className="border-amber-100"
         actions={
           <ContentFormSectionAction onClick={addScriptRow}>
             เพิ่มซีน
@@ -367,9 +416,10 @@ export function VideoContentFormFields({
         />
       </ContentFormSection>
 
-      <ContentFormSection title={t("create.creators")} icon={UserRound}>
+      <ContentFormSection step="09" stepLabel="TEAM" title={t("create.creators")} icon={UserRound}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
+            variant="flat"
             label={t("create.ideaPerson")}
             options={TEAM_MEMBERS}
             placeholder="เลือก..."
@@ -377,6 +427,7 @@ export function VideoContentFormFields({
             onChange={(e) => update("ideaCreator", e.target.value)}
           />
           <Select
+            variant="flat"
             label={config.photographerLabel}
             options={TEAM_MEMBERS}
             placeholder="เลือก..."
@@ -385,6 +436,7 @@ export function VideoContentFormFields({
           />
           {config.showEditor && (
             <Select
+              variant="flat"
               label={t("media.editor")}
               options={TEAM_MEMBERS}
               placeholder="เลือก..."
@@ -393,11 +445,11 @@ export function VideoContentFormFields({
             />
           )}
           <Input
+            variant="flat"
             label={t("create.approver")}
             value=""
             readOnly
             placeholder={t("create.approverPlaceholder")}
-            className="bg-stone-50"
           />
         </div>
       </ContentFormSection>
@@ -405,14 +457,14 @@ export function VideoContentFormFields({
       )}
       </div>
 
-      <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+      <aside className="space-y-8 lg:sticky lg:top-20 lg:self-start">
         <ContentFormSection
           title={t("create.postDateTitle")}
           icon={Calendar}
-          className="border-amber-100"
           bodyClassName="space-y-3"
         >
           <Input
+            variant="flat"
             label={t("create.postDate")}
             type="date"
             value={form.scheduledDate}
@@ -420,28 +472,24 @@ export function VideoContentFormFields({
             required
           />
           <Input
+            variant="flat"
             label={t("create.postTime")}
             type="time"
             value={form.scheduledTime}
             onChange={(e) => update("scheduledTime", e.target.value)}
             required
           />
-          <div className="flex gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-xs text-blue-800">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <p>
-              วันและเวลานี้จะใช้สำหรับลงโพสต์อัตโนมัติ และแสดงในปฏิทินคอนเทนต์
-            </p>
-          </div>
+          <p className="text-xs leading-relaxed text-stone-500">
+            วันและเวลานี้จะใช้สำหรับลงโพสต์อัตโนมัติ และแสดงในปฏิทินคอนเทนต์
+          </p>
         </ContentFormSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-stone-500" />
-              {t("create.preview")}
-            </CardTitle>
-          </CardHeader>
-          <div className="overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
+        <section className="space-y-3">
+          <h3 className="flex items-center gap-2 text-base font-bold text-stone-900">
+            <Eye className="h-4 w-4 text-stone-500" />
+            {t("create.preview")}
+          </h3>
+          <div className="overflow-hidden rounded-xl bg-stone-100">
             <div className="relative aspect-video w-full bg-stone-900">
               {previewIsDirectVideo ? (
                 <video
@@ -480,7 +528,7 @@ export function VideoContentFormFields({
                 </div>
               )}
             </div>
-            <div className="border-t border-stone-200 bg-white p-3">
+            <div className="border-t border-stone-200/80 bg-white p-3">
               <p className="text-sm font-bold leading-snug text-stone-900">
                 {form.name.trim() || t("create.contentName")}
               </p>
@@ -489,10 +537,10 @@ export function VideoContentFormFields({
               </p>
             </div>
           </div>
-          <p className="mt-2 text-[11px] text-stone-400">
+          <p className="text-[11px] text-stone-400">
             {t("create.previewHint")}
           </p>
-        </Card>
+        </section>
       </aside>
     </div>
   );

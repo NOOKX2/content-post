@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ContentFormSection } from "@/app/create/_components/form/ContentFormSection";
+import { flatFieldClass } from "@/lib/shared/form-field-styles";
 import { cn } from "@/lib/shared/utils";
 import {
   getAttachmentFilename,
@@ -184,10 +185,8 @@ export function AttachmentLinks({
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         className={cn(
-          "rounded-lg border border-dashed px-4 py-5 transition-colors cursor-pointer",
-          uploading
-            ? "border-blue-300 bg-blue-50/50"
-            : "border-stone-300 bg-stone-50 hover:border-stone-400 hover:bg-stone-100/80"
+          "border-b border-dashed border-stone-200 px-0 py-5 transition-colors cursor-pointer",
+          uploading && "border-teal-300"
         )}
       >
         <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
@@ -243,7 +242,7 @@ export function AttachmentLinks({
           {fileRows.map(({ link, index }) => (
             <div
               key={`${link}-${index}`}
-              className="flex items-center gap-3 rounded-lg border border-stone-200 bg-white px-3 py-2"
+              className="flex items-center gap-3 border-b border-stone-100 py-2"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded bg-stone-100">
                 <FileUp className="h-4 w-4 text-stone-500" />
@@ -277,7 +276,7 @@ export function AttachmentLinks({
           {linkRows.map(({ link, index }) => (
             <div
               key={index}
-              className="rounded-lg border border-stone-200 bg-white p-3"
+              className="space-y-2 border-b border-stone-100 pb-3"
             >
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-sm font-medium text-stone-700">
@@ -298,7 +297,7 @@ export function AttachmentLinks({
                 value={link}
                 onChange={(e) => updateLink(index, e.target.value)}
                 placeholder="https://... วางลิงก์วิดีโอสาธารณะ"
-                className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-900 placeholder:text-stone-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className={flatFieldClass}
               />
             </div>
           ))}

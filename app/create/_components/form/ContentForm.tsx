@@ -19,7 +19,7 @@ import { VideoContentFormFields } from "./VideoContentFormFields";
 import { ImageContentFormFields } from "./ImageContentFormFields";
 import { SubmitSuccess } from "./SubmitSuccess";
 import { FinishSubmitBar } from "./FinishSubmitBar";
-import { Card } from "@/components/ui/Card";
+import { ContentFormSection } from "./ContentFormSection";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/domain/form-config";
 import { isStillMedia } from "@/lib/content/domain/media-type";
 import type {
@@ -462,46 +462,36 @@ export function ContentForm({
   const isProducePhase = workflowPhase === "produce";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {postingData?.error && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           {postingData.error}
         </div>
       )}
       {!isProducePhase && (
-        <Card
-          padding="none"
-          className={
+        <ContentFormSection
+          step="01"
+          stepLabel="FORMAT"
+          title={
             isVideo
-              ? "border-orange-100"
+              ? t("create.videoContent")
               : form.mediaType === "graphic"
-                ? "border-pink-100"
-                : "border-emerald-100"
+                ? t("create.graphicContent")
+                : t("create.imageContent")
+          }
+          description={
+            isVideo
+              ? t("create.videoRound1")
+              : form.mediaType === "graphic"
+                ? t("create.graphicBrief")
+                : t("create.imageBrief")
           }
         >
-          <div className="border-b border-stone-200 px-6 py-4">
-            <h3 className="text-xl font-bold tracking-tight text-stone-900">
-              {isVideo
-                ? t("create.videoContent")
-                : form.mediaType === "graphic"
-                  ? t("create.graphicContent")
-                  : t("create.imageContent")}
-            </h3>
-            <p className="mt-1 text-sm text-stone-500">
-              {isVideo
-                ? t("create.videoRound1")
-                : form.mediaType === "graphic"
-                  ? t("create.graphicBrief")
-                  : t("create.imageBrief")}
-            </p>
-          </div>
-          <div className="p-6">
-            <MediaTypeToggle
-              value={form.mediaType}
-              onChange={handleMediaTypeChange}
-            />
-          </div>
-        </Card>
+          <MediaTypeToggle
+            value={form.mediaType}
+            onChange={handleMediaTypeChange}
+          />
+        </ContentFormSection>
       )}
 
       {isStill ? (

@@ -7,6 +7,7 @@ import type { ScriptRow } from "@/lib/types";
 import { generateId } from "@/lib/shared/utils";
 import { toTimeInputValue } from "@/lib/content/domain/script";
 import { uploadBrowserFile } from "@/lib/shared/storage/upload-browser";
+import { flatFieldClass } from "@/lib/shared/form-field-styles";
 
 interface ScriptTableProps {
   rows: ScriptRow[];
@@ -123,14 +124,14 @@ export function ScriptTable({
       {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
 
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-stone-200 py-6 text-center text-sm text-stone-400">
-          ยังไม่มีซีน-กด&quot;เพิ่มซีน&quot;สำหรับวิดีโอ
+        <p className="border-b border-dashed border-stone-200 py-8 text-center text-sm text-stone-400">
+          ยังไม่มีซีน — กด &quot;เพิ่มซีน&quot; เพื่อเริ่ม
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-stone-200">
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
             <thead>
-              <tr className="bg-stone-50 text-left">
+              <tr className="border-b border-stone-200 text-left">
                 <th className="w-36 px-3 py-2.5 font-medium text-stone-600">
                   เวลาเริ่มต้น
                 </th>
@@ -166,7 +167,7 @@ export function ScriptTable({
                       onChange={(e) =>
                         updateRow(row.id, "startTime", e.target.value)
                       }
-                      className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className={flatFieldClass}
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -177,7 +178,7 @@ export function ScriptTable({
                       onChange={(e) =>
                         updateRow(row.id, "endTime", e.target.value)
                       }
-                      className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className={flatFieldClass}
                     />
                   </td>
                   {(
@@ -198,7 +199,7 @@ export function ScriptTable({
                                 ? "Notes"
                                 : "Action"
                         }
-                        className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        className={flatFieldClass}
                       />
                     </td>
                   ))}
@@ -234,7 +235,7 @@ export function ScriptTable({
                         type="button"
                         onClick={() => openImagePicker(row.id)}
                         disabled={uploadingRowId === row.id}
-                        className="flex h-16 w-full min-w-[120px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-200 bg-pink-50/30 px-2 text-center transition hover:border-pink-300 hover:bg-pink-50/50 disabled:opacity-60"
+                        className="flex h-16 w-full min-w-[120px] flex-col items-center justify-center gap-1.5 border-b border-dashed border-stone-200 px-2 py-2 text-center transition hover:border-stone-300 disabled:opacity-60"
                       >
                         {uploadingRowId === row.id ? (
                           <Loader2 className="h-4 w-4 animate-spin text-pink-600" />

@@ -12,13 +12,13 @@ interface MediaTypeToggleProps {
 
 const OPTIONS: { type: MediaType; icon: typeof Video }[] = [
   { type: "video", icon: Video },
-  { type: "graphic", icon: Palette },
   { type: "image", icon: ImageIcon },
+  { type: "graphic", icon: Palette },
 ];
 
 export function MediaTypeToggle({ value, onChange }: MediaTypeToggleProps) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 border-b border-stone-200">
       {OPTIONS.map(({ type, icon: Icon }) => {
         const config = MEDIA_FORM_CONFIG[type];
         const isActive = value === type;
@@ -29,10 +29,10 @@ export function MediaTypeToggle({ value, onChange }: MediaTypeToggleProps) {
             type="button"
             onClick={() => onChange(type)}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-xl border-2 px-2 py-3 text-sm font-semibold transition-all sm:px-3",
+              "flex flex-col items-center gap-1.5 border-b-2 px-2 py-3 text-sm font-semibold transition-colors sm:px-3",
               isActive
-                ? cn(config.accentBorder, config.accentBg, config.accentText)
-                : "border-stone-200 bg-white text-stone-500 hover:border-stone-300"
+                ? cn("border-teal-600 text-teal-700", config.accentText)
+                : "border-transparent text-stone-400 hover:text-stone-600"
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
