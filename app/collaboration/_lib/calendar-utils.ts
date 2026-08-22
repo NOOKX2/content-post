@@ -1,6 +1,6 @@
 import type { MeetingItem } from "@/lib/collaboration/types";
 
-export type EventAccent = "violet" | "amber" | "sky";
+export type EventAccent = "blue" | "amber" | "sky";
 
 export function startOfMondayWeek(date: Date) {
   const next = new Date(date);
@@ -58,7 +58,7 @@ export function meetingOverlaps(meeting: MeetingItem, start: Date, end: Date) {
 export function eventAccent(title: string): EventAccent {
   if (/focus|block|โฟกัส|บล็อก/i.test(title)) return "amber";
   if (/personal|ส่วนตัว/i.test(title)) return "sky";
-  return "violet";
+  return "blue";
 }
 
 export function formatWeekRange(weekStart: Date, locale: string) {

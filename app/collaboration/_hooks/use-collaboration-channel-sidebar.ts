@@ -22,7 +22,20 @@ function matchesQuery(text: string, query: string) {
   return text.toLowerCase().includes(query);
 }
 
-export type ChannelListTab = "messages" | "groups";
+export type UnifiedChatRow =
+  | {
+      type: "dm";
+      id: string;
+      member: TeamMemberItem;
+      channel: CollaborationChannelItem | undefined;
+      sortAt: string;
+    }
+  | {
+      type: "group";
+      id: string;
+      channel: CollaborationChannelItem;
+      sortAt: string;
+    };
 
 export function useCollaborationChannelSidebar(
   onSelect: (channel: CollaborationChannelItem) => void
@@ -30,7 +43,6 @@ export function useCollaborationChannelSidebar(
   const { t } = useT();
   const { data: session } = useSession();
   const [search, setSearch] = useState("");
-  const [listTab, setListTab] = useState<ChannelListTab>("messages");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
 
@@ -67,36 +79,48 @@ export function useCollaborationChannelSidebar(
     return map;
   }, [channels]);
 
-  const messageRows = useMemo(() => {
-    const list = query
-      ? otherMembers.filter(
-          (member) =>
-            matchesQuery(member.name, query) ||
-            matchesQuery(member.email, query)
-        )
-      : otherMembers;
+  const chatRows = useMemo(() => {
+    const rows: UnifiedChatRow[] = [];
 
-    return [...list].sort((a, b) => {
-      const aAt = dmByPeer.get(a.id)?.lastMessageAt ?? "";
-      const bAt = dmByPeer.get(b.id)?.lastMessageAt ?? "";
-      return bAt.localeCompare(aAt);
-    });
-  }, [dmByPeer, otherMembers, query]);
+    for (const member of otherMembers) {
+      if (
+        query &&
+        !matchesQuery(member.name, query) &&
+        !matchesQuery(member.email, query)
+      ) {
+        continue;
+      }
+      const channel = dmByPeer.get(member.id);
+      rows.push({
+        type: "dm",
+        id: `dm:${member.id}`,
+        member,
+        channel,
+        sortAt: channel?.lastMessageAt ?? "",
+      });
+    }
 
-  const groupChannels = useMemo(() => {
-    const list = channels.filter(
-      (channel) => channel.kind === "team" || channel.kind === "group"
-    );
-    if (!query) return list;
-    return list.filter(
-      (channel) =>
-        matchesQuery(channel.name, query) ||
-        matchesQuery(channel.lastMessagePreview ?? "", query)
-    );
-  }, [channels, query]);
+    for (const channel of channels) {
+      if (channel.kind !== "team" && channel.kind !== "group") continue;
+      if (
+        query &&
+        !matchesQuery(channel.name, query) &&
+        !matchesQuery(channel.lastMessagePreview ?? "", query)
+      ) {
+        continue;
+      }
+      rows.push({
+        type: "group",
+        id: channel.id,
+        channel,
+        sortAt: channel.lastMessageAt ?? "",
+      });
+    }
+
+    return rows.sort((a, b) => b.sortAt.localeCompare(a.sortAt));
+  }, [channels, dmByPeer, otherMembers, query]);
 
   const openDm = async (member: TeamMemberItem) => {
-    // DM channel มีอยู่แล้ว → สลับทันที ไม่ต้องรอ server
     const existing = dmByPeer.get(member.id);
     if (existing) {
       onSelect(existing);
@@ -104,10 +128,9 @@ export function useCollaborationChannelSidebar(
       return;
     }
 
-    // ยังไม่มี DM channel → สร้างใหม่ (ครั้งแรกเท่านั้น)
     try {
       const channel = await openDirectMessage(member.id);
-      void mutateChannels(); // fire-and-forget ไม่บล็อก UI
+      void mutateChannels();
       onSelect(channel);
       setSearch("");
     } catch (error) {
@@ -122,10 +145,9 @@ export function useCollaborationChannelSidebar(
     setCreatingGroup(true);
     try {
       const channel = await createCollaborationGroup(payload);
-      void mutateChannels(); // fire-and-forget ไม่บล็อก UI
+      void mutateChannels();
       onSelect(channel);
       setShowCreateGroup(false);
-      setListTab("groups");
       setSearch("");
     } catch (error) {
       alert(
@@ -137,26 +159,15 @@ export function useCollaborationChannelSidebar(
   };
 
   return {
-    // data
-    channels,
     members,
-    messageRows,
-    groupChannels,
-    dmByPeer,
-    currentUserId: session?.user?.id,
-    // search
+    chatRows,
     search,
     setSearch,
     query,
-    // tabs
-    listTab,
-    setListTab,
-    // group dialog
     showCreateGroup,
     setShowCreateGroup,
     creatingGroup,
     handleCreateGroup,
-    // actions
     openDm,
   };
 }

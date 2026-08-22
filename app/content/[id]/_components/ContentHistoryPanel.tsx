@@ -108,7 +108,7 @@ export function ContentHistoryPanel({
   return (
     <div className="space-y-3">
       {variant === "timeline" ? (
-        <p className="text-xs font-semibold tracking-[0.14em] text-stone-600 uppercase">
+        <p className="text-sm font-bold tracking-wide text-stone-900">
           {t("content.activityLog")}
         </p>
       ) : (
@@ -120,11 +120,11 @@ export function ContentHistoryPanel({
       )}
 
       {isLoading ? (
-        <p className="text-sm text-stone-400">{t("content.loadingHistory")}</p>
+        <p className="text-sm text-stone-500">{t("content.loadingHistory")}</p>
       ) : logs.length === 0 ? (
         <p
           className={cn(
-            "text-center text-sm text-stone-400",
+            "text-center text-sm text-stone-600",
             variant === "timeline"
               ? "py-6"
               : "rounded-lg border border-dashed border-stone-200 py-6"
@@ -148,10 +148,10 @@ export function ContentHistoryPanel({
                       <Circle className="h-3.5 w-3.5 text-stone-300" />
                     )}
                   </span>
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-base font-semibold text-stone-900">
                     {activityTitle(log, t)}
                   </p>
-                  <p className="mt-0.5 text-xs text-stone-400">
+                  <p className="mt-0.5 text-sm text-stone-600">
                     {formatActivityWhen(log.createdAt, t, locale)} · {log.actorName}
                   </p>
                 </li>

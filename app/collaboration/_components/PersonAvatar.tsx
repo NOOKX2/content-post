@@ -6,16 +6,16 @@ const AVATAR_COLORS = [
   "bg-sky-100 text-sky-700",
   "bg-blue-600 text-white",
   "bg-stone-200 text-stone-700",
-  "bg-indigo-100 text-indigo-700",
-  "bg-teal-100 text-teal-700",
-  "bg-violet-100 text-violet-700",
+  "bg-cyan-100 text-cyan-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-blue-100 text-blue-700",
   "bg-amber-100 text-amber-800",
 ] as const;
 
 const VIVID_COLORS = [
-  "bg-fuchsia-500 text-white",
+  "bg-blue-500 text-white",
   "bg-sky-500 text-white",
-  "bg-violet-500 text-white",
+  "bg-cyan-500 text-white",
   "bg-amber-500 text-white",
   "bg-rose-500 text-white",
   "bg-emerald-500 text-white",

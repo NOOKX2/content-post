@@ -134,9 +134,19 @@ export function useTeamCalendarWorkspace(
   const openPanelFor = (start: Date, end: Date) => {
     setSelectedDate(start);
     setSlotHour(start.getHours());
-    setPrefillStart(start);
-    setPrefillEnd(end);
+    setPrefillStart(new Date(start));
+    setPrefillEnd(new Date(end));
     setPanelOpen(true);
+  };
+
+  const updatePanelRange = (start: Date, end: Date) => {
+    setPrefillStart(new Date(start));
+    setPrefillEnd(new Date(end));
+  };
+
+  const clearPanelRange = () => {
+    setPrefillStart(null);
+    setPrefillEnd(null);
   };
 
   const navigate = (dir: -1 | 1) => {
@@ -220,6 +230,8 @@ export function useTeamCalendarWorkspace(
     // actions
     navigate,
     openPanelFor,
+    updatePanelRange,
+    clearPanelRange,
     handleSubmit,
     // i18n
     t,

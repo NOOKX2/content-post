@@ -13,11 +13,11 @@ import {
   deleteChannelMessage,
   editChannelMessage,
 } from "@/lib/collaboration/actions/fetch";
-import { translateStoredMessage, useT } from "@/lib/i18n";
+import { dateLocale, translateStoredMessage, useT } from "@/lib/i18n";
 import { cn } from "@/lib/shared/utils";
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("th-TH", {
+function formatTime(iso: string, locale: "th" | "en") {
+  return new Date(iso).toLocaleTimeString(dateLocale(locale), {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -36,7 +36,7 @@ export function MessageBubble({
   onRetry?: () => void;
   onChanged: () => void;
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.body);
   const [busy, setBusy] = useState(false);
@@ -65,8 +65,8 @@ export function MessageBubble({
 
   if (message.messageType === "approval_request") {
     return (
-      <div className="flex w-full items-start gap-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-500">
+      <div className="flex w-full items-start gap-2.5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-500">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="10" rx="2"/>
             <circle cx="12" cy="5" r="2"/>
@@ -75,9 +75,10 @@ export function MessageBubble({
           </svg>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="mb-1 text-xs font-semibold text-stone-700">
-            Approval Bot
-            <span className="ml-2 font-normal text-stone-400">{formatTime(message.createdAt)}</span>
+          <p className="mb-1.5 text-xs text-stone-500">
+            <span className="font-semibold text-stone-700">Approval Bot</span>
+            <span className="mx-1.5">·</span>
+            {formatTime(message.createdAt, locale)}
           </p>
           <ApprovalCardMessage
             messageId={message.id}
@@ -103,7 +104,7 @@ export function MessageBubble({
   if (message.messageType === "system") {
     return (
       <div className="flex justify-center">
-        <p className="max-w-2xl rounded-full bg-stone-200/80 px-4 py-1.5 text-center text-xs text-stone-600">
+        <p className="max-w-2xl px-2 py-1 text-center text-xs text-stone-500">
           {translateStoredMessage(message.body, t)}
         </p>
       </div>
@@ -112,6 +113,7 @@ export function MessageBubble({
 
   const isUnsent = isClientMessageId(message.id);
   const canManage = isSelf && !isUnsent && !sendStatus;
+  const timeLabel = formatTime(message.createdAt, locale);
 
   const handleSaveEdit = async () => {
     if (!draft.trim() || busy) return;
@@ -144,91 +146,102 @@ export function MessageBubble({
   return (
     <div
       className={cn(
-        "flex items-end gap-2",
-        isSelf ? "justify-end" : "justify-start"
+        "flex items-end gap-2.5",
+        isSelf ? "flex-row-reverse" : "flex-row"
       )}
     >
-      {!isSelf && (
-        <PersonAvatar name={message.authorName} size="sm" letters={2} />
-      )}
+      <PersonAvatar
+        name={message.authorName}
+        size="md"
+        letters={2}
+        className="mb-0.5 ring-0!"
+      />
+
       <div
-        onContextMenu={(event) => {
-          if (!canManage || editing) return;
-          event.preventDefault();
-          setMenu({ x: event.clientX, y: event.clientY });
-        }}
         className={cn(
-          "relative max-w-[85%] rounded-2xl px-3.5 py-2 sm:max-w-[70%]",
-          canManage && !editing && "cursor-context-menu",
-          isSelf
-            ? cn(
-                "rounded-br-md bg-blue-600 text-white",
-                sendStatus === "failed" && "bg-red-600"
-              )
-            : "rounded-bl-md bg-white text-stone-800 shadow-sm"
+          "flex min-w-0 max-w-[85%] flex-col sm:max-w-[70%]",
+          isSelf ? "items-end" : "items-start"
         )}
       >
-        {!isSelf && (
-          <p className="mb-0.5 text-[10px] font-medium text-stone-500">
-            {message.authorName}
-          </p>
-        )}
+        <p
+          className={cn(
+            "mb-1 flex items-center gap-1.5 text-xs text-stone-500",
+            isSelf && "flex-row-reverse"
+          )}
+        >
+          <span className="font-semibold text-stone-700">
+            {isSelf ? t("common.you") : message.authorName}
+          </span>
+          <span>{timeLabel}</span>
+          {message.editedAt ? <span>· {t("team.edited")}</span> : null}
+        </p>
 
-        {editing ? (
-          <div className="space-y-2">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              rows={3}
-              className="w-full min-w-[220px] rounded-lg border border-white/30 bg-white/95 px-2.5 py-2 text-sm text-stone-800 outline-none focus:ring-2 focus:ring-blue-500/30"
-              autoFocus
-            />
-            <div className="flex justify-end gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setEditing(false);
-                  setDraft(message.body);
-                }}
-                className="rounded-md bg-white/20 p-1.5 hover:bg-white/30"
-                aria-label={t("common.cancel")}
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSaveEdit()}
-                disabled={busy || !draft.trim()}
-                className="rounded-md bg-white p-1.5 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
-                aria-label={t("common.save")}
-              >
-                <Check className="h-3.5 w-3.5" />
-              </button>
+        <div
+          onContextMenu={(event) => {
+            if (!canManage || editing) return;
+            event.preventDefault();
+            setMenu({ x: event.clientX, y: event.clientY });
+          }}
+          className={cn(
+            "relative rounded-2xl px-3.5 py-2.5",
+            canManage && !editing && "cursor-context-menu",
+            isSelf
+              ? cn(
+                  "rounded-br-md bg-blue-600 text-white",
+                  sendStatus === "failed" && "bg-red-600"
+                )
+              : "rounded-bl-md border border-stone-200 bg-white text-stone-800"
+          )}
+        >
+          {editing ? (
+            <div className="space-y-2">
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={3}
+                className="w-full min-w-[220px] rounded-lg border border-white/30 bg-white/95 px-2.5 py-2 text-sm text-stone-800 outline-none focus:ring-2 focus:ring-blue-500/30"
+                autoFocus
+              />
+              <div className="flex justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(false);
+                    setDraft(message.body);
+                  }}
+                  className="rounded-md bg-white/20 p-1.5 hover:bg-white/30"
+                  aria-label={t("common.cancel")}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSaveEdit()}
+                  disabled={busy || !draft.trim()}
+                  className="rounded-md bg-white p-1.5 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                  aria-label={t("common.save")}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <>
-            <p className="text-sm whitespace-pre-wrap">{message.body}</p>
-            <div
-              className={cn(
-                "mt-1 flex items-center gap-2 text-[10px]",
-                isSelf ? "text-blue-100" : "text-stone-400"
-              )}
-            >
-              <span>{formatTime(message.createdAt)}</span>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {message.body}
+              </p>
               {sendStatus === "failed" ? (
                 <button
                   type="button"
                   onClick={onRetry}
-                  className="font-medium underline underline-offset-2"
+                  className="mt-1 text-[11px] font-medium text-white/90 underline underline-offset-2"
                 >
                   {t("common.retry")}
                 </button>
               ) : null}
-              {message.editedAt && <span>· {t("team.edited")}</span>}
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {menu &&
@@ -237,7 +250,7 @@ export function MessageBubble({
             ref={menuRef}
             role="menu"
             style={{ left: menu.x, top: menu.y }}
-            className="fixed z-100 min-w-[148px] overflow-hidden rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
+            className="fixed z-100 min-w-[148px] overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-lg"
           >
             <button
               type="button"

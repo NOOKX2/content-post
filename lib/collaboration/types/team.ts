@@ -1,4 +1,4 @@
-import type { TaskStatus } from "@prisma/client";
+import type { TaskPriority, TaskStatus } from "@prisma/client";
 
 export type TeamMemberItem = {
   id: string;
@@ -16,7 +16,9 @@ export type TeamMemberItem = {
 export type TaskItem = {
   id: string;
   title: string;
+  description: string;
   status: TaskStatus;
+  priority: TaskPriority;
   dueDate: string;
   contentId: string | null;
   contentCode: string | null;

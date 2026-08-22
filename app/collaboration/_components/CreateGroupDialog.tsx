@@ -2,11 +2,10 @@
 
 import { createPortal } from "react-dom";
 import { Search, X } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { PersonAvatar } from "@/app/collaboration/_components/PersonAvatar";
 import type { TeamMemberItem } from "@/lib/collaboration/types/team";
 import { useCreateGroupDialog } from "@/app/collaboration/_hooks/use-create-group-dialog";
+import { flatFieldClass } from "@/lib/shared/form-field-styles";
 import { cn } from "@/lib/shared/utils";
 
 export function CreateGroupDialog({
@@ -25,9 +24,11 @@ export function CreateGroupDialog({
   onCreate: (payload: { name: string; memberIds: string[] }) => void;
 }) {
   const {
-    name, setName,
+    name,
+    setName,
     selectedIds,
-    search, setSearch,
+    search,
+    setSearch,
     filteredMembers,
     toggleMember,
     handleClose,
@@ -39,55 +40,151 @@ export function CreateGroupDialog({
 
   return createPortal(
     <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 p-4">
-      <div role="dialog" aria-modal="true" aria-labelledby="create-group-title" className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
-          <div>
-            <h2 id="create-group-title" className="text-base font-semibold text-stone-900">{t("team.createGroup")}</h2>
-            <p className="mt-0.5 text-xs text-stone-500">{t("team.groupHint")}</p>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-group-title"
+        className="flex max-h-[min(90vh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-stone-200 px-6 pt-5 pb-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-stone-400 uppercase">
+              {t("team.newConversation")}
+            </p>
+            <h2
+              id="create-group-title"
+              className="mt-1 text-2xl font-bold tracking-tight text-stone-900"
+            >
+              {t("team.createGroup")}
+            </h2>
+            <p className="mt-1 text-sm text-stone-500">{t("team.groupHint")}</p>
           </div>
-          <button type="button" onClick={handleClose} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label={t("common.close")}>
-            <X className="h-4 w-4" />
+          <button
+            type="button"
+            onClick={handleClose}
+            className="rounded-lg p-1.5 text-stone-400 transition hover:bg-stone-100 hover:text-stone-600"
+            aria-label={t("common.close")}
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 p-5">
-          <Input label={t("team.groupName")} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("team.groupNamePlaceholder")} autoFocus />
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">{t("team.groupMembers")}</label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
-              <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("team.searchMembers")} className="h-9 w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pr-3 pl-8 text-sm text-stone-900 placeholder:text-stone-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="border-b border-stone-200 px-6 py-5">
+              <label
+                htmlFor="create-group-name"
+                className="block text-sm font-bold text-stone-900"
+              >
+                {t("team.groupName")}
+              </label>
+              <input
+                id="create-group-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t("team.groupNamePlaceholder")}
+                autoFocus
+                className={cn(
+                  flatFieldClass,
+                  "mt-2 h-11 text-base focus:border-blue-600"
+                )}
+              />
             </div>
-            <div className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-stone-200 p-2">
+
+            <div className="px-6 pt-5 pb-2">
+              <p className="text-sm font-bold text-stone-900">
+                {t("team.groupMembers")}
+              </p>
+              <div className="mt-1 flex items-baseline justify-between gap-3">
+                <p className="text-sm text-stone-500">
+                  {t("team.selectPeopleToAdd")}
+                </p>
+                <p className="shrink-0 text-sm text-stone-500">
+                  {t("team.selectedCount", { count: selectedIds.length })}
+                </p>
+              </div>
+
+              <div className="relative mt-4">
+                <Search className="pointer-events-none absolute top-1/2 left-0 h-4 w-4 -translate-y-1/2 text-stone-400" />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t("team.searchGroupMembers")}
+                  className={cn(
+                    flatFieldClass,
+                    "h-10 pl-7 focus:border-blue-600"
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="px-6 pb-2">
               {filteredMembers.length === 0 ? (
-                <p className="py-6 text-center text-sm text-stone-400">{t("team.noMembersFound")}</p>
+                <p className="py-10 text-center text-sm text-stone-400">
+                  {t("team.noMembersFound")}
+                </p>
               ) : (
-                filteredMembers.map((member) => {
-                  const selected = selectedIds.includes(member.id);
-                  return (
-                    <button key={member.id} type="button" onClick={() => toggleMember(member.id)} className={cn("flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors", selected ? "bg-blue-50 ring-1 ring-blue-200" : "hover:bg-stone-50")}>
-                      <PersonAvatar name={member.name} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-stone-900">{member.name}</p>
-                        <p className="truncate text-xs text-stone-500">{member.email}</p>
-                      </div>
-                      <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border", selected ? "border-blue-600 bg-blue-600 text-white" : "border-stone-300 bg-white")}>
-                        {selected ? "✓" : ""}
-                      </span>
-                    </button>
-                  );
-                })
+                <ul>
+                  {filteredMembers.map((member) => {
+                    const selected = selectedIds.includes(member.id);
+                    return (
+                      <li key={member.id} className="border-b border-stone-100 last:border-b-0">
+                        <label className="flex cursor-pointer items-center gap-3 py-3.5">
+                          <PersonAvatar
+                            name={member.name}
+                            imageUrl={member.imageUrl}
+                            size="md"
+                            letters={2}
+                            className="ring-0!"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-bold text-stone-900">
+                              {member.name}
+                            </span>
+                            <span className="block truncate text-xs text-stone-500">
+                              {member.email}
+                            </span>
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleMember(member.id)}
+                            className="h-4 w-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </div>
-            <p className="text-xs text-stone-500">{t("team.selectedPeople", { count: selectedIds.length })}</p>
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-stone-100 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose}>{t("common.cancel")}</Button>
-            <Button type="submit" disabled={submitting || !name.trim() || selectedIds.length === 0}>{t("team.createGroup")}</Button>
+          <div className="flex items-center justify-between gap-4 border-t border-stone-200 px-6 py-4">
+            <p className="min-w-0 text-xs leading-relaxed text-stone-400">
+              {t("team.membersNotifiedHint")}
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="h-10 px-3 text-sm font-medium text-stone-500 transition hover:text-stone-800"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !name.trim() || selectedIds.length === 0}
+                className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+              >
+                {t("team.createGroup")}
+              </button>
+            </div>
           </div>
         </form>
       </div>

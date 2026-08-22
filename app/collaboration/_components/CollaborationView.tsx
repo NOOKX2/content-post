@@ -28,7 +28,7 @@ export function CollaborationView() {
   } = useCollaborationView();
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden bg-stone-50 text-stone-900">
+    <div className="flex h-full min-h-0 overflow-hidden bg-[#f7f7f8] text-stone-900">
       <TeamWorkspaceRail section={section} onChange={setSection} />
 
       {section === "chat" && (

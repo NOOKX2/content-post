@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { MeetingItem } from "@/lib/collaboration/types";
 import type { TeamMemberItem } from "@/lib/collaboration/types/team";
-import type { MeetingKind, NewMeetingDraft } from "@/app/collaboration/_components/NewMeetingPanel";
+import type { NewMeetingDraft } from "@/app/collaboration/_components/NewMeetingPanel";
 import {
   addDays,
   combineDateAndTime,
@@ -17,8 +17,6 @@ import { useT } from "@/lib/i18n";
 
 const newMeetingFieldsSchema = z.object({
   title: z.string(),
-  kind: z.enum(["meeting", "blocked", "personal"]),
-  notes: z.string(),
 });
 
 export function useNewMeetingPanel(
@@ -29,7 +27,7 @@ export function useNewMeetingPanel(
   currentUserId: string | undefined,
   defaultAttendeeIds: string[],
   meetingsByMemberId: Record<string, MeetingItem[]>,
-  onClose: () => void,
+  _onClose: () => void,
   onSubmit: (draft: NewMeetingDraft) => void
 ) {
   const { t, locale } = useT();
@@ -38,46 +36,57 @@ export function useNewMeetingPanel(
 
   const form = useForm({
     resolver: zodResolver(newMeetingFieldsSchema),
-    defaultValues: { title: "", kind: "meeting" as MeetingKind, notes: "" },
+    defaultValues: { title: "" },
   });
   const title = form.watch("title");
-  const kind = form.watch("kind");
-  const notes = form.watch("notes");
   const setTitle = (value: string) => form.setValue("title", value);
-  const setKind = (value: MeetingKind) => form.setValue("kind", value);
-  const setNotes = (value: string) => form.setValue("notes", value);
 
   const [day, setDay] = useState(selectedDate);
   const [startHour, setStartHour] = useState(prefillStart?.getHours() ?? 10);
-  const [startMinute, setStartMinute] = useState(0);
+  const [startMinute, setStartMinute] = useState(
+    prefillStart && prefillStart.getMinutes() >= 30 ? 30 : 0
+  );
   const [endHour, setEndHour] = useState(
     prefillEnd?.getHours() ?? (prefillStart ? prefillStart.getHours() + 1 : 11)
   );
-  const [endMinute, setEndMinute] = useState(0);
+  const [endMinute, setEndMinute] = useState(
+    prefillEnd && prefillEnd.getMinutes() >= 30 ? 30 : 0
+  );
   const [attendeeIds, setAttendeeIds] = useState<string[]>(defaultAttendeeIds);
 
-  useEffect(() => { setDay(selectedDate); }, [selectedDate]);
   useEffect(() => {
-    if (!prefillStart) return;
-    setDay(prefillStart);
+    setDay(selectedDate);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (!prefillStart || !prefillEnd) return;
+    setDay(new Date(prefillStart));
     setStartHour(prefillStart.getHours());
     setStartMinute(prefillStart.getMinutes() >= 30 ? 30 : 0);
-  }, [prefillStart]);
-  useEffect(() => {
-    if (!prefillEnd || !prefillStart) return;
     setEndHour(prefillEnd.getHours());
     setEndMinute(prefillEnd.getMinutes() >= 30 ? 30 : 0);
-  }, [prefillEnd, prefillStart]);
-  useEffect(() => { setAttendeeIds(defaultAttendeeIds); }, [defaultAttendeeIds]);
+  }, [prefillStart?.getTime(), prefillEnd?.getTime()]);
 
-  const startsAt = combineDateAndTime(day, startHour, startMinute);
-  const endsAt = combineDateAndTime(day, endHour, endMinute);
+  useEffect(() => {
+    setAttendeeIds(defaultAttendeeIds);
+  }, [defaultAttendeeIds]);
+
+  const startsAt = useMemo(
+    () => combineDateAndTime(day, startHour, startMinute),
+    [day, startHour, startMinute]
+  );
+  const endsAt = useMemo(
+    () => combineDateAndTime(day, endHour, endMinute),
+    [day, endHour, endMinute]
+  );
 
   const busyIds = useMemo(() => {
     const busy = new Set<string>();
     for (const member of members) {
       const meetings = meetingsByMemberId[member.id] ?? [];
-      if (meetings.some((m) => meetingOverlaps(m, startsAt, endsAt))) busy.add(member.id);
+      if (meetings.some((m) => meetingOverlaps(m, startsAt, endsAt))) {
+        busy.add(member.id);
+      }
     }
     return busy;
   }, [members, meetingsByMemberId, startsAt, endsAt]);
@@ -87,10 +96,13 @@ export function useNewMeetingPanel(
     setStartHour(hours);
     setStartMinute(minutes);
     const nextStart = combineDateAndTime(day, hours, minutes);
-    const nextEnd = new Date(nextStart);
-    nextEnd.setMinutes(nextEnd.getMinutes() + 60);
-    setEndHour(nextEnd.getHours());
-    setEndMinute(nextEnd.getMinutes() >= 30 ? 30 : 0);
+    const nextEnd = combineDateAndTime(day, endHour, endMinute);
+    if (nextEnd <= nextStart) {
+      const fixed = new Date(nextStart);
+      fixed.setMinutes(fixed.getMinutes() + 60);
+      setEndHour(fixed.getHours());
+      setEndMinute(fixed.getMinutes() >= 30 ? 30 : 0);
+    }
   };
 
   const handleEndTimeChange = (value: string) => {
@@ -110,55 +122,44 @@ export function useNewMeetingPanel(
 
   const toggleAttendee = (memberId: string) => {
     setAttendeeIds((prev) =>
-      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId]
     );
   };
 
   const handleSubmit = form.handleSubmit((values) => {
-    const fallbackTitle =
-      values.kind === "blocked" ? t("team.meetingKindBlocked")
-      : values.kind === "personal" ? t("team.meetingKindPersonal")
-      : values.title.trim();
-    const resolved = values.title.trim() || fallbackTitle;
+    const resolved = values.title.trim();
     if (!resolved) return;
     onSubmit({
       title: resolved,
-      kind: values.kind,
+      kind: "meeting",
       startsAt,
       endsAt,
       attendeeIds,
-      notes: values.notes.trim(),
+      notes: "",
     });
   });
 
-  const kinds: { id: MeetingKind; label: string }[] = [
-    { id: "meeting", label: t("team.meetingKindMeeting") },
-    { id: "blocked", label: t("team.meetingKindBlocked") },
-    { id: "personal", label: t("team.meetingKindPersonal") },
-  ];
-
   return {
-    // form state
-    title, setTitle,
-    kind, setKind,
-    day, setDay,
-    startHour, startMinute,
-    endHour, endMinute,
+    title,
+    setTitle,
+    day,
+    setDay,
+    startHour,
+    startMinute,
+    endHour,
+    endMinute,
     attendeeIds,
-    notes, setNotes,
-    // computed
     weekDays,
     startsAt,
     endsAt,
     busyIds,
-    kinds,
     currentUserId,
-    // handlers
     handleStartTimeChange,
     handleEndTimeChange,
     toggleAttendee,
     handleSubmit,
-    // i18n
     t,
     locale,
   };

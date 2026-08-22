@@ -117,7 +117,7 @@ export function GroupMembersDialog({
                       <p className="truncate text-xs text-stone-500">{member.email}</p>
                     </div>
                     {member.isCreator && (
-                      <span className="shrink-0 rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700">{t("team.creator")}</span>
+                      <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">{t("team.creator")}</span>
                     )}
                   </div>
                 ))

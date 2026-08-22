@@ -17,9 +17,9 @@ const WEEKDAY_KEYS = [
 ] as const;
 
 const PILL: Record<ReturnType<typeof eventAccent>, string> = {
-  violet: "bg-blue-50 text-blue-700",
-  amber: "bg-amber-50 text-amber-800",
-  sky: "bg-sky-50 text-sky-700",
+  blue: "bg-blue-100 text-blue-900",
+  amber: "bg-rose-100 text-rose-900",
+  sky: "bg-sky-100 text-sky-900",
 };
 
 export function TeamMonthGrid({

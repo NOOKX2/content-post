@@ -25,7 +25,7 @@ function RailButton({
       className={cn(
         "flex h-10 w-10 items-center justify-center rounded-xl transition",
         active
-          ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
+          ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
           : "text-stone-400 hover:bg-stone-100 hover:text-stone-700"
       )}
       aria-label={label}

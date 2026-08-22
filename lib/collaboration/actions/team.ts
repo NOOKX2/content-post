@@ -1,6 +1,6 @@
 "use server";
 
-import type { Role, TaskStatus } from "@prisma/client";
+import type { Role, TaskPriority, TaskStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { hashPassword } from "@/lib/auth/domain/password";
 import {
@@ -119,6 +119,8 @@ export async function fetchTeamTasks(options?: {
 
 export async function createTeamTask(input: {
   title: string;
+  description?: string;
+  priority?: TaskPriority;
   contentId?: string | null;
   assigneeId?: string | null;
   dueDate?: string;
@@ -132,6 +134,8 @@ export async function createTeamTask(input: {
 
   return createTask({
     title: input.title,
+    description: input.description,
+    priority: input.priority,
     contentId: input.contentId,
     assigneeId: input.assigneeId,
     dueDate: input.dueDate,

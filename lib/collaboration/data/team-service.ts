@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/shared/prisma";
-import type { Prisma, Role, TaskStatus } from "@prisma/client";
+import type { Prisma, Role, TaskPriority, TaskStatus } from "@prisma/client";
 import type {
   AuditLogItem,
   TaskItem,
@@ -51,7 +51,9 @@ function toMember(user: {
 function toTask(task: {
   id: string;
   title: string;
+  description: string;
   status: TaskStatus;
+  priority: TaskPriority;
   dueDate: string;
   contentId: string | null;
   assigneeId: string | null;
@@ -65,7 +67,9 @@ function toTask(task: {
   return {
     id: task.id,
     title: task.title,
+    description: task.description,
     status: task.status,
+    priority: task.priority,
     dueDate: task.dueDate,
     contentId: task.contentId,
     contentCode: task.content?.contentId ?? null,
@@ -138,7 +142,7 @@ export async function listTasks(options?: {
       assigneeId: options?.assigneeId,
     },
     include: taskInclude,
-    orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
+    orderBy: { createdAt: "desc" },
   });
   return tasks.map(toTask);
 }
@@ -157,6 +161,8 @@ async function assertAssigneeAvailable(assigneeId?: string | null) {
 
 export async function createTask(input: {
   title: string;
+  description?: string;
+  priority?: TaskPriority;
   contentId?: string | null;
   assigneeId?: string | null;
   dueDate?: string;
@@ -167,6 +173,8 @@ export async function createTask(input: {
   const task = await prisma.task.create({
     data: {
       title: input.title.trim(),
+      description: input.description?.trim() ?? "",
+      priority: input.priority ?? "medium",
       contentId: input.contentId || null,
       assigneeId: input.assigneeId || null,
       dueDate: input.dueDate ?? "",

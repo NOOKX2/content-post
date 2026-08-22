@@ -146,11 +146,11 @@ function PostLinkSection({
     <div className="space-y-1.5">
       <p
         className={cn(
-          "flex items-center gap-1.5 text-xs font-semibold tracking-widest uppercase",
-          isDark ? "text-stone-400" : "text-stone-600"
+          "flex items-center gap-1.5 text-sm font-semibold tracking-wide",
+          isDark ? "text-stone-300" : "text-stone-800"
         )}
       >
-        <Link2 className="h-3 w-3" />
+        <Link2 className="h-4 w-4" />
         {t("content.postLinkLabel")}
       </p>
       <div className="flex items-center gap-1.5">
@@ -162,14 +162,14 @@ function PostLinkSection({
             disabled={!canEdit}
             placeholder={t("content.postLinkPlaceholder")}
             className={cn(
-              "h-9 w-full rounded-lg border px-3 pr-9 text-sm outline-none transition",
+              "h-10 w-full rounded-lg border px-3 pr-9 text-base outline-none transition",
               canEdit
                 ? isDark
                   ? "border-stone-800 bg-stone-950/40 text-stone-100 placeholder:text-stone-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                  : "border-stone-200 bg-white text-stone-900 placeholder:text-stone-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                  : "border-stone-200 bg-white text-stone-900 placeholder:text-stone-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
                 : isDark
                   ? "border-stone-800 bg-stone-950/20 text-stone-500 cursor-default"
-                  : "border-stone-100 bg-stone-50 text-stone-500 cursor-default"
+                  : "border-stone-100 bg-stone-50 text-stone-600 cursor-default"
             )}
           />
           {url && (
@@ -196,14 +196,14 @@ function PostLinkSection({
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition",
               isDark
                 ? "border-stone-800 bg-stone-950/40 text-stone-300 hover:bg-stone-900/50 hover:text-stone-100"
                 : "border-stone-200 bg-white text-stone-500 hover:text-stone-800"
             )}
             title={t("content.openLink")}
           >
-            <ExternalLink className="h-3.5 w-3.5" />
+            <ExternalLink className="h-4 w-4" />
           </a>
         )}
         {canEdit && isDirty && (
@@ -247,7 +247,11 @@ function AssignmentDetails({
   if (content.ideaCreator) {
     rows.push({
       label: t("content.createdBy"),
-      value: <span className="text-sm font-medium text-stone-900">{content.ideaCreator}</span>,
+      value: (
+        <span className="text-base font-semibold text-stone-900">
+          {content.ideaCreator}
+        </span>
+      ),
       icon: User,
     });
   }
@@ -255,7 +259,11 @@ function AssignmentDetails({
   if (scheduleLabel) {
     rows.push({
       label: t("content.postDate"),
-      value: <span className="text-sm text-stone-800">{scheduleLabel}</span>,
+      value: (
+        <span className="text-base font-medium text-stone-900">
+          {scheduleLabel}
+        </span>
+      ),
       icon: CalendarDays,
     });
   }
@@ -264,7 +272,9 @@ function AssignmentDetails({
     rows.push({
       label: t("content.category"),
       value: (
-        <span className="text-sm font-medium text-emerald-600">{content.category}</span>
+        <span className="text-base font-semibold text-emerald-700">
+          {content.category}
+        </span>
       ),
       icon: Tag,
     });
@@ -281,7 +291,11 @@ function AssignmentDetails({
   if (content.approver) {
     rows.push({
       label: t("content.approvedBy"),
-      value: <span className="text-sm text-stone-800">{content.approver}</span>,
+      value: (
+        <span className="text-base font-medium text-stone-900">
+          {content.approver}
+        </span>
+      ),
       icon: ShieldCheck,
     });
   }
@@ -290,8 +304,8 @@ function AssignmentDetails({
     <div className="space-y-0.5">
       <p
         className={cn(
-          "mb-2 text-xs font-semibold tracking-[0.14em] uppercase",
-          isDark ? "text-stone-400" : "text-stone-600"
+          "mb-2 text-sm font-bold tracking-wide",
+          isDark ? "text-stone-200" : "text-stone-900"
         )}
       >
         {t("content.assignmentDetails")}
@@ -299,8 +313,20 @@ function AssignmentDetails({
       <div className={cn("divide-y", isDark ? "divide-stone-800" : "divide-stone-100")}>
         {rows.map(({ label, value, icon: Icon }) => (
           <div key={label} className="flex items-center justify-between gap-6 py-3">
-            <dt className={cn("flex shrink-0 items-center gap-2 text-xs font-medium", isDark ? "text-stone-300" : "text-stone-700")}>
-              {Icon && <Icon className="h-3.5 w-3.5 text-stone-500" />}
+            <dt
+              className={cn(
+                "flex shrink-0 items-center gap-2 text-sm font-semibold",
+                isDark ? "text-stone-200" : "text-stone-800"
+              )}
+            >
+              {Icon && (
+                <Icon
+                  className={cn(
+                    "h-4 w-4",
+                    isDark ? "text-stone-400" : "text-stone-700"
+                  )}
+                />
+              )}
               {label}
             </dt>
             <dd className="text-right">{value}</dd>
@@ -327,16 +353,16 @@ function PostObjective({
     <div className="space-y-1.5">
       <p
         className={cn(
-          "text-xs font-semibold tracking-widest uppercase",
-          isDark ? "text-stone-400" : "text-stone-600"
+          "text-sm font-bold tracking-wide",
+          isDark ? "text-stone-200" : "text-stone-900"
         )}
       >
         {t("content.objectiveTitle")}
       </p>
       <p
         className={cn(
-          "text-sm leading-relaxed",
-          isDark ? "text-stone-200" : "text-stone-600"
+          "text-base leading-relaxed",
+          isDark ? "text-stone-100" : "text-stone-800"
         )}
       >
         {content.details}
@@ -449,15 +475,15 @@ function CaptionPreview({ content }: { content: ContentItem }) {
 
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-semibold tracking-widest text-stone-600 uppercase">
+      <p className="text-sm font-bold tracking-wide text-stone-900">
         {t("content.captionPreview")}
       </p>
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-stone-700">
+      <p className="whitespace-pre-wrap text-base leading-relaxed text-stone-800">
         {caption}
       </p>
       {content.tags.length > 0 && (
-        <p className="mt-2 text-sm text-blue-500">
-          {content.tags.map((t) => `#${t}`).join(" ")}
+        <p className="mt-2 text-base font-medium text-blue-600">
+          {content.tags.map((tag) => `#${tag}`).join(" ")}
         </p>
       )}
     </div>

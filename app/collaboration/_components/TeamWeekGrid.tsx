@@ -4,6 +4,7 @@ import type { MeetingItem } from "@/lib/collaboration/types";
 import {
   eventAccent,
   hourLabel,
+  meetingOverlaps,
   sameDay,
 } from "@/app/collaboration/_lib/calendar-utils";
 import {
@@ -29,9 +30,16 @@ const WEEKDAY_KEYS = [
 ] as const;
 
 const ACCENT_CLASS: Record<ReturnType<typeof eventAccent>, string> = {
-  violet: "border-blue-500 bg-blue-100/90 text-blue-900",
-  amber: "border-amber-500 bg-amber-100 text-amber-900",
-  sky: "border-sky-500 bg-sky-100 text-sky-900",
+  blue:
+    "border-l-[3px] border-l-blue-500/70 bg-blue-200/40 text-blue-950",
+  amber: "border-l-[3px] border-l-rose-400/70 bg-orange-100/45 text-rose-950",
+  sky: "border-l-[3px] border-l-sky-400/70 bg-sky-100/45 text-sky-950",
+};
+
+const ACCENT_META: Record<ReturnType<typeof eventAccent>, string> = {
+  blue: "text-blue-800/90",
+  amber: "text-rose-800/90",
+  sky: "text-sky-800/90",
 };
 
 type PositionedMeeting = {
@@ -83,7 +91,7 @@ function layoutDay(dayMeetings: MeetingItem[]): PositionedMeeting[] {
       placed.push({
         meeting: event.meeting,
         top: ((event.startMin - DAY_START_HOUR * 60) / 60) * HOUR_HEIGHT,
-        height: Math.max(((event.endMin - event.startMin) / 60) * HOUR_HEIGHT - 4, 22),
+        height: Math.max(((event.endMin - event.startMin) / 60) * HOUR_HEIGHT - 4, 28),
         leftPct: (lane / laneCount) * 100,
         widthPct: (1 / laneCount) * 100,
       });
@@ -101,58 +109,113 @@ function layoutDay(dayMeetings: MeetingItem[]): PositionedMeeting[] {
   return placed;
 }
 
+function formatEventMeta(meeting: MeetingItem, locale: string, t: (key: string, vars?: Record<string, string | number>) => string) {
+  const start = new Date(meeting.startsAt);
+  const end = new Date(meeting.endsAt);
+  const startLabel = start.toLocaleTimeString(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  const minutes = Math.max(
+    30,
+    Math.round((end.getTime() - start.getTime()) / 60_000)
+  );
+  const hours = minutes / 60;
+  const duration =
+    hours >= 1 && hours === Math.floor(hours)
+      ? t("team.durationHours", { count: hours })
+      : hours >= 1
+        ? t("team.durationHours", { count: Number(hours.toFixed(1)) })
+        : t("team.durationMinutes", { count: minutes });
+  return `${startLabel} · ${duration}`;
+}
+
 export function TeamWeekGrid({
   weekStart,
   meetings,
   selectedDate,
+  previewRange,
   onSelectSlot,
 }: {
   weekStart: Date;
   meetings: MeetingItem[];
   selectedDate: Date;
-  onSelectSlot: (range: { start: Date; end: Date }) => void;
+  previewRange?: { start: Date; end: Date; title?: string } | null;
+  onSelectSlot: (range: { start: Date; end: Date } | null) => void;
 }) {
   const { t, locale } = useT();
   const loc = dateLocale(locale);
   const now = new Date();
   const {
     days,
-    selection,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
-  } = useTeamWeekGrid(weekStart, onSelectSlot);
+  } = useTeamWeekGrid(weekStart, onSelectSlot, previewRange);
   const slots = Array.from({ length: SLOTS_PER_DAY }, (_, index) => index);
 
+  const previewLayout = (() => {
+    if (!previewRange) return null;
+    const dayIndex = days.findIndex((day) => sameDay(day, previewRange.start));
+    if (dayIndex < 0) return null;
+
+    const dayStartMin = DAY_START_HOUR * 60;
+    const dayEndMin = DAY_END_HOUR * 60;
+    const startMin = Math.max(
+      previewRange.start.getHours() * 60 + previewRange.start.getMinutes(),
+      dayStartMin
+    );
+    let endMin =
+      previewRange.end.getHours() * 60 + previewRange.end.getMinutes();
+    if (endMin <= startMin) endMin = startMin + 30;
+    endMin = Math.min(endMin, dayEndMin);
+    if (endMin <= dayStartMin || startMin >= dayEndMin) return null;
+
+    return {
+      dayIndex,
+      top: ((startMin - dayStartMin) / 60) * HOUR_HEIGHT,
+      height: Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT - 2, 20),
+    };
+  })();
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-stone-200">
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
+      <div className="grid grid-cols-[64px_repeat(7,1fr)] border-b border-stone-200">
         <div />
         {days.map((day, index) => {
           const today = sameDay(day, now);
           const selected = sameDay(day, selectedDate);
+          const hasEvents = meetings.some((meeting) =>
+            sameDay(new Date(meeting.startsAt), day)
+          );
           return (
-            <div key={toKey(day)} className="py-2 text-center">
-              <p className="text-[10px] font-semibold tracking-wide text-stone-500 uppercase">
+            <div key={toKey(day)} className="py-2.5 text-center">
+              <p className="text-[11px] font-semibold tracking-wide text-stone-500 uppercase">
                 {t(WEEKDAY_KEYS[index])}
               </p>
               <p
                 className={cn(
-                  "mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold",
+                  "mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
                   today && "bg-blue-600 text-white",
-                  selected && !today && "ring-1 ring-blue-500 text-stone-900",
+                  selected && !today && "bg-blue-100 text-blue-800",
                   !today && !selected && "text-stone-800"
                 )}
               >
                 {day.getDate()}
               </p>
+              <div className="mt-1 flex h-1.5 justify-center">
+                {hasEvents && !today ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                ) : null}
+              </div>
             </div>
           );
         })}
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="grid min-h-full grid-cols-[56px_repeat(7,1fr)]">
+        <div className="grid min-h-full grid-cols-[64px_repeat(7,1fr)]">
           <div>
             {slots.map((slot) => {
               const minutes = DAY_START_HOUR * 60 + slot * SLOT_MINUTES;
@@ -174,7 +237,7 @@ export function TeamWeekGrid({
                   {label && (
                     <span
                       className={cn(
-                        "absolute right-1.5 text-[10px] text-stone-500",
+                        "absolute right-2 text-[11px] font-medium text-stone-500",
                         slot === 0 ? "top-1" : isEndBoundary ? "bottom-1" : "-top-2"
                       )}
                     >
@@ -188,9 +251,21 @@ export function TeamWeekGrid({
 
           {days.map((day, dayIndex) => {
             const today = sameDay(day, now);
-            const items = layoutDay(
-              meetings.filter((meeting) => sameDay(new Date(meeting.startsAt), day))
+            const dayMeetings = meetings.filter((meeting) =>
+              sameDay(new Date(meeting.startsAt), day)
             );
+            const visibleMeetings =
+              previewRange && previewLayout?.dayIndex === dayIndex
+                ? dayMeetings.filter(
+                  (meeting) =>
+                    !meetingOverlaps(
+                      meeting,
+                      previewRange.start,
+                      previewRange.end
+                    )
+                )
+                : dayMeetings;
+            const items = layoutDay(visibleMeetings);
             return (
               <div
                 key={toKey(day)}
@@ -204,7 +279,6 @@ export function TeamWeekGrid({
               >
                 {slots.map((slot) => {
                   const minutes = DAY_START_HOUR * 60 + slot * SLOT_MINUTES;
-                  const hour = Math.floor(minutes / 60);
                   const minute = minutes % 60;
                   const isHourBoundary = minute === 0;
 
@@ -221,22 +295,30 @@ export function TeamWeekGrid({
                   );
                 })}
 
-                {selection && selection.dayIndex === dayIndex && (
-                  <div
-                    className="pointer-events-none absolute inset-x-0.5 z-10 rounded-md bg-blue-500/25 ring-1 ring-blue-500/50"
-                    style={{
-                      top: selection.startSlot * SLOT_HEIGHT,
-                      height: (selection.endSlot - selection.startSlot + 1) * SLOT_HEIGHT,
-                    }}
-                  />
-                )}
+                {previewLayout && previewLayout.dayIndex === dayIndex && (
+                    <div
+                      className="pointer-events-none absolute inset-x-1 z-[15] overflow-hidden rounded-lg border-l-[3px] border-l-blue-500/70 bg-blue-200/40 px-2 py-1.5 text-blue-950"
+                      style={{
+                        top: previewLayout.top,
+                        height: previewLayout.height,
+                      }}
+                    >
+                      {previewRange?.title?.trim() ? (
+                        <p className="truncate text-xs font-bold text-blue-950">
+                          {previewRange.title.trim()}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
 
                 {items.map((item) => {
                   const accent = eventAccent(item.meeting.title);
                   const href =
                     item.meeting.meetUrl || item.meeting.calendarLink || "";
+                  const meta = formatEventMeta(item.meeting, loc, t);
+                  const showMeta = item.height >= 44;
                   const className = cn(
-                    "absolute z-20 overflow-hidden rounded-lg border-l-2 px-1.5 py-1 text-left shadow-sm",
+                    "absolute z-20 overflow-hidden rounded-lg px-2 py-1.5 text-left",
                     ACCENT_CLASS[accent]
                   );
                   const style = {
@@ -245,32 +327,45 @@ export function TeamWeekGrid({
                     left: `calc(${item.leftPct}% + 3px)`,
                     width: `calc(${item.widthPct}% - 6px)`,
                   };
+                  const body = (
+                    <>
+                      <p className="truncate text-xs font-bold leading-tight">
+                        {item.meeting.title}
+                      </p>
+                      {showMeta ? (
+                        <p
+                          className={cn(
+                            "mt-0.5 truncate text-[11px] font-semibold leading-tight",
+                            ACCENT_META[accent]
+                          )}
+                        >
+                          {meta}
+                        </p>
+                      ) : null}
+                    </>
+                  );
                   return href ? (
                     <a
                       key={item.meeting.id}
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title={item.meeting.title}
+                      title={`${item.meeting.title} · ${meta}`}
                       className={className}
                       style={style}
                       onPointerDown={(e) => e.stopPropagation()}
                     >
-                      <p className="truncate text-[11px] font-semibold leading-tight">
-                        {item.meeting.title}
-                      </p>
+                      {body}
                     </a>
                   ) : (
                     <div
                       key={item.meeting.id}
-                      title={item.meeting.title}
+                      title={`${item.meeting.title} · ${meta}`}
                       className={className}
                       style={style}
                       onPointerDown={(e) => e.stopPropagation()}
                     >
-                      <p className="truncate text-[11px] font-semibold leading-tight">
-                        {item.meeting.title}
-                      </p>
+                      {body}
                     </div>
                   );
                 })}

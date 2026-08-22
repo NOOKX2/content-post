@@ -20,6 +20,13 @@ enum TaskStatus {
   done
 }
 
+enum TaskPriority {
+  urgent
+  high
+  medium
+  low
+}
+
 enum MediaType {
   video
   image
@@ -265,18 +272,20 @@ model Content {
 }
 
 model Task {
-  id          String     @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
-  status      TaskStatus @default(todo)
-  dueDate     String     @default("")
+  description String       @default("")
+  status      TaskStatus   @default(todo)
+  priority    TaskPriority @default(medium)
+  dueDate     String       @default("")
   contentId   String?
-  content     Content?   @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  content     Content?     @relation(fields: [contentId], references: [id], onDelete: SetNull)
   assigneeId  String?
-  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   createdById String?
-  createdBy   User?      @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdBy   User?        @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([assigneeId, status])
   @@index([contentId, createdAt])
