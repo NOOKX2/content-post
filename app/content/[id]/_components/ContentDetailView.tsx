@@ -223,9 +223,7 @@ function AssignmentDetails({
       ? t("dashboard.mediaVideo")
       : content.mediaType === "image"
         ? t("dashboard.mediaImage")
-        : content.mediaType === "graphic"
-          ? t("dashboard.mediaGraphic")
-          : MEDIA_FORM_CONFIG[content.mediaType]?.label ?? content.mediaType;
+        : t("dashboard.mediaGraphic");
 
   const responsible =
     content.editor?.trim() || content.ideaCreator?.trim() || null;
