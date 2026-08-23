@@ -263,6 +263,8 @@ function TaskCard({
   members,
   unavailable,
   locale,
+  allowAssign = true,
+  allowDelete = true,
   onPatch,
   onRemove,
   onOpenContent,
@@ -271,6 +273,8 @@ function TaskCard({
   members: TeamMemberItem[];
   unavailable: string;
   locale: string;
+  allowAssign?: boolean;
+  allowDelete?: boolean;
   onPatch: (
     id: string,
     payload: Partial<{ status: TaskStatus; assigneeId: string | null }>
@@ -362,31 +366,35 @@ function TaskCard({
               {t("team.unassignedTasks")}
             </span>
           )}
-          <select
-            value={task.assigneeId ?? ""}
-            onChange={(e) =>
-              void onPatch(task.id, { assigneeId: e.target.value || null })
-            }
-            className="absolute inset-0 cursor-pointer opacity-0"
-            aria-label={t("team.pickMember")}
-            title={t("team.pickMember")}
-          >
-            <option value="">{t("team.pickMember")}</option>
-            {assigneeOptions(members, unavailable, task.assigneeId).map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          {allowAssign ? (
+            <select
+              value={task.assigneeId ?? ""}
+              onChange={(e) =>
+                void onPatch(task.id, { assigneeId: e.target.value || null })
+              }
+              className="absolute inset-0 cursor-pointer opacity-0"
+              aria-label={t("team.pickMember")}
+              title={t("team.pickMember")}
+            >
+              <option value="">{t("team.pickMember")}</option>
+              {assigneeOptions(members, unavailable, task.assigneeId).map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </div>
-        <button
-          type="button"
-          onClick={() => void onRemove(task.id)}
-          className="rounded-md p-1 text-stone-300 opacity-100 transition hover:bg-rose-50 hover:text-rose-500 sm:opacity-0 sm:group-hover:opacity-100"
-          aria-label={t("team.confirmDeleteTask")}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        {allowDelete ? (
+          <button
+            type="button"
+            onClick={() => void onRemove(task.id)}
+            className="rounded-md p-1 text-stone-300 opacity-100 transition hover:bg-rose-50 hover:text-rose-500 sm:opacity-0 sm:group-hover:opacity-100"
+            aria-label={t("team.confirmDeleteTask")}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
       </div>
     </article>
   );
@@ -395,9 +403,15 @@ function TaskCard({
 interface TeamTasksPanelProps {
   contentId?: string;
   compact?: boolean;
+  /** Personal inbox: only tasks assigned to the current user. */
+  mineOnly?: boolean;
 }
 
-export function TeamTasksPanel({ contentId, compact = false }: TeamTasksPanelProps) {
+export function TeamTasksPanel({
+  contentId,
+  compact = false,
+  mineOnly = false,
+}: TeamTasksPanelProps) {
   const { navigate } = useDashboardNav();
   const { t, locale } = useT();
   const loc = dateLocale(locale);
@@ -432,7 +446,7 @@ export function TeamTasksPanel({ contentId, compact = false }: TeamTasksPanelPro
     create,
     patchTask,
     remove,
-  } = useTeamTasksPanel(contentId);
+  } = useTeamTasksPanel(contentId, { mineOnly });
 
   if (compact) {
     return (
@@ -467,109 +481,124 @@ export function TeamTasksPanel({ contentId, compact = false }: TeamTasksPanelPro
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#f3f4f6]">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3 md:px-5">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-600/20">
-            <ClipboardList className="h-5 w-5" strokeWidth={2.25} />
-          </span>
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-bold tracking-tight text-stone-900">
-              {t("team.taskFlow")}
-            </h1>
-            <p className="truncate text-xs text-stone-500">{t("team.taskFlowSubtitle")}</p>
-          </div>
-        </div>
-
-        <div className="hidden items-center gap-4 text-xs font-medium text-stone-600 sm:flex">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-blue-500" />
-            {t("team.todoCount", { count: statusCounts.todo })}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
-            {t("team.inProgressCount", { count: statusCounts.in_progress })}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            {t("team.doneCount", { count: statusCounts.done })}
-          </span>
-        </div>
-      </header>
-
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="hidden w-70 shrink-0 flex-col overflow-hidden border-r border-stone-200 bg-white md:flex">
-          <div className="flex items-center gap-2 border-b border-stone-100 px-4 py-3.5">
-            <Users className="h-4 w-4 text-stone-400" />
-            <p className="text-xs font-semibold tracking-wide text-stone-500 uppercase">
-              {t("team.teamMembersSection")}
-            </p>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-2">
-            <button
-              type="button"
-              onClick={() => setMemberFilter("all")}
-              className={cn(
-                "mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition",
-                memberFilter === "all"
-                  ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
-                  : "text-stone-700 hover:bg-stone-50"
-              )}
-            >
-              {t("team.allTasksCount", { count: statusCounts.total })}
-            </button>
-
-            <div className="mt-1 space-y-0.5">
-              {workload.map(({ member, doneCount, totalCount, percent }) => {
-                const selected = memberFilter === member.id;
-                return (
-                  <button
-                    key={member.id}
-                    type="button"
-                    onClick={() => setMemberFilter(member.id)}
-                    className={cn(
-                      "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition",
-                      selected ? "bg-blue-50 ring-1 ring-blue-200" : "hover:bg-stone-50"
-                    )}
-                  >
-                    <PersonAvatar
-                      name={member.name}
-                      imageUrl={member.imageUrl}
-                      size="md"
-                      letters={2}
-                      className="ring-0!"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-stone-900">
-                            {member.name}
-                          </p>
-                          <p className="truncate text-[11px] text-stone-500">
-                            {member.position || member.role}
-                          </p>
-                        </div>
-                        <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-stone-300" />
-                      </div>
-                      <div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-medium text-stone-500">
-                        <span>{t("team.taskProgress", { done: doneCount, total: totalCount })}</span>
-                        <span>{percent}%</span>
-                      </div>
-                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-stone-100">
-                        <div
-                          className="h-full rounded-full bg-blue-500 transition-all"
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+      {!mineOnly ? (
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3 md:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-600/20">
+              <ClipboardList className="h-5 w-5" strokeWidth={2.25} />
+            </span>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold tracking-tight text-stone-900">
+                {t("team.taskFlow")}
+              </h1>
+              <p className="truncate text-xs text-stone-500">
+                {t("team.taskFlowSubtitle")}
+              </p>
             </div>
           </div>
-        </aside>
 
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-4">
-          <div className="mb-3 flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <div className="hidden items-center gap-4 text-xs font-medium text-stone-600 sm:flex">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-blue-500" />
+              {t("team.todoCount", { count: statusCounts.todo })}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              {t("team.inProgressCount", { count: statusCounts.in_progress })}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              {t("team.doneCount", { count: statusCounts.done })}
+            </span>
+          </div>
+        </header>
+      ) : null}
+
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {!mineOnly ? (
+          <aside className="hidden w-70 shrink-0 flex-col overflow-hidden border-r border-stone-200 bg-white md:flex">
+            <div className="flex items-center gap-2 border-b border-stone-100 px-4 py-3.5">
+              <Users className="h-4 w-4 text-stone-400" />
+              <p className="text-xs font-semibold tracking-wide text-stone-500 uppercase">
+                {t("team.teamMembersSection")}
+              </p>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+              <button
+                type="button"
+                onClick={() => setMemberFilter("all")}
+                className={cn(
+                  "mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition",
+                  memberFilter === "all"
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
+                    : "text-stone-700 hover:bg-stone-50"
+                )}
+              >
+                {t("team.allTasksCount", { count: statusCounts.total })}
+              </button>
+
+              <div className="mt-1 space-y-0.5">
+                {workload.map(({ member, doneCount, totalCount, percent }) => {
+                  const selected = memberFilter === member.id;
+                  return (
+                    <button
+                      key={member.id}
+                      type="button"
+                      onClick={() => setMemberFilter(member.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition",
+                        selected ? "bg-blue-50 ring-1 ring-blue-200" : "hover:bg-stone-50"
+                      )}
+                    >
+                      <PersonAvatar
+                        name={member.name}
+                        imageUrl={member.imageUrl}
+                        size="md"
+                        letters={2}
+                        className="ring-0!"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-stone-900">
+                              {member.name}
+                            </p>
+                            <p className="truncate text-[11px] text-stone-500">
+                              {member.position || member.role}
+                            </p>
+                          </div>
+                          <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-stone-300" />
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-medium text-stone-500">
+                          <span>
+                            {t("team.taskProgress", {
+                              done: doneCount,
+                              total: totalCount,
+                            })}
+                          </span>
+                          <span>{percent}%</span>
+                        </div>
+                        <div className="mt-1 h-1 overflow-hidden rounded-full bg-stone-100">
+                          <div
+                            className="h-full rounded-full bg-blue-500 transition-all"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+        ) : null}
+
+        <section
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-4",
+            mineOnly && "mx-auto w-full max-w-5xl"
+          )}
+        >          <div className="mb-3 flex flex-wrap items-center gap-2.5 sm:gap-3">
             <div className="relative w-full max-w-56 sm:max-w-64">
               <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-stone-400" />
               <input
@@ -597,15 +626,24 @@ export function TeamTasksPanel({ contentId, compact = false }: TeamTasksPanelPro
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={() => setShowAssignForm(true)}
-              className="ml-auto inline-flex h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
+            {!mineOnly ? (
+              <button
+                type="button"
+                onClick={() => setShowAssignForm(true)}
+                className="ml-auto inline-flex h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4" />
+                {t("team.assignTask")}
+              </button>
+            ) : null}
+            <p
+              className={cn(
+                "shrink-0 items-center gap-1.5 text-xs font-medium text-stone-500",
+                mineOnly
+                  ? "ml-auto inline-flex"
+                  : "hidden lg:inline-flex"
+              )}
             >
-              <Plus className="h-4 w-4" />
-              {t("team.assignTask")}
-            </button>
-            <p className="hidden shrink-0 items-center gap-1.5 text-xs font-medium text-stone-500 lg:inline-flex">
               <List className="h-3.5 w-3.5" />
               {t("team.itemsCount", { count: filteredTasks.length })}
             </p>
@@ -627,6 +665,8 @@ export function TeamTasksPanel({ contentId, compact = false }: TeamTasksPanelPro
                     members={members}
                     unavailable={unavailable}
                     locale={loc}
+                    allowAssign={!mineOnly}
+                    allowDelete={!mineOnly}
                     onPatch={patchTask}
                     onRemove={remove}
                     onOpenContent={(id) => navigate(`/content/${id}`)}
@@ -638,7 +678,7 @@ export function TeamTasksPanel({ contentId, compact = false }: TeamTasksPanelPro
         </section>
       </div>
 
-      {showAssignForm ? (
+      {showAssignForm && !mineOnly ? (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 p-4">
           <div
             role="dialog"

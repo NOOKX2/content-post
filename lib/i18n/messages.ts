@@ -679,6 +679,7 @@ export const th = {
     searchMembersPlaceholder: "ค้นหาสมาชิก...",
     addMember: "เพิ่มสมาชิก",
     memberWork: "งาน",
+    googleCalendarConnected: "เชื่อม Google Calendar แล้ว",
     memberTaskSummary: "{total} ({done} เสร็จ)",
     membersFooter: "{count} สมาชิก · เข้าร่วมล่าสุด {date}",
     updateRoleFailed: "อัปเดตบทบาทไม่สำเร็จ",
@@ -807,6 +808,7 @@ export const th = {
   tasks: {
     title: "งานที่ได้รับมอบหมาย",
     description: "ดูและอัปเดตงานที่มอบหมายให้คุณทั้งหมด",
+    filterSection: "ตัวกรอง",
     active: "กำลังทำ",
     all: "ทั้งหมด",
     todo: "ยังไม่เริ่ม",
@@ -846,6 +848,17 @@ export const th = {
     loginRequired: "กรุณาเข้าสู่ระบบ",
     busyBlocked: "ผู้ใช้นี้ตั้งสถานะไม่ว่าง จึงยังไม่สามารถมอบหมายงานได้",
     unavailable: "ไม่ว่าง",
+    googleCalendarTitle: "Google Calendar",
+    googleCalendarHint:
+      "เชื่อมบัญชี Google ของคุณ เพื่อให้นัดหมายที่คุณสร้างขึ้นบนปฏิทินจริง",
+    googleCalendarConnect: "เชื่อม Google Calendar",
+    googleCalendarDisconnect: "ยกเลิกการเชื่อม",
+    googleCalendarConnected: "เชื่อม Google Calendar สำเร็จ",
+    googleCalendarDisconnected: "ยกเลิกการเชื่อม Google Calendar แล้ว",
+    googleCalendarConnectFailed: "เชื่อม Google Calendar ไม่สำเร็จ กรุณาลองใหม่",
+    googleCalendarLoadFailed: "โหลดสถานะ Google Calendar ไม่สำเร็จ",
+    googleCalendarNotConfigured:
+      "ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET ในเซิร์ฟเวอร์",
   },
   notifications: {
     title: "การแจ้งเตือน",
@@ -1617,6 +1630,7 @@ export const en: Messages = {
     searchMembersPlaceholder: "Search members...",
     addMember: "Add member",
     memberWork: "Tasks",
+    googleCalendarConnected: "Google Calendar connected",
     memberTaskSummary: "{total} ({done} done)",
     membersFooter: "{count} members · last joined {date}",
     updateRoleFailed: "Could not update the role",
@@ -1745,6 +1759,7 @@ export const en: Messages = {
   tasks: {
     title: "Assigned tasks",
     description: "View and update all tasks assigned to you",
+    filterSection: "Filters",
     active: "Active",
     all: "All",
     todo: "To do",
@@ -1784,6 +1799,17 @@ export const en: Messages = {
     loginRequired: "Please sign in",
     busyBlocked: "This person is busy and cannot be assigned work right now",
     unavailable: "Busy",
+    googleCalendarTitle: "Google Calendar",
+    googleCalendarHint:
+      "Connect your Google account so meetings you create land on your real calendar",
+    googleCalendarConnect: "Connect Google Calendar",
+    googleCalendarDisconnect: "Disconnect",
+    googleCalendarConnected: "Google Calendar connected",
+    googleCalendarDisconnected: "Google Calendar disconnected",
+    googleCalendarConnectFailed: "Could not connect Google Calendar. Please try again.",
+    googleCalendarLoadFailed: "Failed to load Google Calendar status",
+    googleCalendarNotConfigured:
+      "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not configured on the server",
   },
   notifications: {
     title: "Notifications",

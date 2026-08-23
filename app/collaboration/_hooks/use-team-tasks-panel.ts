@@ -44,18 +44,27 @@ export function addDaysIso(days: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function useTeamTasksPanel(contentId?: string) {
+export function useTeamTasksPanel(
+  contentId?: string,
+  options?: { mineOnly?: boolean }
+) {
   const { t } = useT();
   const bootstrap = useCollaborationBootstrap();
   const unavailable = t("profile.unavailable");
-  const tasksKey = contentId ? `team-tasks:content:${contentId}` : TEAM_TASKS_ALL_KEY;
+  const mineOnly = Boolean(options?.mineOnly);
+  const tasksKey = contentId
+    ? `team-tasks:content:${contentId}`
+    : mineOnly
+      ? "team-tasks:mine"
+      : TEAM_TASKS_ALL_KEY;
 
   const { data: tasks = [], mutate, isLoading } = useSWR(
     tasksKey,
-    () => fetchTeamTasks({ contentId }),
+    () => fetchTeamTasks({ contentId, mine: mineOnly || undefined }),
     {
-      fallbackData: contentId ? undefined : bootstrap?.tasks,
-      revalidateOnMount: Boolean(contentId) || !bootstrap,
+      fallbackData:
+        contentId || mineOnly ? undefined : bootstrap?.tasks,
+      revalidateOnMount: Boolean(contentId) || mineOnly || !bootstrap,
     }
   );
   const { data: members = [] } = useSWR(TEAM_MEMBERS_KEY, fetchTeamMembers, {
@@ -220,6 +229,7 @@ export function useTeamTasksPanel(contentId?: string) {
     statusCounts,
     isLoading,
     unavailable,
+    mineOnly,
     title,
     setTitle,
     description,

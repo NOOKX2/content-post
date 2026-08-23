@@ -1,5 +1,10 @@
 import { randomUUID } from "crypto";
-import { google } from "googleapis";
+import { google, type calendar_v3 } from "googleapis";
+import {
+  createGoogleOAuthClient,
+  type GoogleOAuth2Client,
+} from "@/lib/integrations/google/oauth";
+import { getOAuthClientForUser } from "@/lib/integrations/google/connections";
 
 const DEFAULT_TIME_ZONE = "Asia/Bangkok";
 
@@ -11,7 +16,7 @@ export function isGoogleCalendarConfigured() {
   );
 }
 
-function getOAuthClient() {
+function getSharedOAuthClient() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
@@ -22,9 +27,35 @@ function getOAuthClient() {
     );
   }
 
-  const client = new google.auth.OAuth2(clientId, clientSecret);
+  const client = createGoogleOAuthClient();
   client.setCredentials({ refresh_token: refreshToken });
   return client;
+}
+
+async function resolveAuthClient(options?: {
+  organizerUserId?: string;
+  auth?: GoogleOAuth2Client;
+}): Promise<{
+  auth: GoogleOAuth2Client;
+  calendarId: string;
+  usedUserAuth: boolean;
+}> {
+  if (options?.auth) {
+    return { auth: options.auth, calendarId: "primary", usedUserAuth: true };
+  }
+
+  if (options?.organizerUserId) {
+    const userClient = await getOAuthClientForUser(options.organizerUserId);
+    if (userClient) {
+      return { auth: userClient, calendarId: "primary", usedUserAuth: true };
+    }
+  }
+
+  return {
+    auth: getSharedOAuthClient(),
+    calendarId: process.env.GOOGLE_CALENDAR_ID || "primary",
+    usedUserAuth: false,
+  };
 }
 
 export type CalendarAttendee = {
@@ -36,6 +67,7 @@ export type CreatedCalendarMeeting = {
   eventId: string;
   htmlLink: string;
   meetUrl: string;
+  usedUserAuth: boolean;
 };
 
 export type CreateCalendarEventParams = {
@@ -50,16 +82,22 @@ export type CreateCalendarEventParams = {
   timeZone?: string;
   /** If set, updates this event instead of creating a new one. */
   eventId?: string;
+  /** Prefer this user's connected Google Calendar when available. */
+  organizerUserId?: string;
+  auth?: GoogleOAuth2Client;
 };
 
 /**
- * Creates or updates a Google Calendar event on the organizer's primary calendar.
- * Optionally invites attendees and provisions a Google Meet link.
+ * Creates or updates a Google Calendar event.
+ * Uses the organizer's connected account when available, otherwise the shared env token.
  */
 export async function createCalendarEvent(
   params: CreateCalendarEventParams
 ): Promise<CreatedCalendarMeeting> {
-  const auth = getOAuthClient();
+  const { auth, calendarId, usedUserAuth } = await resolveAuthClient({
+    organizerUserId: params.organizerUserId,
+    auth: params.auth,
+  });
   const calendar = google.calendar({ version: "v3", auth });
   const timeZone = params.timeZone ?? DEFAULT_TIME_ZONE;
   const withMeet = params.withMeet ?? false;
@@ -72,8 +110,7 @@ export async function createCalendarEvent(
       displayName: attendee.displayName,
     }));
 
-  const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
-  const requestBody = {
+  const requestBody: calendar_v3.Schema$Event = {
     summary: params.title,
     description: params.description,
     start: { dateTime: params.startsAt, timeZone },
@@ -84,7 +121,7 @@ export async function createCalendarEvent(
           conferenceData: {
             createRequest: {
               requestId: randomUUID(),
-              conferenceSolutionKey: { type: "hangoutsMeet" as const },
+              conferenceSolutionKey: { type: "hangoutsMeet" },
             },
           },
         }
@@ -118,6 +155,7 @@ export async function createCalendarEvent(
     eventId: event.id ?? params.eventId ?? "",
     htmlLink: event.htmlLink ?? "",
     meetUrl: params.manualMeetUrl?.trim() || generatedMeetUrl,
+    usedUserAuth,
   };
 }
 
@@ -133,9 +171,19 @@ export async function createCalendarMeeting(params: {
   attendees: CalendarAttendee[];
   manualMeetUrl?: string;
   timeZone?: string;
+  organizerUserId?: string;
 }): Promise<CreatedCalendarMeeting> {
   return createCalendarEvent({
     ...params,
     withMeet: true,
   });
+}
+
+/** True when shared env OR a specific user connection can write events. */
+export async function canCreateCalendarEventForUser(userId?: string) {
+  if (userId) {
+    const userClient = await getOAuthClientForUser(userId);
+    if (userClient) return true;
+  }
+  return isGoogleCalendarConfigured();
 }

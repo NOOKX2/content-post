@@ -8,6 +8,7 @@ import { ImagePlus, Loader2, Save } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { GoogleCalendarConnectCard } from "@/app/settings/_components/GoogleCalendarConnectCard";
 import { useT } from "@/lib/i18n";
 import { useProfile } from "@/lib/profile/client/profile-provider";
 import {
@@ -136,6 +137,8 @@ export function SettingsView() {
       <Header session={session} title={t("profile.page")} compact />
       <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-5 sm:px-6 md:px-8 md:py-8">
         <h2 className="text-2xl font-bold text-stone-900">{t("profile.title")}</h2>
+
+        <GoogleCalendarConnectCard />
 
         <form onSubmit={onSaveProfile} className="space-y-6">
           <div>

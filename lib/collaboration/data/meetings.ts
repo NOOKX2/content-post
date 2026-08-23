@@ -9,7 +9,6 @@ import {
 import { assertCanAccessChannel } from "@/lib/collaboration/data/channels";
 import {
   createCalendarMeeting,
-  isGoogleCalendarConfigured,
 } from "@/lib/integrations/google/calendar";
 
 export async function listUserMeetings(userId: string) {
@@ -202,30 +201,43 @@ export async function getChannelAttendees(channelId: string) {
   });
   if (!channel) return [];
 
+  type AttendeeRow = { id: string; name: string; email: string };
+
+  let users: AttendeeRow[] = [];
+
   if (isGroupChannel(channel.slug)) {
     const members = await prisma.collaborationChannelMember.findMany({
       where: { channelId },
-      include: { user: { select: { name: true, email: true } } },
+      include: { user: { select: { id: true, name: true, email: true } } },
     });
-    return members.map((member) => ({
+    users = members.map((member) => ({
+      id: member.user.id,
       email: member.user.email,
       name: member.user.name,
     }));
-  }
-
-  if (isDmChannel(channel.slug)) {
+  } else if (isDmChannel(channel.slug)) {
     const [idA, idB] = channel.slug.slice(3).split("-");
-    const users = await prisma.user.findMany({
+    users = await prisma.user.findMany({
       where: { id: { in: [idA, idB].filter(Boolean) } },
-      select: { name: true, email: true },
+      select: { id: true, name: true, email: true },
     });
-    return users.map((user) => ({ email: user.email, name: user.name }));
+  } else {
+    users = await prisma.user.findMany({
+      select: { id: true, name: true, email: true },
+    });
   }
 
-  const users = await prisma.user.findMany({
-    select: { name: true, email: true },
-  });
-  return users.map((user) => ({ email: user.email, name: user.name }));
+  const { listConnectedGoogleEmails } = await import(
+    "@/lib/integrations/google/connections"
+  );
+  const googleEmails = await listConnectedGoogleEmails(users.map((u) => u.id));
+
+  return users.map((user) => ({
+    id: user.id,
+    email: googleEmails.get(user.id) ?? user.email,
+    name: user.name,
+    usedGoogleEmail: googleEmails.has(user.id),
+  }));
 }
 
 export async function scheduleChannelMeeting(params: {
@@ -256,8 +268,14 @@ export async function scheduleChannelMeeting(params: {
   let eventId = "";
   let calendarLink = "";
   let attendeeCount = 0;
+  let usedUserAuth = false;
 
-  if (isGoogleCalendarConfigured()) {
+  const { canCreateCalendarEventForUser } = await import(
+    "@/lib/integrations/google/calendar"
+  );
+  const canWrite = await canCreateCalendarEventForUser(params.authorId);
+
+  if (canWrite) {
     const attendees = await getChannelAttendees(params.channelId);
     attendeeCount = attendees.length;
     const created = await createCalendarMeeting({
@@ -275,10 +293,12 @@ export async function scheduleChannelMeeting(params: {
         displayName: attendee.name,
       })),
       manualMeetUrl: meetUrl || undefined,
+      organizerUserId: params.authorId,
     });
     meetUrl = created.meetUrl;
     eventId = created.eventId;
     calendarLink = created.htmlLink;
+    usedUserAuth = created.usedUserAuth;
   }
 
   return postMeetingMessage({
@@ -294,6 +314,7 @@ export async function scheduleChannelMeeting(params: {
     attendeeCount,
     notes: params.notes,
     kind: params.kind,
+    usedUserAuth,
   });
 }
 
@@ -310,6 +331,7 @@ export async function postMeetingMessage(params: {
   attendeeCount?: number;
   notes?: string;
   kind?: "meeting" | "blocked" | "personal";
+  usedUserAuth?: boolean;
 }) {
   const message = await prisma.collaborationMessage.create({
     data: {
@@ -328,6 +350,7 @@ export async function postMeetingMessage(params: {
         attendeeCount: params.attendeeCount ?? 0,
         notes: params.notes ?? "",
         kind: params.kind ?? "meeting",
+        usedUserAuth: params.usedUserAuth ?? false,
       },
     },
   });

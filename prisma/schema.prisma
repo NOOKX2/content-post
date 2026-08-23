@@ -102,8 +102,21 @@ model User {
   assignedTasks   Task[]                  @relation("TaskAssignee")
   createdTasks    Task[]                  @relation("TaskCreator")
   auditLogs       ContentAuditLog[]
+  googleCalendar  GoogleCalendarConnection?
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
+}
+
+model GoogleCalendarConnection {
+  userId       String    @id
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email        String    @unique
+  refreshToken String
+  accessToken  String?
+  expiryDate   DateTime?
+  scope        String?
+  connectedAt  DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model CollaborationChannel {

@@ -10,6 +10,7 @@ export type TeamMemberItem = {
   position: string;
   imageUrl: string;
   busy: boolean;
+  googleCalendarConnected: boolean;
   createdAt: string;
 };
 

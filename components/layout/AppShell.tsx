@@ -16,7 +16,9 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const isFullHeightView =
-    pathname === "/dashboard" || pathname === "/collaboration";
+    pathname === "/dashboard" ||
+    pathname === "/collaboration" ||
+    pathname === "/my-tasks";
 
   useEffect(() => {
     if (session?.user) {

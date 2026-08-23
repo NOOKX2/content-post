@@ -19,6 +19,7 @@ const memberSelect = {
   imageUrl: true,
   busy: true,
   createdAt: true,
+  googleCalendar: { select: { userId: true } },
 } as const;
 
 function toMember(user: {
@@ -33,6 +34,7 @@ function toMember(user: {
   imageUrl: string;
   busy: boolean;
   createdAt: Date;
+  googleCalendar?: { userId: string } | null;
 }): TeamMemberItem {
   return {
     id: user.id,
@@ -44,6 +46,7 @@ function toMember(user: {
     position: user.position,
     imageUrl: user.imageUrl,
     busy: user.busy,
+    googleCalendarConnected: Boolean(user.googleCalendar),
     createdAt: user.createdAt.toISOString(),
   };
 }

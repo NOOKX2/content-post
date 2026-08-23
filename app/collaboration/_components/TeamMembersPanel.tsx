@@ -227,6 +227,14 @@ export function TeamMembersPanel() {
                               <span className="truncate font-semibold text-stone-900">
                                 {member.name}
                               </span>
+                              {member.googleCalendarConnected ? (
+                                <span
+                                  className="inline-flex items-center rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700"
+                                  title={t("team.googleCalendarConnected")}
+                                >
+                                  GCal
+                                </span>
+                              ) : null}
                               <button
                                 type="button"
                                 onClick={() => setCalendarMember(member)}
