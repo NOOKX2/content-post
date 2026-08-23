@@ -4,19 +4,24 @@ import { useRef, useState, useCallback } from "react";
 import {
   ArrowLeft,
   Check,
+  CheckCheck,
   ChevronRight,
+  Clapperboard,
   Copy,
   CalendarDays,
   ExternalLink,
+  Eye,
   FileDown,
+  FileText,
   Link2,
+  MousePointerClick,
   Play,
   Pencil,
-  Package,
-  ShieldCheck,
-  Tag,
-  User,
+  Share2,
+  Sparkles,
+  ThumbsUp,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 import { ContentForm } from "@/app/create/_components/form/ContentForm";
@@ -25,7 +30,6 @@ import { ContentComments } from "@/app/content/[id]/_components/ContentComments"
 import { UserMenu } from "@/components/layout/UserMenu";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Button } from "@/components/ui/Button";
-import { PlatformBadgeGroup } from "@/components/ui/PlatformIcon";
 import { downloadContentPdf } from "@/lib/content/pdf/export-client";
 import { contentPdfFilename } from "@/lib/content/pdf/filename";
 import {
@@ -44,9 +48,10 @@ import { useDashboardNav } from "@/lib/navigation/client/dashboard-nav";
 import { MEDIA_FORM_CONFIG } from "@/lib/content/domain/form-config";
 import { isImageAttachment } from "@/lib/content/domain/attachments";
 import { isVideoMediaUrl } from "@/lib/content/domain/media-url";
+import { PLATFORMS } from "@/lib/constants";
 import { cn } from "@/lib/shared/utils";
-import { formatLocalizedDate, statusLabel, useT } from "@/lib/i18n";
-import type { ContentItem } from "@/lib/types";
+import { statusLabel, useT } from "@/lib/i18n";
+import type { ContentItem, Platform } from "@/lib/types";
 import type { Session } from "next-auth";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -94,21 +99,12 @@ const STATUS_CONFIG: Record<ContentItem["status"], { dotClass: string; labelClas
   },
 };
 
-function formatVideoDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
-  const totalSeconds = Math.floor(seconds);
-  const minutes = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-  return `${minutes}:${String(secs).padStart(2, "0")}`;
-}
-
 // ─── Post link section ────────────────────────────────────────────────────────
 
 function PostLinkSection({
   content,
   canEdit,
   onSaved,
-  theme = "light",
 }: {
   content: ContentItem;
   canEdit: boolean;
@@ -116,7 +112,6 @@ function PostLinkSection({
   theme?: "light" | "dark";
 }) {
   const { t } = useT();
-  const isDark = theme === "dark";
   const [url, setUrl] = useState(content.postUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -143,80 +138,72 @@ function PostLinkSection({
   };
 
   return (
-    <div className="space-y-1.5">
-      <p
-        className={cn(
-          "flex items-center gap-1.5 text-sm font-semibold tracking-wide",
-          isDark ? "text-stone-300" : "text-stone-800"
-        )}
-      >
-        <Link2 className="h-4 w-4" />
+    <div className="space-y-3">
+      <p className="flex items-center gap-2 text-[15px] font-bold text-slate-900">
+        <Link2 className="h-4 w-4 text-slate-500" strokeWidth={2.25} />
         {t("content.postLinkLabel")}
       </p>
-      <div className="flex items-center gap-1.5">
-        <div className="relative flex-1">
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            disabled={!canEdit}
-            placeholder={t("content.postLinkPlaceholder")}
-            className={cn(
-              "h-10 w-full rounded-lg border px-3 pr-9 text-base outline-none transition",
-              canEdit
-                ? isDark
-                  ? "border-stone-800 bg-stone-950/40 text-stone-100 placeholder:text-stone-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                  : "border-stone-200 bg-white text-stone-900 placeholder:text-stone-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
-                : isDark
-                  ? "border-stone-800 bg-stone-950/20 text-stone-500 cursor-default"
-                  : "border-stone-100 bg-stone-50 text-stone-600 cursor-default"
-            )}
-          />
-          {url && (
-            <button
-              type="button"
-              onClick={handleCopy}
-              className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 transition",
-                isDark ? "text-stone-500 hover:text-stone-200" : "text-stone-400 hover:text-stone-600"
-              )}
-              title={t("content.copyLink")}
-            >
-              {copied ? (
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
-            </button>
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          disabled={!canEdit}
+          placeholder={t("content.postLinkPlaceholder")}
+          className={cn(
+            "min-w-0 flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400",
+            !canEdit && "cursor-default text-slate-500"
           )}
-        </div>
-        {url && (
+        />
+        {url ? (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="shrink-0 rounded p-1 text-slate-400 transition hover:text-slate-600"
+            title={t("content.copyLink")}
+          >
+            {copied ? (
+              <Check className="h-4 w-4 text-emerald-500" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+          </button>
+        ) : null}
+        {url ? (
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition",
-              isDark
-                ? "border-stone-800 bg-stone-950/40 text-stone-300 hover:bg-stone-900/50 hover:text-stone-100"
-                : "border-stone-200 bg-white text-stone-500 hover:text-stone-800"
-            )}
+            className="shrink-0 rounded p-1 text-slate-400 transition hover:text-slate-600"
             title={t("content.openLink")}
           >
             <ExternalLink className="h-4 w-4" />
           </a>
-        )}
-        {canEdit && isDirty && (
+        ) : null}
+        {canEdit && isDirty ? (
           <Button size="sm" onClick={handleSave} disabled={saving}>
             {saving ? "..." : t("common.save")}
           </Button>
-        )}
+        ) : null}
       </div>
-      {url && (
-        <p className={cn("text-[11px]", isDark ? "text-stone-500" : "text-stone-400")}>
-          {t("content.postLinkHint")}
-        </p>
-      )}
+    </div>
+  );
+}
+
+function PlatformPills({ platforms }: { platforms: Platform[] }) {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-1.5">
+      {platforms.map((platform) => {
+        const config = PLATFORMS.find((p) => p.id === platform);
+        return (
+          <span
+            key={platform}
+            className="inline-flex rounded-full bg-[#FCE7EF] px-2.5 py-0.5 text-xs font-semibold text-[#C2185B]"
+          >
+            {config?.label ?? platform}
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -225,114 +212,104 @@ function PostLinkSection({
 
 function AssignmentDetails({
   content,
-  theme = "light",
 }: {
   content: ContentItem;
   theme?: "light" | "dark";
 }) {
-  const { t, locale } = useT();
-  const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
-  const isDark = theme === "dark";
-  const scheduleLabel = content.scheduledDate
-    ? `${formatLocalizedDate(content.scheduledDate, locale)}${content.scheduledTime ? ` · ${content.scheduledTime}` : ""}`
-    : null;
+  const { t } = useT();
+
+  const mediaTypeLabel =
+    content.mediaType === "video"
+      ? t("dashboard.mediaVideo")
+      : content.mediaType === "image"
+        ? t("dashboard.mediaImage")
+        : content.mediaType === "graphic"
+          ? t("dashboard.mediaGraphic")
+          : MEDIA_FORM_CONFIG[content.mediaType]?.label ?? content.mediaType;
+
+  const responsible =
+    content.editor?.trim() || content.ideaCreator?.trim() || null;
 
   const rows: Array<{
+    key: string;
     label: string;
     value: React.ReactNode;
-    icon?: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   }> = [];
 
-  // Match reference layout: icon + label (left) and value (right).
-  if (content.ideaCreator) {
+  if (content.scheduledDate) {
     rows.push({
-      label: t("content.createdBy"),
-      value: (
-        <span className="text-base font-semibold text-stone-900">
-          {content.ideaCreator}
-        </span>
-      ),
-      icon: User,
-    });
-  }
-
-  if (scheduleLabel) {
-    rows.push({
+      key: "date",
       label: t("content.postDate"),
       value: (
-        <span className="text-base font-medium text-stone-900">
-          {scheduleLabel}
+        <span className="text-sm font-semibold text-slate-800">
+          {content.scheduledDate}
+          {content.scheduledTime ? ` · ${content.scheduledTime}` : ""}
         </span>
       ),
       icon: CalendarDays,
     });
   }
 
-  if (content.category) {
-    rows.push({
-      label: t("content.category"),
-      value: (
-        <span className="text-base font-semibold text-emerald-700">
-          {content.category}
-        </span>
-      ),
-      icon: Tag,
-    });
-  }
-
   if (content.platforms.length > 0) {
     rows.push({
+      key: "platforms",
       label: t("content.platforms"),
-      value: <PlatformBadgeGroup platforms={content.platforms} size="sm" />,
-      icon: Package,
+      value: <PlatformPills platforms={content.platforms} />,
+      icon: Share2,
     });
   }
 
   if (content.approver) {
     rows.push({
+      key: "approver",
       label: t("content.approvedBy"),
       value: (
-        <span className="text-base font-medium text-stone-900">
+        <span className="text-sm font-semibold text-slate-800">
           {content.approver}
         </span>
       ),
-      icon: ShieldCheck,
+      icon: CheckCheck,
     });
   }
 
+  if (responsible) {
+    rows.push({
+      key: "responsible",
+      label: t("content.responsiblePerson"),
+      value: (
+        <span className="text-sm font-semibold text-slate-800">{responsible}</span>
+      ),
+      icon: Users,
+    });
+  }
+
+  rows.push({
+    key: "type",
+    label: t("content.contentTypeLabel"),
+    value: (
+      <span className="text-sm font-semibold text-slate-800">{mediaTypeLabel}</span>
+    ),
+    icon: Clapperboard,
+  });
+
   return (
-    <div className="space-y-0.5">
-      <p
-        className={cn(
-          "mb-2 text-sm font-bold tracking-wide",
-          isDark ? "text-stone-200" : "text-stone-900"
-        )}
-      >
+    <div>
+      <p className="mb-4 flex items-center gap-2 text-[15px] font-bold text-slate-900">
+        <Sparkles className="h-4 w-4 text-slate-500" strokeWidth={2.25} />
         {t("content.assignmentDetails")}
       </p>
-      <div className={cn("divide-y", isDark ? "divide-stone-800" : "divide-stone-100")}>
-        {rows.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="flex items-center justify-between gap-6 py-3">
-            <dt
-              className={cn(
-                "flex shrink-0 items-center gap-2 text-sm font-semibold",
-                isDark ? "text-stone-200" : "text-stone-800"
-              )}
-            >
-              {Icon && (
-                <Icon
-                  className={cn(
-                    "h-4 w-4",
-                    isDark ? "text-stone-400" : "text-stone-700"
-                  )}
-                />
-              )}
+      <dl className="space-y-3.5">
+        {rows.map(({ key, label, value, icon: Icon }) => (
+          <div key={key} className="flex items-center justify-between gap-4">
+            <dt className="flex shrink-0 items-center gap-2 text-sm font-medium text-slate-600">
+              <Icon className="h-4 w-4 text-slate-500" strokeWidth={2} />
               {label}
             </dt>
-            <dd className="text-right">{value}</dd>
+            <dd className="min-w-0 text-right">{value}</dd>
           </div>
         ))}
-      </div>
+      </dl>
     </div>
   );
 }
@@ -341,61 +318,56 @@ function AssignmentDetails({
 
 function PostObjective({
   content,
-  theme = "light",
 }: {
   content: ContentItem;
   theme?: "light" | "dark";
 }) {
   const { t } = useT();
-  const isDark = theme === "dark";
   if (!content.details) return null;
   return (
-    <div className="space-y-1.5">
-      <p
-        className={cn(
-          "text-sm font-bold tracking-wide",
-          isDark ? "text-stone-200" : "text-stone-900"
-        )}
-      >
+    <div className="space-y-3">
+      <p className="flex items-center gap-2 text-[15px] font-bold text-slate-900">
+        <FileText className="h-4 w-4 text-slate-500" strokeWidth={2.25} />
         {t("content.objectiveTitle")}
       </p>
-      <p
-        className={cn(
-          "text-base leading-relaxed",
-          isDark ? "text-stone-100" : "text-stone-800"
-        )}
-      >
-        {content.details}
-      </p>
+      <p className="text-sm leading-relaxed text-slate-700">{content.details}</p>
     </div>
   );
 }
 
-// ─── Hero media (left column) ─────────────────────────────────────────────────
+// ─── Hero media + stats + caption ─────────────────────────────────────────────
 
-function HeroMediaPanel({
-  content,
-  theme = "light",
-}: {
-  content: ContentItem;
-  theme?: "light" | "dark";
-}) {
+function formatCompactMetric(value: number | null | undefined) {
+  if (value == null || Number.isNaN(value)) return "—";
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  }
+  return value.toLocaleString("th-TH");
+}
+
+function MediaCaptionPanel({ content }: { content: ContentItem }) {
   const { t } = useT();
-  const isDark = theme === "dark";
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [durationText, setDurationText] = useState("0:00");
   const [isPlaying, setIsPlaying] = useState(false);
 
   const mediaConfig = MEDIA_FORM_CONFIG[content.mediaType];
   const heroUrl = content.attachments.find((url) => url.trim()) ?? "";
   const heroIsVideo = heroUrl ? isVideoMediaUrl(heroUrl) : false;
   const heroIsImage = heroUrl ? isImageAttachment(heroUrl) : false;
+  const showVideoBadge = heroIsVideo || content.mediaType === "video";
 
-  const handleLoadedMetadata = () => {
-    const duration = videoRef.current?.duration;
-    if (duration == null || !Number.isFinite(duration)) return;
-    setDurationText(formatVideoDuration(duration));
-  };
+  const headline =
+    content.imageMeta?.headline?.trim() || content.name.trim() || "";
+  const captionBody =
+    content.details.trim() ||
+    content.script
+      .map((row) => row.dialogue?.trim() || row.action?.trim() || "")
+      .filter(Boolean)
+      .join("\n") ||
+    "";
 
   const togglePlay = async () => {
     const el = videoRef.current;
@@ -409,83 +381,139 @@ function HeroMediaPanel({
         setIsPlaying(false);
       }
     } catch {
-      // ignore autoplay/play restrictions; UI still should work
+      // ignore autoplay/play restrictions
     }
   };
 
+  const metrics = [
+    {
+      key: "reach",
+      label: t("content.metricReach"),
+      value: formatCompactMetric(null),
+      icon: Users,
+      iconClass: "text-[#4F46E5]",
+    },
+    {
+      key: "views",
+      label: t("content.metricViews"),
+      value: formatCompactMetric(null),
+      icon: Eye,
+      iconClass: "text-[#E11D8A]",
+    },
+    {
+      key: "likes",
+      label: t("content.metricLikes"),
+      value: formatCompactMetric(null),
+      icon: ThumbsUp,
+      iconClass: "text-[#F59E0B]",
+    },
+    {
+      key: "ctr",
+      label: t("content.metricCtr"),
+      value: "—",
+      icon: MousePointerClick,
+      iconClass: "text-[#22C55E]",
+    },
+  ] as const;
+
   return (
     <div className="overflow-hidden">
-      {heroIsVideo ? (
-        <div className="relative">
-          <video
-            ref={videoRef}
+      <div className="relative">
+        {heroIsVideo ? (
+          <>
+            <video
+              ref={videoRef}
+              src={heroUrl}
+              poster={content.coverImage || undefined}
+              controls={false}
+              className="aspect-video w-full bg-black object-cover"
+              preload="metadata"
+            />
+            <button
+              type="button"
+              onClick={togglePlay}
+              className="absolute inset-0 flex items-center justify-center bg-black/10"
+              aria-label={isPlaying ? "Pause" : "Play"}
+            >
+              {!isPlaying ? (
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur">
+                  <Play className="h-5 w-5 fill-current" />
+                </span>
+              ) : null}
+            </button>
+          </>
+        ) : heroIsImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={heroUrl}
-            poster={content.coverImage || undefined}
-            controls={false}
-            className={cn(
-              "aspect-video w-full bg-black object-cover"
-            )}
-            preload="metadata"
-            onLoadedMetadata={handleLoadedMetadata}
+            alt={content.name}
+            className="aspect-video w-full object-cover"
           />
-          {/* Always render green-tint + play badge (matches the reference UI). */}
-          <div className="pointer-events-none absolute inset-0 bg-emerald-500/15" />
-          <button
-            type="button"
-            onClick={togglePlay}
-            className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded border border-stone-600/20 bg-black/50 px-3 py-2 text-[11px] font-medium text-stone-50 backdrop-blur"
-            aria-label={isPlaying ? "Pause" : "Play"}
+        ) : (
+          <div
+            className={cn(
+              "flex aspect-video w-full flex-col items-center justify-center gap-2",
+              mediaConfig.accentBg
+            )}
           >
-            <Play className="h-3.5 w-3.5" />
-            <span className="font-mono">{durationText}</span>
-          </button>
-        </div>
-      ) : heroIsImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={heroUrl}
-          alt={content.name}
-          className={cn(
-            "w-full object-cover",
-            isDark ? "aspect-video" : "aspect-4/5 sm:aspect-video"
-          )}
-        />
-      ) : (
-        <div
-          className={cn(
-            "flex aspect-video w-full flex-col items-center justify-center gap-2",
-            mediaConfig.accentBg
-          )}
-        >
-          <p className={cn("text-sm", isDark ? "text-stone-400" : "text-stone-500")}>
-            {t("content.previewMissing")}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
+            <p className="text-sm text-stone-500">{t("content.previewMissing")}</p>
+          </div>
+        )}
 
-// ─── Caption preview ──────────────────────────────────────────────────────────
+        {showVideoBadge ? (
+          <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+            <Play className="h-3 w-3 fill-[#EF4444] text-[#EF4444]" />
+            {t("content.videoBadge")}
+          </span>
+        ) : null}
+      </div>
 
-function CaptionPreview({ content }: { content: ContentItem }) {
-  const { t } = useT();
-  const caption = content.details;
-  if (!caption) return null;
+      <div className="grid grid-cols-4 divide-x divide-slate-100 border-y border-slate-100">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <div
+              key={metric.key}
+              className="flex flex-col items-center gap-1 px-2 py-3.5 text-center"
+            >
+              <Icon className={cn("h-4 w-4", metric.iconClass)} strokeWidth={2.25} />
+              <p className="text-sm font-bold text-slate-900 sm:text-base">
+                {metric.value}
+              </p>
+              <p className="text-[10px] font-medium text-slate-400 sm:text-[11px]">
+                {metric.label}
+              </p>
+            </div>
+          );
+        })}
+      </div>
 
-  return (
-    <div className="space-y-1.5">
-      <p className="text-sm font-bold tracking-wide text-stone-900">
-        {t("content.captionPreview")}
-      </p>
-      <p className="whitespace-pre-wrap text-base leading-relaxed text-stone-800">
-        {caption}
-      </p>
-      {content.tags.length > 0 && (
-        <p className="mt-2 text-base font-medium text-blue-600">
-          {content.tags.map((tag) => `#${tag}`).join(" ")}
+      <div className="space-y-3 pt-5">
+        <p className="flex items-center gap-2 text-[15px] font-bold text-slate-900">
+          <FileText className="h-4 w-4 text-slate-500" strokeWidth={2.25} />
+          {t("content.captionPreview")}
         </p>
-      )}
+
+        {headline ? (
+          <p className="text-base font-bold text-slate-900">
+            ✨ {headline} ✨
+          </p>
+        ) : null}
+
+        {captionBody ? (
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+            {captionBody}
+          </p>
+        ) : (
+          <p className="text-sm text-slate-400">{t("content.previewMissing")}</p>
+        )}
+
+        {content.tags.length > 0 ? (
+          <p className="text-sm font-medium text-slate-400">
+            {content.tags.map((tag) => `#${tag}`).join(" ")}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -765,16 +793,13 @@ export function ContentDetailView({
         <div className="border-t border-stone-200" />
 
         {/* Vertical divider between columns */}
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_320px]">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
           {/* LEFT: media + caption + comments */}
           <div className="space-y-0 pr-0 lg:pr-10">
+            <div className="pt-8 pb-8">
+              <MediaCaptionPanel content={content} />
+            </div>
             <div className="pb-8">
-              <HeroMediaPanel content={content} />
-            </div>
-            <div className="border-t border-stone-200 py-6">
-              <CaptionPreview content={content} />
-            </div>
-            <div className="border-t border-stone-200 pt-6">
               <ContentComments contentId={content.id} />
             </div>
           </div>
@@ -783,26 +808,27 @@ export function ContentDetailView({
           <div className="hidden lg:block bg-stone-200" />
 
           {/* RIGHT: sidebar */}
-          <aside className="space-y-0 pl-0 lg:pl-10">
-            <div className="pb-6 pt-8">
+          <aside className="pl-0 lg:pl-10">
+            <div className="mt-8 space-y-0">
               <AssignmentDetails content={content} />
-            </div>
 
-            <div className="border-t border-stone-200 py-6">
+              <div className="my-5 border-t border-slate-100" />
+
               <PostLinkSection
                 content={content}
                 canEdit={canEdit}
                 onSaved={setContent}
               />
+
+              {content.details ? (
+                <>
+                  <div className="my-5 border-t border-slate-100" />
+                  <PostObjective content={content} />
+                </>
+              ) : null}
             </div>
 
-            {content.details && (
-              <div className="border-t border-stone-200 py-6">
-                <PostObjective content={content} />
-              </div>
-            )}
-
-            <div className="border-t border-stone-200 py-6">
+            <div className="mt-6 border-t border-stone-200 py-6">
               <ContentHistoryPanel contentId={content.id} variant="timeline" />
             </div>
           </aside>

@@ -4,8 +4,9 @@ import { useState } from "react";
 import useSWR from "swr";
 import { MessageSquare, Pencil, Tag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { PersonAvatar } from "@/app/collaboration/_components/PersonAvatar";
 import { TEAM_MEMBERS } from "@/lib/constants";
-import { formatLocalizedDate, useT } from "@/lib/i18n";
+import { dateLocale, useT } from "@/lib/i18n";
 import {
   fetchContentComments,
   postContentComment,
@@ -26,26 +27,53 @@ function commentTypeLabel(type: string, t: ReturnType<typeof useT>["t"]): string
   }
 }
 
-function CommentTypeIcon({ type }: { type: string }) {
+function commentTypeClass(type: string) {
   switch (type) {
     case "edit_request":
-      return <Pencil className="h-3.5 w-3.5" />;
+      return "text-orange-500";
     case "tag":
-      return <Tag className="h-3.5 w-3.5" />;
+      return "text-[#7C6BB5]";
     default:
-      return <MessageSquare className="h-3.5 w-3.5" />;
+      return "text-slate-400";
   }
+}
+
+function CommentTypeIcon({ type }: { type: string }) {
+  const className = "h-3.5 w-3.5";
+  switch (type) {
+    case "edit_request":
+      return <Pencil className={className} strokeWidth={2.25} />;
+    case "tag":
+      return <Tag className={className} strokeWidth={2.25} />;
+    default:
+      return <MessageSquare className={className} strokeWidth={2.25} />;
+  }
+}
+
+function formatCommentTime(iso: string, locale: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const dayMonthYear = date.toLocaleDateString(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const time = date.toLocaleTimeString(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return `${dayMonthYear} · ${time}`;
 }
 
 export function ContentComments({
   contentId,
-  theme = "light",
 }: {
   contentId: string;
   theme?: "light" | "dark";
 }) {
-  const isDark = theme === "dark";
   const { t, locale } = useT();
+  const loc = dateLocale(locale);
   const [body, setBody] = useState("");
   const [commentType, setCommentType] = useState<CommentType>("comment");
   const [taggedName, setTaggedName] = useState("");
@@ -89,120 +117,78 @@ export function ContentComments({
   const commentsCount = match ? match[2] : String(comments.length);
 
   return (
-    <section
-      className={cn(
-        "rounded-none border-0 bg-transparent p-0 shadow-none"
-      )}
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span
-            className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-              isDark
-                ? "bg-stone-900 text-stone-200"
-                : "bg-transparent text-stone-500"
-            )}
-          >
-            <MessageSquare className="h-5 w-5" strokeWidth={2.25} />
-          </span>
-          <h3
-            className={cn(
-              "text-xl font-bold tracking-tight",
-              isDark ? "text-stone-200" : "text-stone-900"
-            )}
-          >
+    <section className="bg-transparent p-0">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <MessageSquare
+            className="h-4 w-4 text-[#7C6BB5]"
+            strokeWidth={2.25}
+          />
+          <h3 className="text-[15px] font-bold text-slate-900">
             {commentsTitle}
           </h3>
         </div>
-        <span
-          className={cn(
-            "text-xs font-medium",
-            isDark ? "text-stone-500" : "text-stone-500"
-          )}
-        >
-          {commentsCount}
-        </span>
+        <span className="text-sm font-medium text-slate-400">{commentsCount}</span>
       </div>
 
-      <div>
-        {comments.length > 0 ? (
-          <ul className="mb-4 space-y-3">
-            {comments.map((comment) => (
-              <li
-                key={comment.id}
-                className="rounded-xl border border-stone-100 bg-stone-50/70 px-3.5 py-3"
-              >
-                <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
+      {comments.length > 0 ? (
+        <ul className="space-y-5">
+          {comments.map((comment) => (
+            <li key={comment.id} className="flex gap-3">
+              <PersonAvatar name={comment.authorName} size="sm" letters={1} />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="text-sm font-bold text-slate-900">
+                    {comment.authorName}
+                  </span>
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                      comment.commentType === "edit_request"
-                        ? "bg-orange-100 text-orange-700"
-                        : comment.commentType === "tag"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-stone-200 text-stone-700"
+                      "inline-flex items-center gap-1 text-xs font-semibold",
+                      commentTypeClass(comment.commentType)
                     )}
                   >
                     <CommentTypeIcon type={comment.commentType} />
                     {commentTypeLabel(comment.commentType, t)}
                   </span>
-                  <span className="font-medium text-stone-700">
-                    {comment.authorName}
+                  <span className="ml-auto text-xs text-slate-400">
+                    {formatCommentTime(comment.createdAt, loc)}
                   </span>
-                  <span>·</span>
-                  <span>{formatLocalizedDate(comment.createdAt.slice(0, 10), locale)}</span>
                 </div>
-                <p className="mt-1.5 text-sm leading-relaxed text-stone-800">
+                <p className="mt-1 text-sm leading-relaxed text-slate-800">
                   {comment.body}
                 </p>
-                {comment.taggedName && (
-                  <p className="mt-1 text-xs text-blue-600">
+                {comment.taggedName ? (
+                  <p className="mt-1 text-xs font-medium text-[#5B5EF0]">
                     {t("content.tagged", { name: comment.taggedName })}
                   </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="mb-4 py-8 text-center">
-            <p
-              className={cn(
-                "text-sm font-medium",
-                isDark ? "text-stone-300" : "text-stone-600"
-              )}
-            >
-              {t("content.emptyComments")}
-            </p>
-            <p
-              className={cn(
-                "mt-1 text-xs",
-                isDark ? "text-stone-500" : "text-stone-400"
-              )}
-            >
-              {t("content.emptyCommentsHint")}
-            </p>
-          </div>
-        )}
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="py-6 text-center">
+          <p className="text-sm font-medium text-slate-600">
+            {t("content.emptyComments")}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            {t("content.emptyCommentsHint")}
+          </p>
+        </div>
+      )}
 
+      <div className="mt-5 border-t border-slate-100 pt-4">
         {!showForm ? (
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition",
-                isDark
-                  ? "border-stone-700 bg-stone-900/40 text-stone-100 hover:bg-stone-900"
-                  : "border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100"
-              )}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              {t("content.writeComment")}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="flex w-full items-center gap-2.5 text-left text-sm text-slate-400 transition hover:text-slate-600"
+          >
+            <MessageSquare className="h-4 w-4 shrink-0" strokeWidth={2} />
+            {t("content.writeComment")}
+          </button>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-3 border-t border-stone-100 pt-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div className="flex flex-wrap gap-2">
               {(
                 [
@@ -218,8 +204,8 @@ export function ContentComments({
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                     commentType === type
-                      ? "border-blue-300 bg-blue-50 text-blue-700"
-                      : "border-stone-200 text-stone-600 hover:bg-stone-50"
+                      ? "border-[#7C6BB5]/40 bg-[#F3F0FA] text-[#5B4B8A]"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
                   )}
                 >
                   {label}
@@ -227,11 +213,11 @@ export function ContentComments({
               ))}
             </div>
 
-            {commentType === "tag" && (
+            {commentType === "tag" ? (
               <select
                 value={taggedName}
                 onChange={(e) => setTaggedName(e.target.value)}
-                className="w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
                 required
               >
                 <option value="">{t("content.taggedPlaceholder")}</option>
@@ -241,7 +227,7 @@ export function ContentComments({
                   </option>
                 ))}
               </select>
-            )}
+            ) : null}
 
             <textarea
               value={body}
@@ -254,11 +240,11 @@ export function ContentComments({
                     : t("content.commentPlaceholder")
               }
               rows={3}
-              className="w-full resize-none rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#7C6BB5]/50 focus:ring-2 focus:ring-[#7C6BB5]/15"
               autoFocus
             />
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
             <div className="flex items-center justify-end gap-2">
               <Button
