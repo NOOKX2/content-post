@@ -140,6 +140,7 @@ function emptyAnalytics(
     popularPosts: [],
     unpopularPosts: [],
     comparison: [],
+    platformBreakdown: [],
     trend: [],
     ...partial,
   };
@@ -334,17 +335,45 @@ export async function fetchSocialAnalytics(options: {
     const popularPosts = sorted.slice(0, 5);
     const unpopularPosts = [...sorted].reverse().slice(0, 5);
 
-    const comparison = sorted.slice(0, 8).map((post, index) => ({
-      label: `โพสต์ ${index + 1}`,
-      engagement: post.reactions + post.comments + post.shares,
-      reach: post.reach,
-    }));
+    const comparison = sorted.slice(0, 8).map((post) => {
+      const text = post.text.replace(/\s+/g, " ").trim() || "โพสต์";
+      return {
+        label: text.length > 14 ? `${text.slice(0, 14)}...` : text,
+        engagement: post.reactions + post.comments + post.shares,
+        reach: post.reach,
+        views: post.views,
+      };
+    });
+
+    const PLATFORM_COLORS: Record<string, string> = {
+      instagram: "#ec4899",
+      tiktok: "#111827",
+      facebook: "#3b82f6",
+      youtube: "#ef4444",
+      twitter: "#22d3ee",
+      x: "#22d3ee",
+      linkedin: "#0ea5e9",
+    };
+
+    const platformMap = new Map<string, number>();
+    for (const post of posts) {
+      const key = (post.channelService || "other").toLowerCase();
+      platformMap.set(key, (platformMap.get(key) ?? 0) + (post.reach || post.views || 1));
+    }
+    const platformBreakdown = [...platformMap.entries()]
+      .map(([label, value]) => ({
+        label: label.charAt(0).toUpperCase() + label.slice(1),
+        value,
+        color: PLATFORM_COLORS[label] ?? "#94a3b8",
+      }))
+      .sort((a, b) => b.value - a.value);
 
     return {
       summary,
       popularPosts,
       unpopularPosts,
       comparison,
+      platformBreakdown,
       trend: buildTrend(posts),
       configured: true,
     };

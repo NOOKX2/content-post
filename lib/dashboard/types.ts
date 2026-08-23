@@ -1,6 +1,6 @@
 import type { MediaType, Platform } from "@/lib/types";
 
-export type DashboardPeriod = "day" | "month" | "year" | "custom";
+export type DashboardPeriod = "7d" | "30d" | "90d" | "year" | "custom";
 
 export type DashboardFilters = {
   period: DashboardPeriod;
@@ -9,6 +9,7 @@ export type DashboardFilters = {
   channel?: string;
   platform?: Platform | "all";
   mediaType?: MediaType | "all";
+  memberId?: string | "all";
 };
 
 export type SocialMetricSummary = {
@@ -53,7 +54,13 @@ export type SocialAnalyticsResponse = {
   summary: SocialMetricSummary;
   popularPosts: SocialPostMetric[];
   unpopularPosts: SocialPostMetric[];
-  comparison: { label: string; engagement: number; reach: number }[];
+  comparison: {
+    label: string;
+    engagement: number;
+    reach: number;
+    views: number;
+  }[];
+  platformBreakdown: { label: string; value: number; color: string }[];
   trend: { date: string; engagement: number; reach: number }[];
   configured: boolean;
   error?: string;
@@ -65,8 +72,11 @@ export type WorkflowSummary = {
   total: number;
   inProgress: number;
   published: number;
+  overdue: number;
   nearDeadline: number;
   rejected: number;
+  todo: number;
+  done: number;
 };
 
 export type WorkflowStatusSlice = {
@@ -82,9 +92,39 @@ export type WorkflowTrendPoint = {
   published: number;
 };
 
+export type MemberPerformance = {
+  memberId: string;
+  name: string;
+  done: number;
+  inProgress: number;
+  todo: number;
+};
+
+export type MediaTypeSlice = {
+  key: string;
+  label: string;
+  count: number;
+  percent: number;
+  color: string;
+};
+
+export type UpcomingDeadlineItem = {
+  id: string;
+  title: string;
+  status: string;
+  statusLabel: string;
+  priority?: string;
+  dueDate: string;
+  assigneeName: string;
+  assigneeId: string | null;
+};
+
 export type WorkflowAnalytics = {
   summary: WorkflowSummary;
   statusBreakdown: WorkflowStatusSlice[];
   channelBreakdown: { channel: string; count: number }[];
+  mediaTypeBreakdown: MediaTypeSlice[];
+  memberPerformance: MemberPerformance[];
+  upcomingDeadlines: UpcomingDeadlineItem[];
   trend: WorkflowTrendPoint[];
 };

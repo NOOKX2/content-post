@@ -14,17 +14,25 @@ export function getDateRangeForPeriod(
     return { start: customStart, end: customEnd };
   }
 
-  if (period === "day") {
-    return { start: end, end };
+  if (period === "7d") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 6);
+    return { start: formatDateKey(start), end };
   }
 
-  if (period === "month") {
-    const start = formatDateKey(
-      new Date(today.getFullYear(), today.getMonth(), 1)
-    );
-    return { start, end };
+  if (period === "30d") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 29);
+    return { start: formatDateKey(start), end };
   }
 
+  if (period === "90d") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 89);
+    return { start: formatDateKey(start), end };
+  }
+
+  // year — calendar year to date
   const start = formatDateKey(new Date(today.getFullYear(), 0, 1));
   return { start, end };
 }
@@ -60,6 +68,19 @@ export function filterContentsForDashboard(
 
     if (filters.platform && filters.platform !== "all") {
       if (!content.platforms.includes(filters.platform)) return false;
+    }
+
+    if (filters.memberId && filters.memberId !== "all") {
+      const members = [
+        content.createdById,
+        content.ideaCreator,
+        content.photographer,
+        content.editor,
+        ...(content.team ?? []).map((row) => row.participant),
+      ]
+        .filter(Boolean)
+        .map(String);
+      if (!members.includes(filters.memberId)) return false;
     }
 
     return true;

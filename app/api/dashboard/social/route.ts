@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   if ("error" in authResult) return authResult.error;
 
   const { searchParams } = new URL(request.url);
-  const period = (searchParams.get("period") ?? "month") as DashboardPeriod;
+  const period = (searchParams.get("period") ?? "30d") as DashboardPeriod;
   const startDate = searchParams.get("startDate") ?? undefined;
   const endDate = searchParams.get("endDate") ?? undefined;
   const platform = searchParams.get("platform") ?? "all";
@@ -60,6 +60,7 @@ export async function GET(request: Request) {
       popularPosts: [],
       unpopularPosts: [],
       comparison: [],
+      platformBreakdown: [],
       trend: [],
       configured: true,
       error: `ดึงข้อมูล Buffer ไม่สำเร็จ — ${message}`,

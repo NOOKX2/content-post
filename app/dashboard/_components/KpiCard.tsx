@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/shared/utils";
 import type { LucideIcon } from "lucide-react";
 
@@ -6,117 +5,89 @@ export function KpiCard({
   label,
   value,
   suffix,
+  hint,
   change,
+  changeTone = "up",
   icon: Icon,
   accent = "blue",
-  sparkline,
-  compact = false,
+  valueClassName,
 }: {
   label: string;
   value: string | number;
   suffix?: string;
+  hint?: string;
   change?: string;
+  changeTone?: "up" | "down" | "neutral";
   icon?: LucideIcon;
   accent?: "blue" | "green" | "amber" | "purple" | "rose";
-  sparkline?: number[];
-  compact?: boolean;
+  valueClassName?: string;
 }) {
   const accents = {
     blue: "bg-blue-50 text-blue-700",
     green: "bg-emerald-50 text-emerald-700",
     amber: "bg-amber-50 text-amber-700",
-    purple: "bg-purple-50 text-purple-700",
+    purple: "bg-violet-50 text-violet-700",
     rose: "bg-rose-50 text-rose-700",
   };
 
+  const toneClass =
+    changeTone === "down"
+      ? "text-[#F07178]"
+      : changeTone === "neutral"
+        ? "text-slate-400"
+        : "text-[#22C55E]";
+
   return (
-    <Card
-      padding="sm"
-      className={cn(
-        "relative overflow-hidden",
-        compact ? "!p-3 sm:!p-2.5" : "!p-3"
-      )}
-    >
-      <div className="flex items-start justify-between gap-2.5 sm:gap-2">
-        <div>
+    <div className="rounded-2xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm shadow-slate-200/30">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-medium text-slate-400">{label}</p>
           <p
             className={cn(
-              "font-medium text-stone-500",
-              compact ? "text-xs sm:text-[10px]" : "text-xs"
+              "mt-2 text-[1.75rem] leading-none font-bold tracking-tight",
+              valueClassName ?? "text-slate-900"
             )}
           >
-            {label}
-          </p>
-          <p
-            className={cn(
-              "font-bold text-stone-900",
-              compact
-                ? "mt-1 text-xl leading-tight sm:mt-0.5 sm:text-lg"
-                : "mt-1 text-xl"
-            )}
-          >
-            {typeof value === "number" ? value.toLocaleString("th-TH") : value}
-            {suffix && (
-              <span className="ml-1 text-sm font-medium text-stone-500">
+            {typeof value === "number" ? formatCompact(value) : value}
+            {suffix ? (
+              <span className={cn("ml-0.5 text-[1.75rem] font-bold", valueClassName)}>
                 {suffix}
               </span>
-            )}
+            ) : null}
           </p>
-          {change && (
-            <p className="mt-1 text-xs font-medium text-emerald-600">{change}</p>
-          )}
         </div>
-        {Icon && (
+        {Icon ? (
           <div
             className={cn(
-              "flex items-center justify-center rounded-lg",
-              compact ? "h-8 w-8 sm:h-7 sm:w-7" : "h-8 w-8",
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
               accents[accent]
             )}
           >
-            <Icon className={compact ? "h-4 w-4 sm:h-3.5 sm:w-3.5" : "h-4 w-4"} />
+            <Icon className="h-4 w-4" />
           </div>
-        )}
+        ) : null}
       </div>
-      {sparkline && sparkline.length > 1 && !compact && (
-        <MiniSparkline values={sparkline} className="mt-2" />
+      {(hint || change) && (
+        <div className="mt-3 flex items-end justify-between gap-2">
+          {hint ? (
+            <p className="text-[12px] text-slate-400">{hint}</p>
+          ) : (
+            <span />
+          )}
+          {change ? (
+            <p className={cn("shrink-0 text-[12px] font-semibold", toneClass)}>
+              {changeTone === "down" ? "↘" : changeTone === "up" ? "↗" : "→"}{" "}
+              {change}
+            </p>
+          ) : null}
+        </div>
       )}
-    </Card>
+    </div>
   );
 }
 
-function MiniSparkline({
-  values,
-  className,
-}: {
-  values: number[];
-  className?: string;
-}) {
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const range = max - min || 1;
-  const width = 120;
-  const height = 32;
-  const points = values
-    .map((value, index) => {
-      const x = (index / (values.length - 1)) * width;
-      const y = height - ((value - min) / range) * height;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      className={cn("h-8 w-full text-blue-500", className)}
-      preserveAspectRatio="none"
-    >
-      <polyline
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        points={points}
-      />
-    </svg>
-  );
+function formatCompact(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return value.toLocaleString("th-TH");
 }
