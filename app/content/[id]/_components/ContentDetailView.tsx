@@ -424,7 +424,7 @@ function MediaCaptionPanel({ content }: { content: ContentItem }) {
               src={heroUrl}
               poster={content.coverImage || undefined}
               controls={false}
-              className="aspect-video w-full bg-black object-cover"
+              className="aspect-square w-full bg-black object-contain"
               preload="metadata"
             />
             <button
@@ -466,7 +466,7 @@ function MediaCaptionPanel({ content }: { content: ContentItem }) {
         ) : null}
       </div>
 
-      <div className="grid grid-cols-4 divide-x divide-slate-100 border-y border-slate-100">
+      <div className="grid grid-cols-4 divide-x divide-stone-200 border-y border-stone-200">
         {metrics.map((metric) => {
           const Icon = metric.icon;
           return (
@@ -797,7 +797,7 @@ export function ContentDetailView({
             <div className="pt-8 pb-8">
               <MediaCaptionPanel content={content} />
             </div>
-            <div className="pb-8">
+            <div className="border-t border-stone-200 pt-6 pb-8">
               <ContentComments contentId={content.id} />
             </div>
           </div>
@@ -810,7 +810,7 @@ export function ContentDetailView({
             <div className="mt-8 space-y-0">
               <AssignmentDetails content={content} />
 
-              <div className="my-5 border-t border-slate-100" />
+              <div className="my-5 border-t border-stone-200" />
 
               <PostLinkSection
                 content={content}
@@ -820,7 +820,7 @@ export function ContentDetailView({
 
               {content.details ? (
                 <>
-                  <div className="my-5 border-t border-slate-100" />
+                  <div className="my-5 border-t border-stone-200" />
                   <PostObjective content={content} />
                 </>
               ) : null}
